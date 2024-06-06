@@ -1,0 +1,9 @@
+/* Logo styles */
+.logo {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+#top-logo {
+    height: 40px;
+}

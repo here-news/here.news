@@ -1,0 +1,78 @@
+/* global.css */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+    font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3 {
+    font-family: 'Roboto', sans-serif;
+}
+
+a:hover, button:hover {
+    color: #007bff; /* Accent color */
+    text-decoration: underline;
+}
+
+.bd-highlight {
+    background-color: #fff944;
+}
+
+
+.timestamp {
+    font-size: 0.8em;
+}
+
+.source-list {
+    font-size: 0.85em; /* Adjust the size as needed */
+    color: #333; /* Choose a color that ensures good readability */
+}
+
+.source-item {
+    margin-right: 10px; /* Add some space between items */
+    /* Additional styling if needed */
+}
+
+.source-item a {
+    color: #0066cc; /* Change link color for visibility */
+    text-decoration: none; /* Optional: removes underline from links */
+}
+
+.source-item a:hover {
+    text-decoration: underline; /* Optional: underline on hover for better user experience */
+}
+
+#banner-image {
+    height: 140px; /* Fixed height for the cropped look */
+    overflow: hidden; /* Hide the overflow when cropped */
+    transition: height 0.5s ease; /* Smooth transition for the effect */
+    }
+
+#banner-image:hover {
+    height: auto; /* Increase the height on hover to fit the full image */
+}
+
+#top-logo {
+    max-width: 48px; /* Adjust the size of the logo */
+    height: auto;
+    display: block;
+    margin: 10px auto; /* Adds margin and centers the logo */
+}
+.disclaimer {
+    background-color: #fff9c4; /* light yellow */
+    padding: 1rem;
+    margin-top: 1rem;
+    border-left: 4px solid #ffeb3b; /* brighter yellow to stand out */
+    font-size: 0.875rem; /* smaller font size for disclaimer text */
+}
+#coming-soon-msg {
+    transition: all 0.5s ease-in-out;
+}
+
+
+.favicon-img {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+    vertical-align: middle;
+}

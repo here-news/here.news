@@ -1,0 +1,86 @@
+.user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative; /* This is necessary for the .profile-menu positioning */
+}
+
+.avatar img {
+    border-radius: 50%;
+}
+
+.avatar-small img {
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+}
+
+.avatarLogin img {
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+}
+
+.user-details {
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-menu {
+    display: none; /* Initially hidden */
+    position: absolute; /* Absolute positioning relative to .user-info */
+    top: 100%; /* Position it below the user-info container */
+    right: 0; /* Align it to the right */
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+    z-index: 100; /* Ensure it floats above other elements */
+}
+
+.user-info:hover .profile-menu,
+.user-info:focus .profile-menu,
+.user-info.active .profile-menu {
+    display: block; /* Show the profile menu on hover or focus */
+}
+
+
+.profile-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #f5f5f5;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar li {
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.sidebar li.active {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 20px;
+}

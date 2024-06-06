@@ -1,0 +1,143 @@
+/* Comments-specific styles */
+.comments-container {
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin: 20px;
+    box-sizing: border-box;
+}
+
+.comment-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.input-group-text {
+    background: transparent;
+    border: none;
+}
+
+.input-group .form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
+
+.input-group .btn-outline-secondary {
+    border: none;
+}
+
+.input-group .fas.fa-paper-plane {
+    color: #007bff;
+}
+
+/* new styles after react */.comment {
+  display: flex;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.comment:hover {
+  background-color: #f0f0f0;
+}
+
+.comment img {
+  margin-right: 10px;
+}
+
+.comment-body {
+  flex: 1;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comment-author {
+  font-weight: bold;
+  color: #007bff;
+}
+
+.comment-timestamp {
+  font-size: 0.8em;
+  color: #888;
+}
+
+.comment-icons {
+  display: flex;
+  gap: 10px;
+}
+
+.reply-icon, .upvote-icon, .downvote-icon {
+  cursor: pointer;
+  font-size: 0.9em;
+  color: #888;
+  transition: color 0.3s;
+}
+
+.comment-reply {
+  display: flex;
+  margin-left: 20px;
+  margin-top: 5px;
+  padding: 5px;
+  border-left: 2px solid #ddd;
+}
+
+.reply-body {
+  flex: 1;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reply-author {
+  font-weight: bold;
+  color: #007bff;
+}
+
+.reply-timestamp {
+  font-size: 0.8em;
+  color: #888;
+}
+
+.replying-to {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.replying-to img {
+  margin-right: 10px;
+}
+
+.replying-to span {
+  font-weight: bold;
+  color: #007bff;
+  margin-right: 10px;
+}
+
+.replying-to p {
+  margin: 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+textarea.form-control {
+  margin-top: 10px;
+}
+
+button.btn {
+  margin-top: 10px;
+}

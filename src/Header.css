@@ -1,0 +1,58 @@
+/* Header styles */
+.header {
+    background-color: #f8f9fa;
+    padding: 10px 0; /* Add some padding to the header for better spacing */
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.header-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+
+
+.header-left a.logo img {
+    height: 36px;
+  }
+  
+.header .user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.header .user-profile img {
+    width: 32px; /* Set a consistent width and height for the avatar */
+    height: 32px;
+    border-radius: 50%; /* Ensure the avatar is a circle */
+    margin-right: 10px;
+}
+
+.header .user-profile span {
+    font-size: 14px;
+    color: #333; /* Adjust the font size and color as needed */
+}
+
+@media (max-width: 768px) {
+    .header .container {
+        flex-direction: column;
+        align-items: flex-start; /* Align items to the start for smaller screens */
+    }
+
+    .logo, .login-register-link {
+        justify-content: center;
+        width: 100%;
+        margin: 5px 0;
+    }
+}
