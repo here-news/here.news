@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from './UserContext';
 import Login from './Login';
 import serviceUrl from './config';
+import './ButtonFollow.css';  
 
 const FollowButton = ({ storyId, icon }) => {
   const { publicKey, openModal } = useUser();
@@ -95,7 +96,7 @@ const FollowButton = ({ storyId, icon }) => {
 
   return (
     <button
-      className="btn btn-sm btn-outline-primary"
+      className={`btn btn-sm ${isFollowing ? 'btn-primary' : 'btn-outline-primary'}`}
       onClick={handleFollow}
       disabled={isLoading}
     >
