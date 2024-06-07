@@ -1,7 +1,7 @@
 # Here.news
 
 ## Introduction
-=======
+
 Here.news is to leverage advanced AI and decentralized technologies to revolutionize journalism, ensuring accurate, unbiased, and comprehensive news coverage while actively engaging communities and professionals. Here.news aims to bridge the gap between traditional journalism and emerging AI capabilities to provide a trusted source of information and foster democratic narratives in the digital age.
 
 ## Features
@@ -15,8 +15,8 @@ Here.news is to leverage advanced AI and decentralized technologies to revolutio
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/here-news-frontend.git
-   cd here-news-frontend
+   git clone git@github.com:here-news/here.news.git
+   cd here.news
    ```
 
 2. **Install dependencies:**
