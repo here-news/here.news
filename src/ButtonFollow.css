@@ -1,12 +1,16 @@
 .btn-outline-primary {
-    border: 1px solid #007bff;
-    color: #007bff;
-    background-color: transparent;
-  }
-  
-  .btn-primary {
-    border: 1px solid #007bff;
-    color: white;
-    background-color: #007bff;
-  }
-  
+  border: 1px solid #007bff;
+  color: #007bff;
+  background-color: transparent;
+}
+
+.btn-primary {
+  border: 1px solid #007bff;
+  color: white;
+  background-color: #007bff;
+}
+
+.warning {
+  color: red;
+  margin-top: 5px;
+}

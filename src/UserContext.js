@@ -40,7 +40,7 @@ export const UserProvider = ({ children }) => {
     };
 
     return (
-        <UserContext.Provider value={{ publicKey, userInfo, setPublicKey, isModalOpen, openModal, closeModal, shortenPublicKey }}>
+        <UserContext.Provider value={{ publicKey, setPublicKey, userInfo, setUserInfo, isModalOpen, openModal, closeModal, shortenPublicKey }}>
             {children}
         </UserContext.Provider>
     );
