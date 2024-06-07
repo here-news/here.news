@@ -39,8 +39,9 @@ const ProfileWidget = () => {
                         <span>{userInfo && userInfo.name? userInfo.name : shortenPublicKey(publicKey, 3) }</span>
                         {isDropdownOpen && (
                             <div className="profile-menu">
-                            <span onClick={gotoProfile('wallet')}>Spices</span><br/>
                             <span onClick={gotoProfile('')}>Profile</span><br/>
+                            <span onClick={gotoProfile('spices')}>Spices</span><br/>
+                            <span onClick={gotoProfile('stories')}>Stories</span><br/>
                             <span onClick={gotoProfile('settings')}>Settings</span><hr/>
                             <span onClick={handleLogout}>Logout</span><br/>
 

@@ -1,46 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from './UserContext';
 import Login from './Login';
 import serviceUrl from './config';
 
-
-const FollowButton = ({initialCount, storyId, icon }) => {
+const FollowButton = ({ storyId, icon }) => {
   const { publicKey, openModal } = useUser();
-  const [count, setCount] = useState(initialCount);
+  const [count, setCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    // Fetch the follow count for the story
+    const fetchFollowCount = async () => {
+      const endpoint = `${serviceUrl}/follow/${storyId}/count`;
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCount(data.new_count);
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        alert('An error occurred. Please try again.');
+      }
+    };
+
+    // Fetch the follow status for the current user
+    const fetchFollowStatus = async () => {
+      if (publicKey) {
+        const endpoint = `${serviceUrl}/follow/${storyId}/${publicKey}`;
+        try {
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          const data = await response.json();
+          if (data.success) {
+            setIsFollowing(data.is_following);
+          } else {
+            alert(data.message);
+          }
+        } catch (error) {
+          alert('An error occurred. Please try again.');
+        }
+      }
+    };
+
+    fetchFollowCount();
+    fetchFollowStatus();
+  }, [publicKey, storyId]);
+
   const handleFollow = () => {
-    <Login />;
     if (!publicKey) {
       openModal();
       return;
     }
 
-    setCount(count + 1); // Optimistically update the UI
     setIsLoading(true);
 
-    const endpoint = serviceUrl + '/follow/' + storyId ;
+    const endpoint = `${serviceUrl}/follow/${storyId}`;
     fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming you have a token
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ public_key: publicKey }), // Ensure the key matches the expected field name
+      body: JSON.stringify({ public_key: publicKey, follow: !isFollowing }),
     })
       .then(response => response.json())
       .then(data => {
-        console.log('Follow response:', data)
         if (data.success) {
+          setIsFollowing(!isFollowing);
           setCount(data.new_count);
         } else {
           alert(data.message);
-          setCount(count); // Revert to the original count if the vote was not successful
         }
       })
       .catch(() => {
         alert('An error occurred. Please try again.');
-        setCount(count); // Revert to the original count in case of error
       })
       .finally(() => {
         setIsLoading(false);
@@ -53,7 +99,7 @@ const FollowButton = ({initialCount, storyId, icon }) => {
       onClick={handleFollow}
       disabled={isLoading}
     >
-      {icon} <span>{count}</span>
+      {isFollowing ? 'Unfollow' : 'Follow'} {icon} <span>{count}</span>
     </button>
   );
 };
