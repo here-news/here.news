@@ -17,6 +17,7 @@ const Home = () => {
             setLoading(false);
         })
         .catch(error => {
+            setTopStories([]);
             console.error('Error fetching top stories:', error);
             setLoading(false);
         });
