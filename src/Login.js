@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
+import serviceUrl from './config';
 
 const Login = () => {
     const { publicKey, setPublicKey, isModalOpen, closeModal } = useUser();
     const [privateKey, setPrivateKey] = useState('');
+    const [name, setName] = useState('');
+    const [registrationSuccess, setRegistrationSuccess] = useState(false);
+    const [loginError, setLoginError] = useState('');
+
     const [tempPublicKey, setTempPublicKey] = useState('');
 
     const [avatarUrlSmall, setAvatarUrlSmall] = useState('');
@@ -78,6 +83,29 @@ const Login = () => {
         generateAvatar(publicKey);
     };
 
+    const registerUser = async () => {
+        const user = {
+            "public_key": tempPublicKey,
+            "name":name
+        };
+        try {
+            const endpoint = `${serviceUrl}/users/`;
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(user)
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            setRegistrationSuccess(true);
+        } catch (error) {
+            setLoginError('Registration failed: ' + error.message);
+        }
+    };
+
     const handleLogin = async () => {
         const derivedPublicKey = await window.derivePublicKey(privateKey);
         setPublicKey(derivedPublicKey);
@@ -90,34 +118,39 @@ const Login = () => {
     };
 
     return (
-        <div>
-            {isModalOpen && (
-                <div className="modal">
-                    <div className="modal-content">
-                        <span className="close" onClick={closeModal}>&times;</span>
-                        <h2>Your secret key</h2>
-                        <input
-                            type="text"
-                            placeholder="Enter your secret key"
-                            value={privateKey}
-                            onChange={(e) => setPrivateKey(e.target.value)}
-                        />
-                        <button onClick={handleLogin}>Login</button>
-                        <button onClick={generateKeyPair}>Generate New Key Pair</button>
-                        {tempPublicKey && (
-                            <div>
-                                <div id="avatarChoice">
-                                    <img src={avatarUrlLarge} alt="Public Key Avatar"/>
-                                </div> 
-                                <span>* You can change to your avatar later</span>
-                                <div>Public Key: {tempPublicKey}</div>
-                                {/*<div>Private Key: {privateKey}</div> */}
-                            </div>
-                        )}
-                    </div>
+        <>
+        {isModalOpen && (
+            <div className="modal">
+                <div className="modal-content">
+                    <span className="close" onClick={closeModal}>&times;</span>
+                    {!registrationSuccess ? (
+                        <div>
+                            <h2>Register</h2>
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+                            <button onClick={generateKeyPair}>Generate Key Pair</button>
+                            {tempPublicKey && (
+                                <div>
+                                    <div id="avatarChoice">
+                                        <img src={avatarUrlLarge} alt="Public Key Avatar"/>
+                                    </div> 
+                                    <p>Public Key: {tempPublicKey}</p>
+                                    <p>Private Key: {privateKey} (Note it NOW!)</p>
+                                    <button onClick={registerUser}>Register</button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <h2>Login</h2>
+                            <input type="text" placeholder="Enter your private key" value={privateKey} onChange={(e) => setPrivateKey(e.target.value)} />
+                            <button onClick={handleLogin}>Login</button>
+                            {loginError && <p className="error">{loginError}</p>}
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
+            </div>
+        )}
+    </>
     );
 };
 

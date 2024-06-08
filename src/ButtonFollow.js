@@ -92,6 +92,12 @@ const FollowButton = ({ storyId, icon }) => {
       return;
     }
 
+    // Optimistically update the UI
+    const newIsFollowing = !isFollowing;
+    const newCount = isFollowing ? count - 1 : count + 1;
+    setIsFollowing(newIsFollowing);
+    setCount(newCount);
+
     setIsLoading(true);
 
     const endpoint = `${serviceUrl}/follow/${storyId}`;
@@ -101,21 +107,25 @@ const FollowButton = ({ storyId, icon }) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ public_key: publicKey, follow: !isFollowing }),
+      body: JSON.stringify({ public_key: publicKey, follow: newIsFollowing }),
     })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          setIsFollowing(!isFollowing);
-          setCount(data.new_count);
-          if (data.is_following) {
+          if (newIsFollowing) {
             fetchUserData();  // Refresh user data to update the spice balance
           }
         } else {
+          // Revert the optimistic update if the request fails
+          setIsFollowing(isFollowing);
+          setCount(count);
           alert(data.message);
         }
       })
       .catch(() => {
+        // Revert the optimistic update if there's an error
+        setIsFollowing(isFollowing);
+        setCount(count);
         alert('An error occurred. Please try again.');
       })
       .finally(() => {
