@@ -126,7 +126,7 @@ const FollowButton = ({ storyId, icon }) => {
         // Revert the optimistic update if there's an error
         setIsFollowing(isFollowing);
         setCount(count);
-        alert('An error occurred. Please try again.');
+        // alert('An error occurred. Please try again.');
       })
       .finally(() => {
         setIsLoading(false);

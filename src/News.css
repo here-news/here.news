@@ -1,0 +1,26 @@
+.news-image {
+    width: 100%; /* Full width */
+    height: 300px; /* Fixed height */
+    object-fit: cover; /* Cover the container without stretching */
+    border-radius: 18px; /* Rounded corners */
+    margin-bottom: 20px; /* Space below the image */
+  }
+  
+  .vote-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  .vote-button {
+    cursor: pointer;
+    font-size: 24px;
+  }
+  
+  /* Responsive adjustments for mobile views */
+  @media (max-width: 768px) {
+    .news-image {
+      height: 200px;
+    }
+  }
+  

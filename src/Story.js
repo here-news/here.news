@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import ProfileWidget from './ProfileWidget';
 import EventCard from './EventCard';
 import NewsCard from './NewsCard';
 import serviceUrl from './config';

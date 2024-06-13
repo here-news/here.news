@@ -31,7 +31,7 @@ const NewsCard = ({ news }) => {
               <div className="media-body">
                 <h5 className="card-title">{news.title}</h5>
                 <p className="card-text">
-                  <small className="text-muted">By {news.author} on {news.pub_time} <a href={news.canonical}>link</a></small>
+                  <small className="text-muted">By {news.author} on {news.pub_time} <a href={`/news/${news.uuid}`}>link</a></small>
                 </p>
                 {expanded && (
                   <>

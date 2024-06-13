@@ -1,0 +1,129 @@
+@keyframes pulse {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.1); }
+    50% { transform: scale(1.4); }
+    75% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+a, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Lato', sans-serif;
+    font-weight: bolder;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #555555;
+}
+
+#top-logo {
+    animation: pulse 2s infinite ease-in-out;
+    max-width: 48px;
+    height: auto;
+    display: block;
+    margin: 10px auto;
+}
+
+.top-main-story {
+    grid-column: span 3;
+    padding: 0;
+    color: #fff;
+    margin: 0 auto;
+    background-color: #ff4500;
+    background-image: linear-gradient(to bottom right, #FF0000, #ffa288, #ff4500);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+}
+
+.top-main-story .image-container {
+    width: 100%;
+    overflow: hidden;
+    height: 360px;
+    padding-bottom: 10px;
+}
+
+.top-main-story .image-container img {
+    width: 100%;
+    margin: 0 auto;
+    object-fit: cover;
+}
+
+.top-story-title {
+    position: absolute;
+    top: 160px;
+    left: -10px;
+    color: #FFFFFF;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: .5em;
+    width: calc(100% - 20px);
+    box-sizing: border-box;
+    font-size: 24px;
+}
+
+.top-story-title h1 {
+    font-size: 1.5em;
+    font-weight: 300;
+    font-weight: bolder;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.top-story-content {
+    padding: 15px;
+    text-align: left;
+    color: #111;
+}
+
+.top-story-title:hover, .story-card:hover {
+    transform: translateY(-5px);
+}
+
+.story-card {
+    height: 180px;
+    margin: 0 auto;
+    padding: 0;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: #0f0f0f;
+}
+
+.card-title {
+    color: #fff;
+    font-weight: bold;
+}
+
+.card-content {
+    font-size: 0.9em;
+}
+
+.card-footer {
+    font-size: 0.8em;
+    text-align: right;
+}
+
+.hot { background-color: #780400; }
+.solid { background-color: #121212; }
+.fashion { background-color: #9370db; }
+.value { background-color: #0076a4; }
+.regular { background-color: #907a00; }
+.emerging { background-color: #0a290a; }
+.monument { background-color: #707070; }
+
+@media (max-width: 480px) {
+    .top-story-title {
+        font-size: 1.2em;
+        left: 0;
+    }
+}
+
+.old-photo-effect {
+    filter: grayscale(80%);
+}
