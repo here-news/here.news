@@ -1,8 +1,10 @@
   
   .news-card {
-  width: 200px;
+  width: 300px;
   /*width: calc(100% - 20px); /* Responsive width */
   margin-bottom: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
   position: relative; 
   border: 1px solid #ddd;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
@@ -12,7 +14,7 @@
   background-color: white;
 }
 
-.news-card:hover {
+.news-card:hover, .news-card.highlight{
   transform: scale(1.03);
 }
 
@@ -25,11 +27,11 @@
 
 /* a new popup card */
 .popup-news-card {
-  position: absolute; 
-  transform: translate(-50%, -50%);
+  padding: 0px;
+  position: fixed;
   z-index: 9999;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
   animation: fadeIn 0.3s;
+  transform: translate(-50%, 20px);  
 }
 
 @keyframes fadeIn {

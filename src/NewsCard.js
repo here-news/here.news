@@ -2,7 +2,7 @@ import React from 'react';
 import './NewsCard.css';
 
 
-const NewsCard = ({ news, className, showAsLink, hoverDisplay }) => {
+const NewsCard = ({ news, className, highlight }) => {
   const getFaviconUrl = (url) => {
     try {
       const domain = new URL(url).hostname;
@@ -13,26 +13,24 @@ const NewsCard = ({ news, className, showAsLink, hoverDisplay }) => {
     }
   };
 
+  const cardClasses = ['news-card', className];
+
+  if (highlight) {
+    console.log('highlight')
+      cardClasses.push('highlight');
+  }
+
   const cardContent = (
-    <div className={`news-card ${className}`}>
+    <div className={cardClasses.join(' ')}>
       <div className="card-details">
         <a href={`/news/${news.uuid}`}>
-        <img src={news.preview} alt={news.title}  />
+        <img src={news.preview}/>
         <h6>{news.title}</h6>
         </a>
         <img src={getFaviconUrl(news.canonical)} style={{ width: '20px', height: '20px' }} /> <span>{news.source}</span>
       </div>
     </div>
   );
-
-  if (showAsLink) {
-    return (
-      <div>
-        <a className="reference-link" onMouseOver={hoverDisplay}>{news.refIndex}</a>
-        {cardContent}
-      </div>
-    );
-  }
 
   return cardContent;
 };
