@@ -1,157 +1,123 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import EventCard from './EventCard';
+import Header from './Header';
 import NewsCard from './NewsCard';
 import serviceUrl from './config';
-import Header from './Header';
-import FollowButton from './ButtonFollow';
+import './Story.module.css';
 
 const Story = () => {
-  const [story, setStory] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [newsItems, setNewsItems] = useState([]);
   const { storyId } = useParams();
+  const [story, setStory] = useState(null);
+  const [newsItems, setNewsItems] = useState({});
+  const [hoverRef, setHoverRef] = useState(null);
+  const [refMapping, setRefMapping] = useState({});
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [displayRefs, setDisplayRefs] = useState(new Set()); // Track refs to display as embedded
 
   useEffect(() => {
     fetch(`${serviceUrl}/story/${storyId}`)
       .then(response => response.json())
       .then(data => {
         setStory(data);
-        return data.refs;
-      })
-      .then(refs => {
-        const newsPromises = refs.map(ref =>
-          fetch(`${serviceUrl}/news/${ref}`).then(response => response.json())
-        );
-        return Promise.all(newsPromises);
-      })
-      .then(setNewsItems);
-
-    fetch(`${serviceUrl}/story/${storyId}/events`)
-      .then(response => response.json())
-      .then(setEvents);
+        if (data.refs) {
+          initializeRefMapping(data.refs);
+          fetchNewsItems(data.refs);
+          initializeDisplayRefs(data.refs);
+        }
+      });
   }, [storyId]);
 
-  const changeLanguage = (language) => {
-    localStorage.setItem('preferredLanguage', language);
-    document.getElementById('languageDropdown').textContent = language;
+  const initializeRefMapping = (refs) => {
+    const map = {};
+    refs.forEach((ref, index) => map[ref] = index + 1); // Map HEX to local index
+    setRefMapping(map);
   };
 
-  const requestTranslation = () => {
-    alert("Please contact us to sponsor a translation into another language!");
-  };
-
-  const rotateImages = () => {
-    const images = document.querySelectorAll('#imageStack img');
-    const totalImages = images.length;
-    const activeImage = document.querySelector('#imageStack img.active');
-    let activeIndex = Array.from(images).indexOf(activeImage);
-
-    activeImage.classList.remove('active');
-    const nextImageIndex = (activeIndex + 1) % totalImages;
-    images[nextImageIndex].classList.add('active');
-  };
-
-  const showSendButton = () => {
-    const input = document.querySelector('.form-control');
-    const sendButton = document.getElementById('send-button');
-    if (input.value.trim() !== '') {
-      sendButton.style.display = 'block';
-    } else {
-      sendButton.style.display = 'none';
+  const initializeDisplayRefs = (refs) => {
+    const displaySet = new Set();
+    for (let i = 0; i < Math.min(4, refs.length); i++) {
+      displaySet.add(refs[i]);
     }
+    setDisplayRefs(displaySet);
   };
 
-  if (!story) {
-    return <div>Loading...</div>;
-  }
+  const fetchNewsItems = (refs) => {
+    refs.forEach(ref => {
+      fetch(`${serviceUrl}/news/${ref}`)
+        .then(response => response.json())
+        .then(news => {
+          setNewsItems(prev => ({ ...prev, [ref]: news })); // Store news items by HEX ref
+        });
+    });
+  };
+
+  const handleMouseEnter = (event, ref) => {
+    const { clientX, clientY } = event;
+    setPopupPosition({ x: clientX, y: clientY });
+    setHoverRef(ref);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverRef(null);
+  };
+  const renderStoryText = (text) => {
+    const regex = /\[([a-f0-9]{8})\]/g;
+    return text.split('\n').map((paragraph, pIndex) => {
+      const parts = [];
+      let refsShown = 0;
+  
+      // First pass: render embedded news cards before the paragraph
+      paragraph.split(regex).forEach((part, index) => {
+        if (newsItems[part] && displayRefs.has(part)) {
+          parts.push(
+            <React.Fragment key={`news-${index}`}>
+              <NewsCard news={newsItems[part]} className={refsShown % 2 === 1 ? 'float-left' : 'float-right'} />
+            </React.Fragment>
+          );
+          refsShown++;
+        }
+      });
+  
+      // Second pass: build the paragraph with text and hoverable references
+      paragraph.split(regex).forEach((part, index) => {
+        if (newsItems[part]) {
+          const localRef = refMapping[part];
+          if (!displayRefs.has(part)) {
+            parts.push(
+              <a key={`link-${index}`} href="#" onMouseEnter={(e) => handleMouseEnter(e, part)} onMouseLeave={handleMouseLeave} style={{ color: 'blue', textDecoration: 'underline' }}>
+                [{localRef}]
+              </a>
+            );
+          } else {
+            // Append local reference links for embedded cards
+            parts.push(<span key={`ref-${index}`}>[{localRef}]</span>);
+          }
+        } else {
+          // Append regular text parts
+          parts.push(<span key={`text-${index}`}>{part}</span>);
+        }
+      });
+  
+      return <div key={pIndex} className="paragraph">{parts}<br/></div>;
+    });
+  };
+  
 
   return (
-      <>
-        <Header/>
-
-        <div className="container mt-4">
-          <div className="card">
-            <div className="card-body">
-            <span id="published-date">{story.last_updated}</span>
-              <div className="card-header">
-                <h2 className="card-title">{story.title}</h2>
-                <FollowButton storyId={story.uuid} type="story" icon="👀" initialCount={story.followers} />
-              </div>
-
-              <div className="card-subtitle mb-2 text-muted">
-                <span id="uuid" uuid={story.uuid} style={{ display: 'none' }}></span>
-              </div>
-              <span className="version">
-                    <b>v{story.version}</b>
-                    <a title="whole tree" href={`/tree/${story.uuid}`}>🌳</a>
-              </span>&nbsp;
-                  {story.version < story.latest_version && (
-                    <a className="bd-highlight" id="latest-version-link" title={`newer: v${story.latest_version}`} href={`/story/${story.uuid}?ver=${story.latest_version}`}>Latest version available</a>
-                  )}
-                  <div className="dropdown">
-                    <button className="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      English
-                    </button>
-                    <div className="dropdown-menu" aria-labelledby="languageDropdown">
-                      <a className="dropdown-item" href="#" onClick={() => changeLanguage('English')}>English</a>
-                      <a className="dropdown-item" href="#" onClick={() => changeLanguage('Español')}>Español</a>
-                      <a className="dropdown-item" href="#" onClick={() => changeLanguage('Français')}>Français</a>
-                      <a className="dropdown-item" href="#" onClick={() => changeLanguage('Deutsch')}>Deutsch</a>
-                      <div className="dropdown-divider"></div>
-                      <a className="dropdown-item" href="#" onClick={requestTranslation}>Other...</a>
-                    </div>
-                  </div>
-
-
-
-              <div className="card-body" id="story_body">
-                <p className="card-text" style={{ whiteSpace: 'pre-line' }} dangerouslySetInnerHTML={{ __html: story.story.substring(0, 600) + "..." }}></p>
-              </div>
-              {story.earlier_version && (
-                <div className="card-footer">
-                  <a href={`/story/${story.uuid}?ver={story.earlier_version}`}>Earlier version: v{story.earlier_version}</a>
-                </div>
-              )}
-
-
-              <div className="news-references">
-
-                <h3>References</h3>
-                <div className="row">
-                  {newsItems.map(news => (
-                    <div className="" key={news.id}>
-                      <NewsCard news={news} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="container mt-4">
-                <div className="event-feed">
-                  <h3>Event Feed</h3>
-                  <div id="events-container">
-                    {events.map(event => (
-                      <EventCard key={event.id} event={event} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="container mt-4">
-                <div className="disclaimer">
-                  <strong>Disclaimer:</strong> The story curated or synthesized by the AI agents may not always be accurate or complete. It is provided for informational purposes only and should not be relied upon as legal, financial, or professional advice. Please use your own discretion.
-                </div>
-              </div>
-              <footer className="footer bg-light mt-4">
-                <div className="container text-center text-md-left">
-                  <p className="text-muted mb-0">Powered by Newstr&trade; AI Journalism System.</p>
-                  <p className="text-muted">(cc)2023 Newstr, Here.news. Some Rights Reserved.</p>
-                </div>
-              </footer>
-            </div>
+    <>
+    <Header/>
+    <div className="story-container">
+      <h1>{story ? story.title : 'Loading...'}</h1>
+      <div className="story-content">
+        {story && story.story && renderStoryText(story.story)}
+        {hoverRef && (
+          <div className="popup-news-card" style={{ position: 'absolute', top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}>
+            <NewsCard news={newsItems[hoverRef]} />
           </div>
-        </div>
-      </>
+        )}
+      </div>
+    </div>
+    </>
   );
 };
 

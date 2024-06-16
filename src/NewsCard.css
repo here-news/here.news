@@ -1,0 +1,38 @@
+  
+  .news-card {
+  width: 200px;
+  /*width: calc(100% - 20px); /* Responsive width */
+  margin-bottom: 10px;
+  position: relative; 
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+  border-radius: 15px;
+  padding: 10px;
+  transition: transform 0.3s ease;
+  background-color: white;
+}
+
+.news-card:hover {
+  transform: scale(1.03);
+}
+
+.news-card img {
+  width: 100%;
+  height: auto;
+  border-radius: 15px;
+}
+
+
+/* a new popup card */
+.popup-news-card {
+  position: absolute; 
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
