@@ -1,0 +1,30 @@
+.rating-bar-container {
+    position: relative;
+    width: 100%;
+    margin: 10px 0;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+.rating-bar {
+    display: flex;
+    width: 100%;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+  
+  .positive {
+    border-radius: 5px;
+    background-color: green;
+  }
+  
+  .negative {
+    border-radius: 5px;
+    background-color: red;
+  }
+  
+  .rating-text {
+    padding-left: 5px;
+    padding-right: 5px;
+    color: rgb(58, 58, 58);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); 
+  }

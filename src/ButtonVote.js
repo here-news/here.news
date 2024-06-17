@@ -4,7 +4,7 @@ import Login from './Login';
 import serviceUrl from './config';
 
 
-const VoteButton = ({ type, initialCount, storyId, icon }) => {
+const ButtonVote = ({ type, initialCount, storyId, icon }) => {
   const { publicKey, openModal } = useUser();
   const [count, setCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,4 +57,4 @@ const VoteButton = ({ type, initialCount, storyId, icon }) => {
   );
 };
 
-export default VoteButton;
+export default ButtonVote;
