@@ -78,33 +78,39 @@ const Story = () => {
   
   const renderStoryText = (text) => {
     const regex = /\[([a-f0-9]{8})\]/g;
+    let embeddedCardCount = 0;  // Local variable to track the count of embedded news cards
+    const displayedRefs = new Set();
+    
     return text.split('\n').map((paragraph, pIndex) => {
       const parts = [];
-      let refsShown = 0;
   
       // First pass: render embedded news cards before the paragraph
       paragraph.split(regex).forEach((part, index) => {
-        if (newsItems[part] && displayRefs.has(part)) {
+        if (newsItems[part] && displayRefs.has(part) && !displayedRefs.has(part)) {
+          const className = embeddedCardCount % 2 === 0 ? 'float-left' : 'float-right';
+
           const newsCard = (
             <NewsCard
               key={`news-${index}`}
               news={newsItems[part]}
-              className={refsShown % 2 === 0 ? 'float-left' : 'float-right'}
+              className={className}
               highlight={hoveredRef === part}
               />
             );
           parts.push(newsCard);
-          refsShown++;
+          embeddedCardCount++;  
+          displayedRefs.add(part);  // Add this ref to the set of displayed news cards
         }
       });
   
       // Second pass: build the paragraph with text and hoverable references
       paragraph.split(regex).forEach((part, index) => {
         if (newsItems[part]) {
+          const newsItem = newsItems[part];
           const localRef = refMapping[part];
           if (!displayRefs.has(part)) {
             parts.push(
-              <a key={`link-${index}`} href="#" onMouseEnter={(e) => handleMouseEnter(e, part)} onMouseLeave={handleMouseLeave} style={{ color: 'blue', textDecoration: 'underline' }}>
+              <a key={`link-${index}`} href={`/news/${newsItem.uuid}`} onMouseEnter={(e) => handleMouseEnter(e, part)} onMouseLeave={handleMouseLeave} style={{ color: 'blue', textDecoration: 'underline' }}>
                 [{localRef}]
               </a>
             );
@@ -112,7 +118,7 @@ const Story = () => {
             // Append local reference links for embedded cards
             parts.push(
               <a key={`ref-${index}`}
-              href="#"
+              href={`/news/${newsItem.uuid}`}
               onMouseEnter={() => setHoveredRef(part)}
               onMouseLeave={() => setHoveredRef(null)}
               style={{ color: 'blue', textDecoration: 'underline', fontWeight: hoveredRef === part ? 'bold' : 'normal' }}>

@@ -1,6 +1,6 @@
 .news-image {
     width: 100%; /* Full width */
-    height: 300px; /* Fixed height */
+    height: 200px; /* Fixed height */
     object-fit: cover; /* Cover the container without stretching */
     border-radius: 18px; /* Rounded corners */
     margin-bottom: 20px; /* Space below the image */
