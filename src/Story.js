@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import serviceUrl from './config';
 import Header from './Header';
 import NewsCard from './NewsCard';
-import serviceUrl from './config';
-import './Story.module.css';
+import './Story.css';
 
 const Story = () => {
   const { storyId } = useParams();
@@ -53,8 +53,8 @@ const Story = () => {
   };
 
   const handleMouseEnter = (event, ref) => {
-    const offsetX = 15;
-    const offsetY = 15;
+    const offsetX = 5;
+    const offsetY = -15;
     let { clientX, clientY } = event;
     
     // Check if the popup would go off the right edge of the screen
@@ -126,7 +126,7 @@ const Story = () => {
         }
       });
   
-      return <div key={pIndex} className="paragraph">{parts}<br/></div>;
+      return <div key={pIndex} className="paragraph">{parts}</div>;
     });
   };
   

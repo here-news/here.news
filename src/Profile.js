@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
 import Header from './Header';
+import './Profile.css';
 
 const Profile = () => {
     const { section = 'profile' } = useParams(); // Default to 'profile' if no section is specified

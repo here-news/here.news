@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
+import './Login.css';
 
 const Login = () => {
     const { publicKey, setPublicKey, isModalOpen, closeModal } = useUser();

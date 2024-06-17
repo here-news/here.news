@@ -10,11 +10,13 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { UserProvider } from './UserContext';
 import Story from './Story'; // Ensure the correct path to your Story component
 import News from './News';
 import Profile from './Profile';
 import Home from './Home';
-import { UserProvider } from './UserContext';
+
+import Test from './Test';
 
 const App = () => {
   return (
@@ -26,6 +28,7 @@ const App = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/news/:uuid" element={<News />} />
           <Route path="/" element={<Home />} />
+          <Route path="/test" element={<Test/>} />
           {/* Add other routes as needed */}
         </Routes>
       </Router>

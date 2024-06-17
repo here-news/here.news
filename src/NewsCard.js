@@ -16,7 +16,6 @@ const NewsCard = ({ news, className, highlight }) => {
   const cardClasses = ['news-card', className];
 
   if (highlight) {
-    console.log('highlight')
       cardClasses.push('highlight');
   }
 
