@@ -4,7 +4,7 @@ import Login from './Login';
 import serviceUrl from './config';
 import './ButtonFollow.css';  // Import the CSS file
 
-const FollowButton = ({ storyId, icon }) => {
+const ButtonFollow = ({ storyId, icon=" " }) => {
   const { publicKey, openModal, userInfo, setUserInfo } = useUser();
   const [count, setCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -147,4 +147,4 @@ const FollowButton = ({ storyId, icon }) => {
   );
 };
 
-export default FollowButton;
+export default ButtonFollow;

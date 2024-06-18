@@ -1,9 +1,8 @@
 /* Header styles */
 .header {
     background-color: #f8f9fa;
-    padding: 10px 0; /* Add some padding to the header for better spacing */
+    padding: 10px 0;  
 }
-
 .header .container {
     display: flex;
     justify-content: space-between;
@@ -21,7 +20,12 @@
     align-items: center;
 }
 
-
+.slogan {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
 
 .header-left a.logo img {
     height: 36px;

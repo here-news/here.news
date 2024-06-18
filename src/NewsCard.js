@@ -14,11 +14,11 @@ const NewsCard = ({ news, className, highlight }) => {
     <div className={cardClasses.join(' ')}>
       <div className="card-details">
         <a href={`/news/${news.uuid}`}>
-        <img src={news.preview}/>
+        <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
         <h6>{news.title}</h6>
         </a>
+        <RatingBar positive={news.positive_ratings} negative={news.negative_ratings}/>
         <img src={getFaviconUrl(news.canonical, 20)} style={{ width: '20px', height: '20px' }} /> <span>{news.source}</span>
-        <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} />
       </div>
     </div>
   );

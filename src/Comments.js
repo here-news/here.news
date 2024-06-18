@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useUser } from './UserContext';
 import serviceUrl from './config';
 import './Comments.css';
 
-const Comments = ({ newsId }) => {
+const Comments = ({ entityId }) => {
+  const { publicKey, openModal } = useUser();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
-    fetch(`${serviceUrl}/news/${newsId}/comments`)
+    fetch(`${serviceUrl}/news/${entityId}/comments`)
       .then(response => response.json())
       .then(data => setComments(data))
       .catch(error => console.error('Error fetching comments:', error));
-  }, [newsId]);
+  }, [entityId]);
 
   const handleCommentSubmit = () => {
     if (newComment.trim() === '') return;
 
-    fetch(`${serviceUrl}/news/${newsId}/comment`, {
+    fetch(`${serviceUrl}/news/${entityId}/comment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: newComment, user_id: 'user123' }), // Assuming user_id is static for now
+      body: JSON.stringify({ text: newComment, user_id: publicKey }), // Assuming user_id is static for now
     })
       .then(response => response.json())
       .then(data => setComments(prevComments => [...prevComments, data]))
@@ -47,6 +49,7 @@ const Comments = ({ newsId }) => {
 
   return (
     <div className="comments-section">
+      <a name="comments"></a>
       <h3>Comments</h3>
       <textarea
         value={newComment}
@@ -54,13 +57,14 @@ const Comments = ({ newsId }) => {
         placeholder="Add a comment..."
       />
       <button onClick={handleCommentSubmit}>Submit</button>
+      <a name="comments-list"></a>
       <div className="comments-list">
         {comments.map(comment => (
           <div key={comment.id} className="comment">
             <p>{comment.text}</p>
             <div className="comment-actions">
-              <span>Upvotes: {comment.upvotes}</span>
-              <button onClick={() => handleUpvote(comment.id)}>👍</button>
+              <span> </span>
+              <button onClick={() => handleUpvote(comment.id)}>👍({comment.upvotes})</button>
             </div>
           </div>
         ))}

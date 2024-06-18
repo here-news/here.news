@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ProfileWidget from './ProfileWidget';
-import './Header.css'; // Create this CSS file for styling
+import './Header.css';  
 
 const Header = () => {
     return (
@@ -11,7 +11,7 @@ const Header = () => {
                     <Link to="/" className="logo">
                         <img src="/static/logo.svg" alt="Logo" />
                     </Link>
-                    <span style={{ color: 'grey' }}>Stories from Intelligence and for Wisdom</span>
+                    <span style={{color:'grey', padding:'0 10px'}}> Balanced Intelligence</span>
                 </div>
                 <div className="header-right">
                     <ProfileWidget />

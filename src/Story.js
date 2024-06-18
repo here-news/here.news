@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
 import NewsCard from './NewsCard';
+import ButtonFollow from './ButtonFollow';
 import './Story.css';
 
 const Story = () => {
@@ -141,7 +142,10 @@ const Story = () => {
     <>
     <Header/>
     <div className="story-container">
-      <h1>{story ? story.title : 'Loading...'}</h1>
+    {story ? (
+      <>
+      <h1>{story.title}</h1>
+      <ButtonFollow storyId={story.uuid}/>
       <div className="story-content">
         {story && story.story && renderStoryText(story.story)}
         {hoverRef && (
@@ -150,6 +154,9 @@ const Story = () => {
           </div>
         )}
       </div>
+      </>
+      ) : 'Loading...'
+      }
     </div>
     </>
   );

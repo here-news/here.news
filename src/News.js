@@ -29,20 +29,16 @@ const News = () => {
       <div className="container mt-4">
         <div className="row justify-content-center">
           <div className="col-md-8">
-            <img src={news.preview} alt="News Image" className="news-image" />
-            <h1>{news.title}</h1>
-            <p>{news.pub_time} by <img src={getFaviconUrl(news.canonical)}></img> <b>{news.source}</b></p>
-            <p>
-              <a href={`/outlet/${news.source_id}`}>{news.source}</a> (paywall? cache 
-              <a href={`http://web.archive.org/web/2/${news.canonical}`}>1</a>, 2...)
+            <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
+            <p>    
+            🔗 <a href={news.canonical}>{news.canonical}</a> (Can't read it? )
             </p>
-            <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={true}/>
-            <p><b><u>Summary</u>:</b> {news.summary}</p>
-            <div className="vote-buttons">
-              <ButtonVote type="up" initialCount={news.positive_ratings} storyId={news.uuid} icon="👍" />
-              <ButtonVote type="down" initialCount={news.negative_ratings} storyId={news.uuid} icon="👎" />
-            </div>
-            <Comments newsId={news.uuid} />
+            <h1>{news.title}</h1>
+            <p>{news.pub_time} by {news.author} <img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b></p>
+            <p><b><u>Summary</u>:</b> {news.summary} </p>
+
+            <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={true} tartget='#comments-list'/>
+            <Comments entityId={news.uuid} />
           </div>
         </div>
       </div>
