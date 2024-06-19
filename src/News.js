@@ -31,7 +31,7 @@ const News = () => {
           <div className="col-md-8">
             <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
             <p>    
-            🔗 <a href={news.canonical}>{news.canonical}</a> (Can't read it? )
+            <a target="_blank" href={news.canonical}>{news.canonical}</a>  ➡️ 
             </p>
             <h1>{news.title}</h1>
             <p>{news.pub_time} by {news.author} <img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b></p>
