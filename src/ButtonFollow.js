@@ -5,7 +5,7 @@ import serviceUrl from './config';
 import './ButtonFollow.css';  // Import the CSS file
 
 const ButtonFollow = ({ storyId, icon=" " }) => {
-  const { publicKey, openModal, userInfo, setUserInfo } = useUser();
+  const { publicKey, openModal, userInfo, fetchUserInfo } = useUser();
   const [count, setCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,26 +61,6 @@ const ButtonFollow = ({ storyId, icon=" " }) => {
     fetchFollowStatus();
   }, [publicKey, storyId]);
 
-  const fetchUserData = async () => {
-    const endpoint = `${serviceUrl}/users/${publicKey}`;
-    try {
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
-      console.log(data);
-      if (data) {
-        setUserInfo(data);
-      }
-    } catch (error) {
-      alert('An error occurred. Please try again.');
-    }
-  };
-
   const handleFollow = () => {
     if (!publicKey) {
       openModal();
@@ -113,7 +93,7 @@ const ButtonFollow = ({ storyId, icon=" " }) => {
       .then(data => {
         if (data.success) {
           if (newIsFollowing) {
-            fetchUserData();  // Refresh user data to update the spice balance
+            fetchUserInfo(publicKey);  // Refresh user data to update the spice balance
           }
         } else {
           // Revert the optimistic update if the request fails

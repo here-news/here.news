@@ -24,3 +24,61 @@
     }
   }
   
+
+  /*iframe*/
+  .iframe-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .iframe-popup-content {
+    position: relative;
+    width: 90%;
+    height: 90%;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .iframe-popup-header {
+    display: flex;
+    justify-content: flex-end;
+    background: #f0f0f0;
+    padding: 5px;
+    z-index: 2;
+  }
+  
+  .close-button,
+  .open-button {
+    background: #f00;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    margin-left: 5px;
+  }
+  
+  .open-button {
+    background: #00f;
+  }
+  
+  .iframe-popup iframe {
+    width: 100%;
+    height: calc(100% - 40px); /* Adjust height to account for header */
+    border: none;
+    flex-grow: 1;
+    overflow-y: auto; /* Ensuring the iframe itself can scroll */
+  }
+  

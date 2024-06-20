@@ -18,19 +18,24 @@ export const UserProvider = ({ children }) => {
     }, [publicKey]);
 
     const fetchUserInfo = async (key) => {
+        const endpoint = `${serviceUrl}/users/${key}`;
         try {
-            const response = await fetch(`${serviceUrl}/users/${key}`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Fetched user info:', data);
-                setUserInfo(data);
-            } else {
-                console.error('Error fetching user info:', response.status);
-            }
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          const data = await response.json();
+          console.log(data);
+          if (data) {
+            setUserInfo(data);
+          }
         } catch (error) {
-            console.error('Error fetching user info:', error);
+          alert('An error occurred. Please try again.');
         }
-    };
+      };
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -40,7 +45,7 @@ export const UserProvider = ({ children }) => {
     };
 
     return (
-        <UserContext.Provider value={{ publicKey, setPublicKey, userInfo, setUserInfo, isModalOpen, openModal, closeModal, shortenPublicKey }}>
+        <UserContext.Provider value={{ publicKey, setPublicKey, userInfo, setUserInfo, fetchUserInfo, isModalOpen, openModal, closeModal, shortenPublicKey }}>
             {children}
         </UserContext.Provider>
     );

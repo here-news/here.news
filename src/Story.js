@@ -144,8 +144,11 @@ const Story = () => {
     <div className="story-container">
     {story ? (
       <>
-      <h1>{story.title}</h1>
-      <ButtonFollow storyId={story.uuid}/>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <h1 style={{ marginRight: '10px' }}>{story.title}</h1>
+        <ButtonFollow storyId={story.uuid}/>
+      </div>
+
       <div className="story-content">
         {story && story.story && renderStoryText(story.story)}
         {hoverRef && (
