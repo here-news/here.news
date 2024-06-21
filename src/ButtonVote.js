@@ -1,48 +1,45 @@
 import React, { useState } from 'react';
 import { useUser } from './UserContext';
 import Login from './Login';
+
 import serviceUrl from './config';
 
-
-const ButtonVote = ({ type, initialCount, storyId, icon }) => {
-  const { publicKey, openModal } = useUser();
+const ButtonVote = ({ type, initialCount, newsId, icon }) => {
+  const { publicKey, openModal, fetchUserInfo } = useUser();
   const [count, setCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleVote = () => {
-    <Login />;
     if (!publicKey) {
       openModal();
       return;
     }
-
     setCount(count + 1); // Optimistically update the UI
+
     setIsLoading(true);
 
-    const endpoint = serviceUrl + '/vote/'  + type + '/' + storyId ;
-    fetch(endpoint, {
+    fetch(`${serviceUrl}/vote/${newsId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming you have a token
       },
-      body: JSON.stringify({ publicKey, type }),
+      body: JSON.stringify({ "news_id": newsId, "public_key": publicKey, "type": type }),
     })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          setCount(data.newCount);
+          fetchUserInfo(publicKey);
+          setIsLoading(false);
         } else {
           alert(data.message);
           setCount(count); // Revert to the original count if the vote was not successful
         }
       })
       .catch(() => {
-        alert('An error occurred. Please try again.');
         setCount(count); // Revert to the original count in case of error
-      })
-      .finally(() => {
         setIsLoading(false);
+
       });
   };
 
