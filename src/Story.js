@@ -15,6 +15,7 @@ const Story = () => {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [displayRefs, setDisplayRefs] = useState(new Set()); // Track refs to display as embedded
   const [hoveredRef, setHoveredRef] = useState(null);
+  const [relatedStories, setRelatedStories] = useState([]);
 
   useEffect(() => {
     fetch(`${serviceUrl}/story/${storyId}`)
@@ -26,8 +27,17 @@ const Story = () => {
           fetchNewsItems(data.refs);
           initializeDisplayRefs(data.refs);
         }
-      });
+      })
+      .then(() => fetchRelatedStories(storyId));
   }, [storyId]);
+
+
+  const fetchRelatedStories = (id) => {
+    fetch(`${serviceUrl}/related/${id}`)
+      .then(response => response.json())
+      .then(data => setRelatedStories(data));
+  };
+
 
   const initializeRefMapping = (refs) => {
     const map = {};
@@ -157,6 +167,29 @@ const Story = () => {
           </div>
         )}
       </div>
+      <div id="relatives" className="card-footer text-muted">
+        <h5>Related Stories</h5>
+        <div id="relativeGrid" className="row">
+          {relatedStories.length ? (
+            relatedStories.map((relative) => (
+              <div key={relative.uuid} className="col-lg-3 col-md-4 col-sm-6 col-12 mb-3">
+                <div className="card h-100">
+                  <a href={`/story/${relative.uuid}`}>
+                    <img className="card-img-top" src={relative.preview || '/static/plainnews.png'} onError={(e) => e.target.src = '/static/bubble.webp'} alt={relative.title} loading="lazy" />
+                  </a>
+                  <div className="card-body">
+                    <a href={`/story/${relative.uuid}`}>
+                      <span className="card-title"><b>{relative.title}</b></span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <span>Finding related stories...</span>
+          )}
+        </div>
+    </div>
       </>
       ) : 'Loading...'
       }

@@ -25,7 +25,22 @@
   }
   
 
-  /*iframe*/
+  .news-container {
+    position: relative;
+    width: 80%;
+  }
+  
+  .referenced-stories {
+    position: absolute;
+    top: 20px;
+    right: -5%; /* Adjust as needed */
+    width: 10%; /* Adjust as needed */
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
   .iframe-popup {
     position: fixed;
     top: 0;
@@ -41,13 +56,11 @@
   
   .iframe-popup-content {
     position: relative;
-    width: 90%;
-    height: 90%;
+    width: 80%;
+    height: 80%;
     background: #fff;
     border-radius: 10px;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
   }
   
   .iframe-popup-header {
@@ -55,7 +68,6 @@
     justify-content: flex-end;
     background: #f0f0f0;
     padding: 5px;
-    z-index: 2;
   }
   
   .close-button,
@@ -78,7 +90,5 @@
     width: 100%;
     height: calc(100% - 40px); /* Adjust height to account for header */
     border: none;
-    flex-grow: 1;
-    overflow-y: auto; /* Ensuring the iframe itself can scroll */
   }
   

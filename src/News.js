@@ -12,14 +12,23 @@ const News = () => {
   const [news, setNews] = useState(null);
   const { uuid } = useParams();
   const [showIframe, setShowIframe] = useState(false);
+  const [referencedStories, setReferencedStories] = useState([]);
 
   useEffect(() => {
     fetch(`${serviceUrl}/news/${uuid}`)
       .then(response => response.json())
-      .then(data => setNews(data))
+      .then(data => {
+        setNews(data);
+        return data.uuid;
+      })
+      .then(uuid => {
+          fetch(`${serviceUrl}/stories/referencing/${uuid}`)
+            .then(response => response.json())
+            .then(data => setReferencedStories(data))
+            .catch(error => console.error('Error fetching referenced stories:', error));
+      })
       .catch(error => console.error('Error fetching news:', error));
   }, [uuid]);
-
   
 
   if (!news) {
@@ -28,7 +37,8 @@ const News = () => {
 
   const handleUrlClick = (event) => {
     event.preventDefault();
-    setShowIframe(true);
+    // setShowIframe(true);
+    openInNewTab();
   };
 
   const closeIframe = () => {
@@ -45,19 +55,33 @@ const News = () => {
   return (
     <>
       <Header />
-      <div className="container mt-4">
-        <div className="row justify-content-center">
+      <div className="container mt-3 news-container">
+        <div className="row">
           <div className="col-md-8">
+            <p><img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b>, {news.pub_time},  by {news.author} </p>
+            <h3>{news.title}</h3>
             <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
-            <h1>{news.title}</h1>
-            <p>{news.pub_time} by {news.author} <img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b></p>
+            <p> 🔗  <u><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></u> </p>
             <p><b><u>Summary</u>:</b> {news.summary} </p>
-            <p> ➡️ <a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a> </p>
-            <p><b>Please read the original article and rate it below. </b>(can't read? <span>Try</span> peer sharing request.)</p>
+            <p><b>Please read the original article and rate it below. </b>(can't read? <span>Try</span> community.)</p>
 
             <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} tartget='#comments-list'/>
-            <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="👍" />
-              <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="👎" />
+            <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
+              <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
+
+          </div>
+          <div className="col-md-4 referenced-stories">
+            <h3>Cited by Stories</h3>
+            {referencedStories.length > 0 && (
+              <ul>
+                {referencedStories.map(story => (
+                  <li key={story.uuid}>
+                    <h4><a href={`/story/${story.uuid}`}>{story.title}</a></h4>
+                  </li>
+                ))}
+              </ul>
+            )}
+              <tagline>(Coming soon) Create your own story based on similar news</tagline>
 
           </div>
         </div>
