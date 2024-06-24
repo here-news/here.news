@@ -28,7 +28,6 @@ const Story = () => {
           initializeDisplayRefs(data.refs);
         }
       })
-      .then(() => fetchRelatedStories(storyId));
   }, [storyId]);
 
 
@@ -59,7 +58,8 @@ const Story = () => {
         .then(response => response.json())
         .then(news => {
           setNewsItems(prev => ({ ...prev, [ref]: news })); // Store news items by HEX ref
-        });
+        })
+        .then(() => fetchRelatedStories(storyId));
     });
   };
 
@@ -166,6 +166,12 @@ const Story = () => {
             <NewsCard news={newsItems[hoverRef]} />
           </div>
         )}
+      </div>
+      <div>
+        <h5>Tags:</h5>
+        {story.tags && story.tags.map((tag, index) => (
+          <a key={index} href={`/tag/${tag.trim()}`} style={{ marginRight: '5px' }}>{tag.trim()}</a>
+        ))}
       </div>
       <div id="relatives" className="card-footer text-muted">
         <h5>Related Stories</h5>

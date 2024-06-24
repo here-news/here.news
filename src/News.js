@@ -13,6 +13,9 @@ const News = () => {
   const { uuid } = useParams();
   const [showIframe, setShowIframe] = useState(false);
   const [referencedStories, setReferencedStories] = useState([]);
+  const [relatedNews, setRelatedNews] = useState([]);
+
+  let genre_emoji_mapping = { "News": "📰", "Analysis": "📊", "Interview": "🗣️", "Editorial": "✍️", "Opinion": "💬", "Feature": "📚", "Investigative": "🔍", "Entertainment & Lifestyle": "🎥", "Sports": "🏅", "Science & Education": "🧪" };
 
   useEffect(() => {
     fetch(`${serviceUrl}/news/${uuid}`)
@@ -26,7 +29,15 @@ const News = () => {
             .then(response => response.json())
             .then(data => setReferencedStories(data))
             .catch(error => console.error('Error fetching referenced stories:', error));
+            return uuid;
       })
+      .then(uuid=>{  // fetch related news
+        fetch(`${serviceUrl}/relatednews/${uuid}`)
+          .then(response => response.json())
+          .then(data => { setRelatedNews(data)})
+          .catch(error => console.error('Error fetching related news:', error));
+      }
+      )
       .catch(error => console.error('Error fetching news:', error));
   }, [uuid]);
   
@@ -58,7 +69,7 @@ const News = () => {
       <div className="container mt-3 news-container">
         <div className="row">
           <div className="col-md-8">
-            <p><img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b>, {news.pub_time},  by {news.author} </p>
+            <p><img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b>, {news.pub_time},  by {news.author} || <b> {genre_emoji_mapping[news.genre] + ' ' + news.genre}</b></p>
             <h3>{news.title}</h3>
             <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
             <p> 🔗  <u><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></u> </p>
@@ -68,8 +79,21 @@ const News = () => {
             <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} tartget='#comments-list'/>
             <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
               <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
-
+              <hr></hr>
+              <div class ="related-news">
+              <h3>Related News</h3>
+              {relatedNews.length > 0 && (
+                <ul>
+                  {relatedNews.map(related => (
+                    <li key={related.uuid}>
+                      <h4><a href={`/news/${related.uuid}`}>{related.title}</a></h4>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
+
           <div className="col-md-4 referenced-stories">
             <h3>Cited by Stories</h3>
             {referencedStories.length > 0 && (
@@ -81,7 +105,7 @@ const News = () => {
                 ))}
               </ul>
             )}
-              <tagline>(Coming soon) Create your own story based on similar news</tagline>
+              <tagline>(Coming soon) <br></br>Create your own story based on similar news</tagline>
 
           </div>
         </div>
