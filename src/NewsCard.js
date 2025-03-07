@@ -14,7 +14,7 @@ const NewsCard = ({ news, className, highlight }) => {
     <div className={cardClasses.join(' ')}>
       <div className="card-details">
         <a href={`/news/${news.uuid}`}>
-        <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
+        <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} />
         <h6>{news.title}</h6>
         </a>
         <RatingBar positive={news.positive_ratings} negative={news.negative_ratings}/>

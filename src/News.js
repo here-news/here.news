@@ -5,7 +5,7 @@ import Header from './Header';
 import ButtonVote from './ButtonVote';
 import RatingBar from './RatingBar';
 import Comments from './Comments';
-import getFaviconUrl from "./util"
+import getFaviconUrl from "./util";
 import './News.css';
 
 const News = () => {
@@ -15,8 +15,7 @@ const News = () => {
   const [referencedStories, setReferencedStories] = useState([]);
   const [relatedNews, setRelatedNews] = useState([]);
 
-  let genre_emoji_mapping = { "News": "📰", "Analysis": "📊", "Interview": "🗣️", "Editorial": "✍️", "Opinion": "💬", "Feature": "📚", "Investigative": "🔍", "Entertainment & Lifestyle": "🎥", "Sports": "🏅", "Science & Education": "🧪" };
-
+  let genre_emoji_mapping = { "News": "📰", "Analysis": "📊", "Interview": "🗣️", "Editorial": "✍️", "Opinion": "💬", "Feature": "📚", "Investigative": "🔍", "Entertainment & Lifestyle": "🎥", "Sports": "🏅", "Science & Education": "🧪", "Miscellaneous": "🪁" };
   useEffect(() => {
     fetch(`${serviceUrl}/news/${uuid}`)
       .then(response => response.json())
@@ -32,9 +31,9 @@ const News = () => {
             return uuid;
       })
       .then(uuid=>{  // fetch related news
-        fetch(`${serviceUrl}/relatednews/${uuid}`)
+        fetch(`${serviceUrl}/relatednews/${uuid}?range=10d`)
           .then(response => response.json())
-          .then(data => { setRelatedNews(data)})
+          .then(data => { setRelatedNews(data) })
           .catch(error => console.error('Error fetching related news:', error));
       }
       )
@@ -57,40 +56,41 @@ const News = () => {
   };
 
   const openInNewTab = () => {
-    setShowIframe(false)
+    setShowIframe(false);
     window.open(news.canonical, '_blank');
-  
   };
-
 
   return (
     <>
       <Header />
-      <div className="container mt-3 news-container">
+      <div className="container mt-3">
         <div className="row">
           <div className="col-md-8">
-            <p><img src={getFaviconUrl(news.canonical,28)}></img> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b>, {news.pub_time},  by {news.author} || <b> {genre_emoji_mapping[news.genre] + ' ' + news.genre}</b></p>
-            <h3>{news.title}</h3>
-            <img src={news.preview || '/static/3d.webp'} className="news-image" onError={(e) => e.target.src = '/static/hats.webp'} />
-            <p> 🔗  <u><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></u> </p>
-            <p><b><u>Summary</u>:</b> {news.summary} </p>
-            <p><b>Please read the original article and rate it below. </b>(can't read? <span>Try</span> community.)</p>
-
-            <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} tartget='#comments-list'/>
-            <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
+            <div className="refcard">
+              <p><img src={getFaviconUrl(news.canonical, 32)} /> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b> / <b> {genre_emoji_mapping[news.genre] + ' ' + news.genre}</b></p>
+              <h3>{news.title}</h3>
+              <p>🔗 <u><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></u></p>
+              <p>{new Date(news.pub_time).toLocaleDateString()}, by {news.author}</p>
+              <img src={news.preview} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} alt="News preview" />
+              <p><b><u>Summary</u>:</b> {news.summary} </p>
+              <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} target='#comments-list'/>
+              <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
               <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
-              <hr></hr>
-              <div class ="related-news">
-              <h3>Related News</h3>
-              {relatedNews.length > 0 && (
-                <ul>
-                  {relatedNews.map(related => (
-                    <li key={related.uuid}>
-                      <h4><a href={`/news/${related.uuid}`}>{related.title}</a></h4>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <p><b>Please read the original article and rate it. </b>(can't read? <span>Ask</span> community.)</p>
+              <hr/>
+              <div className="related-news">
+                <h3>Related News</h3>
+                {relatedNews.length > 0 && (
+                  <ul>
+                    {relatedNews.map(related => (
+                      <li key={related.uuid}>
+                        {new Date(related.pub_time).toLocaleDateString()}, <b>{related.source}</b> <img src={getFaviconUrl(related.canonical, 20)} />
+                        <h4><a href={`/news/${related.uuid}`}>{related.title}</a></h4>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
 
@@ -105,21 +105,20 @@ const News = () => {
                 ))}
               </ul>
             )}
-              <tagline>(Coming soon) <br></br>Create your own story based on similar news</tagline>
-
+            <tagline>(Coming soon) <br/>Create your own story based on similar news</tagline>
           </div>
         </div>
       </div>
       {showIframe && (
         <div className="iframe-popup">
-        <div className="iframe-popup-content">
-          <div className="iframe-popup-header">
-            <button onClick={closeIframe} className="close-button">✖</button>
-            <button onClick={openInNewTab} className="open-button">Open in new tab</button>
+          <div className="iframe-popup-content">
+            <div className="iframe-popup-header">
+              <button onClick={closeIframe} className="close-button">✖</button>
+              <button onClick={openInNewTab} className="open-button">Open in new tab</button>
+            </div>
+            <iframe src={news.canonical} title="News Source"></iframe>
           </div>
-          <iframe src={news.canonical} title="News Source"></iframe>
         </div>
-      </div>
       )}
     </>
   );

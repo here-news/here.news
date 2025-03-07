@@ -122,7 +122,7 @@ const Story = () => {
           if (!displayRefs.has(part)) {
             parts.push(
               <a key={`link-${index}`} href={`/news/${newsItem.uuid}`} onMouseEnter={(e) => handleMouseEnter(e, part)} onMouseLeave={handleMouseLeave} style={{ color: 'blue', textDecoration: 'underline' }}>
-                [{localRef}]
+                <sup>[{localRef}]</sup>
               </a>
             );
           } else {
@@ -133,7 +133,7 @@ const Story = () => {
               onMouseEnter={() => setHoveredRef(part)}
               onMouseLeave={() => setHoveredRef(null)}
               style={{ color: 'blue', textDecoration: 'underline', fontWeight: hoveredRef === part ? 'bold' : 'normal' }}>
-             [{localRef}]
+             <sup>[{localRef}]</sup>
            </a>
             );
           }
@@ -156,7 +156,7 @@ const Story = () => {
       <>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <h1 style={{ marginRight: '10px' }}>{story.title}</h1>
-        <ButtonFollow storyId={story.uuid}/>
+        <ButtonFollow id="story-follow" storyId={story.uuid}/>
       </div>
 
       <div className="story-content">

@@ -86,5 +86,5 @@ We welcome contributions to Here.news! If you have any ideas, suggestions, or bu
 
 ## Contact
 
-For any questions or support, please contact us at [newstr@here.news](mailto:newstr@here.news).
+For any questions or support, please contact us at [dev@here.news](mailto:dev@here.news).
 
