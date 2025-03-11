@@ -28,6 +28,21 @@ a:visited {
     margin: 10px auto;
 }
 
+.colossal-section {
+    background-color: #f8f9fa;
+    padding: 20px 0 40px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.colossal-section h2 {
+    font-weight: 700;
+    font-size: 28px;
+    color: #333;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
 .top-main-story {
     grid-column: span 3;
     padding: 0;

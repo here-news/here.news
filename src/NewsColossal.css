@@ -1,0 +1,1328 @@
+/* NewsColossal.css */
+
+.news-colossal-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Carousel Styles */
+.news-carousel {
+  display: flex;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 20px 0;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;  /* Hide scrollbar IE and Edge */
+  scrollbar-width: none;  /* Hide scrollbar Firefox */
+  cursor: grab;
+  height: 450px;
+}
+
+.news-carousel::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome, Safari, Opera */
+}
+
+.news-colossal-container {
+  height: 100vh;
+  height: -webkit-fill-available; /* For iOS Safari */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  touch-action: none; /* Prevent browser handling of all panning and zooming gestures */
+  overscroll-behavior: none; /* Prevent pull-to-refresh */
+}
+
+/* Fixed header styles */
+.news-header-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  touch-action: none; /* Prevent pull-to-refresh */
+  overflow: hidden;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+.news-carousel.mobile {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 80px); /* Account for header and footer space */
+  margin-top: 60px; /* Match header height */
+  overflow: hidden;
+  position: relative;
+  z-index: 1002; /* Higher than trading actions footer */
+}
+
+/* Special styles for body when in mobile view */
+body.mobile-view .news-colossal-container {
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.news-carousel.desktop {
+  display: grid;
+  grid-template-columns: 0.8fr 1.8fr 0.8fr;
+  grid-template-rows: 0.8fr 1.8fr 0.8fr;
+  gap: 15px;
+  padding: 40px;
+  height: 90vh;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Grid positioning for desktop layout */
+.news-carousel.desktop .news-card.center {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  transform: scale(1.15);
+  z-index: 100;
+  transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.news-carousel.desktop .news-card.position-top {
+  grid-column: 2;
+  grid-row: 1;
+  transform: scale(0.9);
+  opacity: 0.9;
+}
+
+.news-carousel.desktop .news-card.position-right {
+  grid-column: 3;
+  grid-row: 2;
+  transform: scale(0.9);
+  opacity: 0.9;
+}
+
+.news-carousel.desktop .news-card.position-bottom {
+  grid-column: 2;
+  grid-row: 3;
+  transform: scale(0.9);
+  opacity: 0.9;
+}
+
+.news-carousel.desktop .news-card.position-left {
+  grid-column: 1;
+  grid-row: 2;
+  transform: scale(0.9);
+  opacity: 0.9;
+}
+
+.news-carousel.desktop .news-card.position-top-left {
+  grid-column: 1;
+  grid-row: 1;
+  transform: scale(0.85);
+  opacity: 0.8;
+}
+
+.news-carousel.desktop .news-card.position-top-right {
+  grid-column: 3;
+  grid-row: 1;
+  transform: scale(0.85);
+  opacity: 0.8;
+}
+
+.news-carousel.desktop .news-card.position-bottom-left {
+  grid-column: 1;
+  grid-row: 3;
+  transform: scale(0.85);
+  opacity: 0.8;
+}
+
+.news-carousel.desktop .news-card.position-bottom-right {
+  grid-column: 3;
+  grid-row: 3;
+  transform: scale(0.85);
+  opacity: 0.8;
+}
+
+/* Card Styles */
+.news-card {
+  background-color: #333; /* Darker default background */
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  margin: 0 15px;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  flex: 0 0 auto;
+  width: 300px;
+  height: 360px;
+  position: relative;
+  cursor: pointer;
+  transform-origin: center center;
+  border: 1px solid #eaeaea;
+}
+
+/* Force mobile card styles */
+body.mobile-view .news-card {
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 60px !important;
+  height: calc(100vh - 60px) !important;
+}
+
+/* Base styles for mobile news cards */
+.news-carousel.mobile .news-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100% !important; /* Enforce full width */
+  height: calc(100vh - 60px); /* Only leave space for header */
+  margin: 0;
+  padding: 0;
+  border-radius: 0; /* No border radius for full-width cards */
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+  will-change: transform, opacity; /* Optimize for animation */
+  backface-visibility: hidden; /* Prevent flickers */
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+/* Desktop card active state */
+.news-card.active {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Active card on mobile */
+.news-carousel.mobile .news-card.active {
+  z-index: 10;
+  opacity: 1;
+  transform: translateY(0) !important;
+  pointer-events: auto;
+}
+
+/* Hidden by default - position will be set in JS */
+/* Remove this style as we're now handling visibility in JavaScript */
+
+/* Genre-specific backgrounds for active cards */
+.news-card.genre-science,
+.news-card.genre-science-technology,
+.news-card.genre-technology {
+  background: linear-gradient(135deg, #4a148c 0%, #7c43bd 100%);
+}
+
+.news-card.genre-environment {
+  background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
+}
+
+.news-card.genre-economy,
+.news-card.genre-finance {
+  background: linear-gradient(135deg, #0d47a1 0%, #2196f3 100%);
+}
+
+.news-card.genre-health,
+.news-card.genre-health-technology {
+  background: linear-gradient(135deg, #b71c1c 0%, #f44336 100%);
+}
+
+.news-card.genre-archaeology,
+.news-card.genre-history {
+  background: linear-gradient(135deg, #795548 0%, #a1887f 100%);
+}
+
+.news-card.genre-politics {
+  background: linear-gradient(135deg, #880e4f 0%, #e91e63 100%);
+}
+
+.news-card.genre-culture {
+  background: linear-gradient(135deg, #e65100 0%, #ff9800 100%);
+}
+
+.news-card.genre-sports {
+  background: linear-gradient(135deg, #006064 0%, #00bcd4 100%);
+}
+
+.news-card.genre-entertainment {
+  background: linear-gradient(135deg, #4a148c 0%, #9c27b0 100%);
+}
+
+.news-card.genre-news {
+  background: linear-gradient(135deg, #bf360c 0%, #ff5722 100%);
+}
+
+.news-carousel.desktop .news-card {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  transition: all 0.5s ease;
+}
+
+.news-carousel.desktop .news-card.active {
+  height: 100%;
+  width: 100%;
+  transform: scale(1.1);
+}
+
+/* Desktop active card horizontal layout */
+.desktop-active-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.active-image {
+  flex: 0 0 50%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.active-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.active-content {
+  flex: 0 0 50%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktop-active .card-title {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.desktop-active .card-summary {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* Loading state */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #3498db;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Text color adjustments for colored active cards */
+.text-white {
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); /* Add text shadow for better readability */
+}
+
+/* Enhance text visibility on colored backgrounds */
+.news-card.active .card-title,
+.news-card.active .card-summary,
+.news-card.active .card-source span,
+.news-card.active .metric-value {
+  color: white !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.genre-badge-active {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-preview {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.news-card:hover .card-preview img {
+  transform: scale(1.05);
+}
+
+.card-content {
+  padding: 15px;
+  position: relative;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.2); /* Semi-transparent overlay for better text visibility */
+  height: 100%;
+}
+
+/* Mobile-specific card content */
+body.mobile-view .card-content {
+  background: rgba(0, 0, 0, 0.35); /* Darker overlay for mobile */
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 80px; /* Extra padding at bottom for trading buttons */
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-source {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+.source-favicon {
+  margin-right: 6px;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  object-fit: contain !important;
+}
+
+.genre-badge {
+  margin-left: auto;
+  background-color: #f0f0f0;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: #333;
+}
+
+.news-card.active .card-title {
+  -webkit-line-clamp: 2;
+}
+
+.card-summary {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-metrics {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+}
+
+.metric-icon {
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Trending indicators */
+.trending-up .metric-value {
+  color: #28a745;
+}
+
+.trending-down .metric-value {
+  color: #dc3545;
+}
+
+.trending-stable .metric-value {
+  color: #6c757d;
+}
+
+/* Carousel Controls */
+.carousel-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.news-carousel.mobile + .carousel-controls {
+  flex-direction: column;
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: 0;
+}
+
+.control-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0 10px;
+  transition: all 0.2s ease;
+}
+
+.control-button.up, .control-button.down {
+  margin: 5px 0;
+}
+
+.control-button:hover {
+  background-color: #f8f8f8;
+  transform: scale(1.05);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Fullscreen View - completely separate from the card stack */
+.news-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: white;
+  z-index: 10001; /* Higher than everything else */
+  overflow-y: auto;
+  animation: fadeIn 0.3s ease;
+  overscroll-behavior: contain; /* Prevent scrolling from propagating to parent */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile Fullscreen Swipe Gestures */
+@media (max-width: 768px) {
+  .news-fullscreen {
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  
+  .fullscreen-section {
+    height: 100vh;
+    scroll-snap-align: start;
+    padding: 20px;
+  }
+  
+  .fullscreen-content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Add pull-to-refresh animation */
+  .pull-indicator {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 20px;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .pulling .pull-indicator {
+    transform: translateY(0);
+  }
+  
+  /* Ticker-style refresh animation */
+  .ticker-refresh {
+    display: inline-block;
+    overflow: hidden;
+    height: 20px;
+    font-family: monospace;
+    animation: tickerScroll 3s linear infinite;
+  }
+  
+  @keyframes tickerScroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+}
+
+.fullscreen-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 1;
+  color: white;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+.site-logo {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.site-logo:hover {
+  transform: scale(1.05);
+}
+
+.site-logo img {
+  height: 35px;
+  margin-right: 10px;
+}
+
+.site-logo span {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: white;
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 10002;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.close-button:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.fullscreen-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.fullscreen-image {
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.fullscreen-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fullscreen-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  color: #666;
+}
+
+.fullscreen-source > * {
+  margin-right: 15px;
+  margin-bottom: 5px;
+}
+
+.fullscreen-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #333;
+  line-height: 1.2;
+}
+
+.fullscreen-summary {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 30px;
+}
+
+/* Action Toolbar */
+.action-toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  flex: 1;
+  margin: 0 5px 10px;
+}
+
+.action-button:hover {
+  background-color: #f8f8f8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.action-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.action-count {
+  font-weight: 700;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Trading Section */
+.trading-section {
+  background-color: #f8f8f8;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 30px 0;
+}
+
+.trading-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: #333;
+}
+
+.trading-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.trading-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 18px;
+  color: #333;
+}
+
+.trading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.trading-action {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 10px 10px;
+  transition: all 0.2s ease;
+}
+
+.trading-action.long {
+  background-color: #28a745;
+  color: white;
+}
+
+.trading-action.short {
+  background-color: #dc3545;
+  color: white;
+}
+
+.trading-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.shares-input {
+  width: 80px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+  margin: 0 10px;
+}
+
+.read-original {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.read-original a {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  color: #333;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.read-original a:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Specific Styles */
+/* Mobile-specific swipe progress indicator */
+.swipe-progress-indicator {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+  margin: 0 4px;
+  transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+/* Quick actions floating button */
+.quick-actions-button {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #0d47a1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  z-index: 200;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.quick-actions-menu {
+  position: fixed;
+  bottom: 140px;
+  right: 20px;
+  width: 160px;
+  padding: 12px;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 200;
+  transform: scale(0);
+  transform-origin: bottom right;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.quick-actions-menu.open {
+  transform: scale(1);
+}
+
+.quick-action-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quick-action-item:hover {
+  background-color: #f5f5f5;
+}
+
+.quick-action-icon {
+  margin-right: 10px;
+}
+
+/* Mobile navigation controls */
+.mobile-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Swipe indicators - symmetrical arrows */
+.swipe-indicators {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  pointer-events: none;
+  padding: 40px 0;
+}
+
+.swipe-indicator {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.swipe-indicator.swipe-up {
+  transform: translateY(10px);
+  margin-top: 20px;
+}
+
+.swipe-indicator.swipe-down {
+  transform: translateY(-10px);
+  margin-bottom: 20px;
+}
+
+body.mobile-view .swipe-indicator {
+  font-size: 18px;
+}
+
+.news-card.active.swiping .swipe-indicator {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Progress indicator styled as a bar */
+.mobile-progress-indicator {
+  position: fixed;
+  top: 60px; /* Just below the header */
+  left: 0;
+  right: 0;
+  height: 4px;
+  display: flex;
+  z-index: 200;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.progress-dots-container {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  z-index: 200;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  margin: 0 4px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+  background-color: #555;
+  transform: scale(1.3);
+  opacity: 1;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #3498db;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  /* Mobile-specific card styling */
+  .news-carousel.mobile {
+    overflow-y: hidden;
+    scroll-snap-type: y mandatory;
+  }
+  
+  .news-carousel.mobile .news-card {
+    width: 94%;
+    max-width: 500px;
+    border-radius: 20px;
+    margin: 0 auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    background: #fff;
+    position: relative;
+    scroll-snap-align: center;
+  }
+  
+  .news-card.active {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Improved card content for app-like experience - fixed layout */
+  .card-preview {
+    height: 35%;
+    min-height: 180px;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+  }
+  
+  .card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  
+  .card-content {
+    padding: 20px;
+    padding-bottom: 90px; /* Make room for trading buttons */
+    flex-grow: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    position: relative;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .card-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    line-height: 1.3;
+    -webkit-line-clamp: unset;
+  }
+  
+  .card-summary {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 10; /* Limit to approximately 10 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: calc(16px * 1.5 * 10); /* font-size * line-height * lines */
+  }
+  
+  /* Card trading buttons absolutely positioned in viewport, not part of the scroll flow */
+  .card-trading-actions {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0); /* Support for iOS safe areas */
+    left: 0;
+    right: 0;
+    height: 80px;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    justify-content: center; /* Center buttons horizontally */
+    align-items: center;
+    padding: 0;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
+    z-index: 9999; /* Extremely high to ensure it's always on top */
+    will-change: transform; /* Optimize for GPU */
+    transform: translateZ(0);
+  }
+  
+  /* Redesigned compact trading bar for mobile */
+  body.mobile-view .global-trading-actions {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0);
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10000;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
+    padding: 0 15px;
+  }
+  
+  /* Price display */
+  .price-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 0 0 auto;
+    color: white;
+  }
+  
+  .price-label {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+  
+  .price-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  
+  /* Trading buttons container */
+  .trading-buttons-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex: 1;
+  }
+  
+  /* Trading buttons with improved visibility */
+  .trading-button {
+    flex: 1;
+    max-width: 140px;
+    height: 50px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+  }
+  
+  .trading-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+  
+  .trading-button {
+    flex: 0 0 auto;
+    margin: 0 5px;
+    height: 40px;
+    width: 90px; /* Smaller width */
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  }
+  
+  .trading-button.long {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .trading-button.short {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .trading-button-value {
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-left: 8px;
+  }
+  
+  /* Optimized metrics for one-handed use - moved lower to avoid appearing in the gap */
+  .card-metrics {
+    justify-content: space-around;
+    padding: 12px 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    position: absolute;
+    bottom: 85px; /* Positioned just above the trading buttons */
+    left: 20px;
+    right: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Fullscreen adjustments */
+  .fullscreen-title {
+    font-size: 24px;
+  }
+  
+  .fullscreen-summary {
+    font-size: 16px;
+  }
+  
+  .fullscreen-image {
+    height: 240px;
+  }
+  
+  .action-toolbar {
+    justify-content: center;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    position: sticky;
+    bottom: 20px;
+    margin-top: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .action-button {
+    min-width: 70px;
+    margin: 0 3px 10px;
+  }
+  
+  /* Trading section mobile optimization */
+  .trading-stats {
+    flex-direction: column;
+  }
+  
+  .trading-stat {
+    margin-bottom: 10px;
+  }
+  
+  /* Quick actions button optimization */
+  .quick-actions-button {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+    bottom: 25px;
+    right: 25px;
+  }
+}
