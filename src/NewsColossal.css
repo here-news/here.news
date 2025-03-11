@@ -850,6 +850,11 @@ body.mobile-view .card-content {
   flex-direction: column;
 }
 
+.trading-stat .mini-chart-container {
+  margin-left: 15px;
+  margin-top: 5px;
+}
+
 .stat-label {
   font-size: 12px;
   color: #666;
@@ -1372,4 +1377,33 @@ body.mobile-view .swipe-indicator {
     bottom: 25px;
     right: 25px;
   }
+}
+
+/* Mini price chart styles */
+.mini-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 8px;
+  min-width: 50px;
+}
+
+.mini-price-chart {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.percent-change {
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+.percent-change.positive {
+  color: #28a745;
+}
+
+.percent-change.negative {
+  color: #dc3545;
 }

@@ -25,7 +25,9 @@ const realNews = [
     adoption_count: 214,
     traders: 66,
     current_value: 2.14,
-    trending: 'up'
+    trending: 'up',
+    price_history: [1.86, 1.92, 1.85, 1.81, 1.77, 1.82, 1.89, 1.92, 1.98, 2.05, 2.01, 1.97, 1.94, 1.98, 2.02, 2.08, 2.10, 2.05, 2.08, 2.12, 2.16, 2.10, 2.12, 2.14],
+    percent_change_24h: '15.1'
   },
   {
     uuid: "mockid2",
@@ -45,7 +47,9 @@ const realNews = [
     adoption_count: 98,
     traders: 122,
     current_value: 0.87,
-    trending: 'down'
+    trending: 'down',
+    price_history: [1.20, 1.15, 1.12, 1.05, 1.01, 0.98, 0.96, 0.92, 0.95, 0.98, 0.96, 0.93, 0.90, 0.93, 0.89, 0.92, 0.90, 0.88, 0.85, 0.83, 0.86, 0.88, 0.90, 0.87],
+    percent_change_24h: '-27.5'
   },
   {
     uuid: "mockid3",
@@ -65,7 +69,9 @@ const realNews = [
     adoption_count: 332,
     traders: 156,
     current_value: 3.45,
-    trending: 'up'
+    trending: 'up',
+    price_history: [2.10, 2.20, 2.35, 2.48, 2.52, 2.49, 2.55, 2.63, 2.75, 2.82, 2.90, 2.95, 3.02, 3.08, 3.15, 3.20, 3.26, 3.30, 3.35, 3.38, 3.40, 3.42, 3.44, 3.45],
+    percent_change_24h: '64.3'
   },
   {
     uuid: "mockid4",
@@ -188,6 +194,51 @@ const realNews = [
   }
 ];
 
+// Mini price chart component to show price history
+const MiniPriceChart = ({ priceHistory, percentChange, width = 50, height = 24 }) => {
+  // Default empty array if no price history provided
+  const data = priceHistory || [];
+  
+  // Check if we have price data
+  if (!data || data.length === 0) {
+    return null;
+  }
+  
+  // Find min/max for scaling
+  const minPrice = Math.min(...data);
+  const maxPrice = Math.max(...data);
+  const range = maxPrice - minPrice;
+  
+  // Determine color based on percent change
+  const chartColor = parseFloat(percentChange) >= 0 ? '#28a745' : '#dc3545';
+  
+  // Calculate point coordinates
+  const points = data.map((price, index) => {
+    const x = (index / (data.length - 1)) * width;
+    // Invert Y axis (SVG 0,0 is top-left)
+    const y = height - ((price - minPrice) / (range || 1)) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  return (
+    <div className="mini-chart-container">
+      <svg width={width} height={height} className="mini-price-chart">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={chartColor}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className={`percent-change ${parseFloat(percentChange) >= 0 ? 'positive' : 'negative'}`}>
+        {parseFloat(percentChange) >= 0 ? '+' : ''}{percentChange}%
+      </span>
+    </div>
+  );
+};
+
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, gridPosition, children }, ref) => {
   // Handle trading actions
   const handleLongPosition = (e) => {
@@ -289,11 +340,17 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
                 <span className="metric-icon">💰</span>
                 <span className="metric-value text-white">{news.tips}</span>
               </div>
-              <div className={`metric ${trendingClass}`}>
+              <div className={`metric ${trendingClass}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span className="metric-icon">📈</span>
                 <span className="metric-value text-white">
                   ${news.current_value} {trendingArrow}
                 </span>
+                <MiniPriceChart 
+                  priceHistory={news.price_history} 
+                  percentChange={news.percent_change_24h}
+                  width={40}
+                  height={20}
+                />
               </div>
             </div>
           </div>
@@ -506,9 +563,17 @@ const NewsFullScreen = ({ news, onClose }) => {
             <div className="trading-section">
               <h3>Content Trading</h3>
               <div className="trading-stats">
-                <div className="trading-stat">
-                  <span className="stat-label">Current Value:</span>
-                  <span className={`stat-value ${trendingClass}`}>${news.current_value} {trendingArrow}</span>
+                <div className="trading-stat" style={{ display: 'flex', alignItems: 'center' }}>
+                  <div>
+                    <span className="stat-label">Current Value:</span>
+                    <span className={`stat-value ${trendingClass}`}>${news.current_value} {trendingArrow}</span>
+                  </div>
+                  <MiniPriceChart 
+                    priceHistory={news.price_history} 
+                    percentChange={news.percent_change_24h}
+                    width={80}
+                    height={40}
+                  />
                 </div>
                 <div className="trading-stat">
                   <span className="stat-label">Active Traders:</span>
@@ -593,9 +658,17 @@ const NewsFullScreen = ({ news, onClose }) => {
           <div className="trading-section">
             <h3>Content Trading</h3>
             <div className="trading-stats">
-              <div className="trading-stat">
-                <span className="stat-label">Current Value:</span>
-                <span className={`stat-value ${trendingClass}`}>${news.current_value} {trendingArrow}</span>
+              <div className="trading-stat" style={{ display: 'flex', alignItems: 'center' }}>
+                <div>
+                  <span className="stat-label">Current Value:</span>
+                  <span className={`stat-value ${trendingClass}`}>${news.current_value} {trendingArrow}</span>
+                </div>
+                <MiniPriceChart 
+                  priceHistory={news.price_history} 
+                  percentChange={news.percent_change_24h}
+                  width={80}
+                  height={40}
+                />
               </div>
               <div className="trading-stat">
                 <span className="stat-label">Active Traders:</span>
@@ -698,17 +771,44 @@ const NewsColossal = () => {
       }
       
       // Add trading-related mock data for prototype
-      fetchedNews = fetchedNews.map(item => ({
-        ...item,
-        positive_ratings: item.positive_ratings || Math.floor(Math.random() * 1000) + 100,
-        negative_ratings: item.negative_ratings || Math.floor(Math.random() * 200) + 20,
-        shares: Math.floor(Math.random() * 800) + 100,
-        tips: Math.floor(Math.random() * 300) + 30,
-        adoption_count: Math.floor(Math.random() * 400) + 50,
-        traders: Math.floor(Math.random() * 150) + 20,
-        current_value: (Math.random() * 3 + 0.5).toFixed(2),
-        trending: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)]
-      }));
+      fetchedNews = fetchedNews.map(item => {
+        // Generate random price history for the chart
+        const priceHistory = [];
+        const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
+        const initialPrice = (Math.random() * 3 + 0.5);
+        let lastPrice = initialPrice;
+        
+        // Generate 24 price points (hourly for last 24 hours)
+        for (let i = 0; i < 24; i++) {
+          // Random change with slight bias in trend direction
+          const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
+          lastPrice = Math.max(0.1, lastPrice + change); // Ensure price doesn't go below 0.1
+          priceHistory.push(lastPrice);
+        }
+        
+        // Determine trending direction from last two prices
+        const finalPrice = priceHistory[priceHistory.length - 1];
+        const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
+        const priceDiff = finalPrice - previousPrice;
+        const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
+        
+        // Calculate 24hr percent change
+        const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+        
+        return {
+          ...item,
+          positive_ratings: item.positive_ratings || Math.floor(Math.random() * 1000) + 100,
+          negative_ratings: item.negative_ratings || Math.floor(Math.random() * 200) + 20,
+          shares: Math.floor(Math.random() * 800) + 100,
+          tips: Math.floor(Math.random() * 300) + 30,
+          adoption_count: Math.floor(Math.random() * 400) + 50,
+          traders: Math.floor(Math.random() * 150) + 20,
+          current_value: finalPrice.toFixed(2),
+          trending,
+          price_history: priceHistory,
+          percent_change_24h: percentChange.toFixed(1)
+        };
+      });
       
       console.log('Enhanced news with trading data:', fetchedNews);
       setNews(fetchedNews);
@@ -757,7 +857,30 @@ const NewsColossal = () => {
         throw new Error('Empty news details returned');
       }
       
-      // Add trading-related mock data
+      // Add trading-related mock data with price history
+      // Generate random price history for the chart
+      const priceHistory = [];
+      const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
+      const initialPrice = (Math.random() * 3 + 0.5);
+      let lastPrice = initialPrice;
+      
+      // Generate 24 price points (hourly for last 24 hours)
+      for (let i = 0; i < 24; i++) {
+        // Random change with slight bias in trend direction
+        const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
+        lastPrice = Math.max(0.1, lastPrice + change); // Ensure price doesn't go below 0.1
+        priceHistory.push(lastPrice);
+      }
+      
+      // Determine trending direction from last two prices
+      const finalPrice = priceHistory[priceHistory.length - 1];
+      const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
+      const priceDiff = finalPrice - previousPrice;
+      const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
+      
+      // Calculate 24hr percent change
+      const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+      
       const enhancedNewsDetails = {
         ...newsDetails,
         positive_ratings: newsDetails.positive_ratings || Math.floor(Math.random() * 1000) + 100,
@@ -766,8 +889,10 @@ const NewsColossal = () => {
         tips: Math.floor(Math.random() * 300) + 30,
         adoption_count: Math.floor(Math.random() * 400) + 50,
         traders: Math.floor(Math.random() * 150) + 20,
-        current_value: (Math.random() * 3 + 0.5).toFixed(2),
-        trending: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)]
+        current_value: finalPrice.toFixed(2),
+        trending,
+        price_history: priceHistory,
+        percent_change_24h: percentChange.toFixed(1)
       };
       
       console.log('Enhanced news details:', enhancedNewsDetails);
@@ -1501,9 +1626,17 @@ const NewsColossal = () => {
       {/* Global trading actions - always visible on mobile, more compact design */}
       {isMobile && news.length > 0 && ReactDOM.createPortal(
         <div className="global-trading-actions">
-          <div className="price-display">
-            <span className="price-label">Price</span>
-            <span className="price-value">${news[activeIndex]?.current_value || '0.00'}</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div className="price-display">
+              <span className="price-label">Price</span>
+              <span className="price-value">${news[activeIndex]?.current_value || '0.00'}</span>
+            </div>
+            <MiniPriceChart 
+              priceHistory={news[activeIndex]?.price_history} 
+              percentChange={news[activeIndex]?.percent_change_24h}
+              width={50}
+              height={24}
+            />
           </div>
           <div className="trading-buttons-container">
             <button className="trading-button long" onClick={() => handleGlobalPosition('long')}>
