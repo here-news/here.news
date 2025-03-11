@@ -330,22 +330,6 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
         <h3 className="card-title text-white">{news.title}</h3>
         <p className="card-summary text-white">{news.summary}</p>
         
-        <div className="card-metrics">
-          <div className="metric">
-            <span className="metric-icon">👍</span>
-            <span className="metric-value text-white">{news.positive_ratings}</span>
-          </div>
-          <div className="metric">
-            <span className="metric-icon">📊</span>
-            <span className="metric-value text-white">
-              <b>${news.current_value}</b> {trendingArrow}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="metric-icon">👥</span>
-            <span className="metric-value text-white">{news.traders}</span>
-          </div>
-        </div>
       </div>
       
       {/* Trading actions directly on the card */}
@@ -802,7 +786,56 @@ const NewsColossal = () => {
       containerRef.current.style.overscrollBehavior = 'none';
       containerRef.current.style.touchAction = 'none';
     }
-  }, [isMobile]);
+    
+    // Apply proper positioning to all cards on initial load
+    const positionCards = () => {
+      if (isMobile) {
+        const allCards = document.querySelectorAll('.news-card');
+        const activeCard = document.querySelector('.news-card.active');
+        
+        // Ensure all cards have proper fixed positioning
+        allCards.forEach((card, index) => {
+          const relativePosition = index - activeIndex;
+          
+          // Common styles for all cards
+          card.style.position = 'fixed';
+          card.style.top = '60px';
+          card.style.left = '0';
+          card.style.right = '0';
+          card.style.width = '100%';
+          card.style.height = 'calc(100vh - 60px)';
+          
+          // Position based on relationship to active card
+          if (card === activeCard) {
+            card.style.zIndex = '1600';
+            card.style.transform = 'translateY(0)';
+            card.style.opacity = '1';
+            card.style.visibility = 'visible';
+          } else if (relativePosition === -1) {
+            card.style.zIndex = '1500';
+            card.style.transform = 'translateY(-98%)';
+            card.style.opacity = '0.6';
+            card.style.visibility = 'visible';
+          } else if (relativePosition === 1) {
+            card.style.zIndex = '1500';
+            card.style.transform = 'translateY(98%)';
+            card.style.opacity = '0.6';
+            card.style.visibility = 'visible';
+          } else {
+            card.style.zIndex = '1400';
+            card.style.transform = relativePosition < 0 ? 'translateY(-120%)' : 'translateY(120%)';
+            card.style.opacity = '0';
+            card.style.visibility = 'hidden';
+          }
+        });
+      }
+    };
+    
+    // Position cards once news is loaded
+    if (news.length > 0) {
+      setTimeout(positionCards, 100);
+    }
+  }, [isMobile, news.length, activeIndex]);
 
   // Ensure isMobile state is consistently applied and updated
   useEffect(() => {
@@ -933,6 +966,32 @@ const NewsColossal = () => {
         activeCardContent.scrollTop = 0;
       }
       
+      // Apply consistent styles to all cards
+      const activeCard = document.querySelector('.news-card.active');
+      if (activeCard) {
+        // Force the active card to have correct positioning
+        activeCard.style.position = 'fixed';
+        activeCard.style.top = '60px';
+        activeCard.style.left = '0';
+        activeCard.style.right = '0';
+        activeCard.style.width = '100%';
+        activeCard.style.height = 'calc(100vh - 60px)';
+        activeCard.style.transform = 'translateY(0)';
+        activeCard.style.zIndex = '1600';
+        activeCard.style.opacity = '1';
+        activeCard.style.visibility = 'visible';
+      }
+      
+      // Special handling for first card
+      if (activeIndex === 0) {
+        const firstCard = document.querySelector('.news-card:first-child');
+        if (firstCard) {
+          firstCard.style.position = 'fixed';
+          firstCard.style.top = '60px';
+          firstCard.style.zIndex = firstCard.classList.contains('active') ? '1600' : '1500';
+        }
+      }
+      
       // Provide haptic feedback when changing cards
       if (prevActiveIndexRef.current !== activeIndex) {
         provideHapticFeedback();
@@ -952,15 +1011,16 @@ const NewsColossal = () => {
     setTouchStartX(e.touches[0].clientX);
     setIsSwiping(false);
     
-    // Only prevent swiping on buttons and trading actions
+    // Prevent swiping on interactive elements
     const target = e.target;
     const isInteractive = 
-      target.closest('.card-trading-actions') ||
-      target.closest('button');
+      target.closest('.global-trading-actions') ||
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('input');
     
-    // Allow swiping on card content, just prevent if we're on an interactive element
+    // Set flag if we're on an interactive element
     setIsCardContentScrolling(isInteractive);
-    console.log('Touch start at Y:', e.touches[0].clientY, 'Is interactive:', isInteractive);
   };
 
   const handleTouchMove = (e) => {
@@ -1000,7 +1060,44 @@ const NewsColossal = () => {
       // Track swipe state
       if (!isSwiping) {
         setIsSwiping(true);
-        console.log('Swipe detected, direction:', deltaY > 0 ? 'down' : 'up');
+        
+        // When starting a swipe, immediately prep neighboring cards
+        if (deltaY > 0 && activeIndex > 0) {
+          // Swiping down - show previous card peeking
+          const prevCard = document.querySelector(`.news-card:nth-child(${activeIndex})`);
+          if (prevCard) {
+            prevCard.style.visibility = 'visible';
+            prevCard.style.opacity = '0.6';
+            prevCard.style.transform = 'translateY(-98%)';
+            prevCard.style.transition = 'none'; // No transition during active drag
+            prevCard.style.position = 'fixed';
+            prevCard.style.top = '60px';
+            prevCard.style.left = '0';
+            prevCard.style.right = '0';
+            prevCard.style.width = '100%';
+            prevCard.style.height = 'calc(100vh - 60px)';
+          }
+        } else if (deltaY < 0 && activeIndex < news.length - 1) {
+          // Swiping up - show next card peeking
+          const nextCard = document.querySelector(`.news-card:nth-child(${activeIndex + 2})`);
+          if (nextCard) {
+            nextCard.style.visibility = 'visible';
+            nextCard.style.opacity = '0.6';
+            nextCard.style.transform = 'translateY(98%)';
+            nextCard.style.transition = 'none'; // No transition during active drag
+            nextCard.style.position = 'fixed';
+            nextCard.style.top = '60px';
+            nextCard.style.left = '0';
+            nextCard.style.right = '0';
+            nextCard.style.width = '100%';
+            nextCard.style.height = 'calc(100vh - 60px)';
+          }
+        }
+      }
+      
+      // Store direction for more accurate swipe detection
+      if (Math.abs(deltaY) > 10) {
+        setSwipeDirection(deltaY > 0 ? 'down' : 'up');
       }
       
       // Visual feedback - move card with finger
@@ -1010,6 +1107,31 @@ const NewsColossal = () => {
         const resistance = 0.3; // Lower = more resistance
         const translateY = deltaY * resistance;
         activeCard.style.transform = `translateY(${translateY}px)`;
+        
+        // Ensure the card stays fixed
+        activeCard.style.position = 'fixed';
+        activeCard.style.top = '60px';
+        
+        // Move the next/prev card along with the swipe for a continuous effect
+        if (deltaY > 0 && activeIndex > 0) {
+          // Swiping down - animate previous card
+          const prevCard = document.querySelector(`.news-card:nth-child(${activeIndex})`);
+          if (prevCard) {
+            const prevTranslateY = -98 + (deltaY * resistance * 0.5); // Half the movement rate
+            prevCard.style.transform = `translateY(${prevTranslateY}%)`;
+            prevCard.style.position = 'fixed';
+            prevCard.style.top = '60px';
+          }
+        } else if (deltaY < 0 && activeIndex < news.length - 1) {
+          // Swiping up - animate next card
+          const nextCard = document.querySelector(`.news-card:nth-child(${activeIndex + 2})`);
+          if (nextCard) {
+            const nextTranslateY = 98 + (deltaY * resistance * 0.5); // Half the movement rate
+            nextCard.style.transform = `translateY(${nextTranslateY}%)`;
+            nextCard.style.position = 'fixed';
+            nextCard.style.top = '60px';
+          }
+        }
       }
       
       // Track current position for swipe calculation
@@ -1032,24 +1154,40 @@ const NewsColossal = () => {
       const swipeDistance = touchEndY - touchStartY;
       const minSwipeDistance = 40; // Threshold for activating swipe
       
-      console.log('Swipe ended, distance:', swipeDistance);
-      
       // If swipe distance is significant enough, change card
       if (Math.abs(swipeDistance) > minSwipeDistance) {
         // Provide haptic feedback
         provideHapticFeedback();
         
+        // Add a class to all cards to ensure transition is applied consistently
+        const allCards = document.querySelectorAll('.news-card');
+        allCards.forEach(card => {
+          card.classList.add('transitioning');
+        });
+        
         if (swipeDistance > 0 && activeIndex > 0) {
           // Swiped DOWN = go to PREVIOUS card
-          console.log('Navigating to previous card (index ' + (activeIndex-1) + ')');
           setActiveIndex(activeIndex - 1);
         } else if (swipeDistance < 0 && activeIndex < news.length - 1) {
           // Swiped UP = go to NEXT card
-          console.log('Navigating to next card (index ' + (activeIndex+1) + ')');
           setActiveIndex(activeIndex + 1);
         } else {
-          console.log('At edge of cards, cannot navigate further');
+          // At edge of cards, cannot navigate further
+          // Add a bounce-back animation
+          if (activeCard) {
+            activeCard.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            activeCard.style.transform = 'translateY(0)';
+            activeCard.style.position = 'fixed';
+            activeCard.style.top = '60px';
+          }
         }
+        
+        // Remove the transitioning class after animation completes
+        setTimeout(() => {
+          allCards.forEach(card => {
+            card.classList.remove('transitioning');
+          });
+        }, 400); // Slightly longer than the CSS transition duration
       }
     }
     
@@ -1136,7 +1274,11 @@ const NewsColossal = () => {
           <div className="logo">
             <img src="/static/logo.svg" alt="Here News" height="30" />
           </div>
-          <h1 style={{fontSize: '18px', margin: '0 auto'}}>HERE.NEWS</h1>
+          <h1 style={{
+            fontSize: '18px', 
+            margin: '0 auto',
+            fontWeight: 'bold'
+          }}>HERE.NEWS</h1>
           <div style={{width: '30px'}}></div>
         </div>
       )}
@@ -1165,36 +1307,36 @@ const NewsColossal = () => {
             const relativePosition = index - activeIndex;
             
             if (relativePosition === 0) {
-              // Active card - centered
+              // Active card - centered with no top space, fixed position for ALL cards
               cardStyle = {
                 transform: 'translateY(0)',
                 zIndex: 10,
                 opacity: 1,
                 visibility: 'visible',
-                position: 'absolute',
-                top: '60px',
+                position: 'fixed', // Use fixed position instead of absolute
+                top: '60px', // Position after header
                 left: 0,
                 right: 0,
                 width: '100%',
-                height: 'calc(100vh - 60px)',
+                height: 'calc(100vh - 60px)', // Full screen minus header
                 margin: 0,
                 padding: 0,
                 borderRadius: 0,
-                background: getGenreBackground(item.genre), // Use item.genre instead of news.genre
+                background: getGenreBackground(item.genre),
                 pointerEvents: 'auto',
                 display: 'flex',
                 flexDirection: 'column'
               };
             } else if (relativePosition === -1) {
-              // Previous card (above) - nearly invisible (just a tiny hint)
+              // Previous card (above) - position it for swipe down
               cardStyle = {
-                transform: 'translateY(-98%)',
-                zIndex: 9,
+                transform: 'translateY(-98%)', // Just above the viewport (visible edge)
+                zIndex: 8,
                 opacity: 0.6,
                 visibility: 'visible',
                 pointerEvents: 'none',
-                position: 'absolute',
-                top: '60px',
+                position: 'fixed', // Use fixed position to match active card
+                top: '60px', // Same positioning as active card
                 left: 0,
                 right: 0,
                 width: '100%',
@@ -1207,13 +1349,13 @@ const NewsColossal = () => {
             } else if (relativePosition === 1) {
               // Next card (below) - nearly invisible (just a tiny hint)
               cardStyle = {
-                transform: 'translateY(98%)',
+                transform: 'translateY(98%)', // Just below the viewport (visible edge)
                 zIndex: 8,
                 opacity: 0.6,
                 visibility: 'visible',
                 pointerEvents: 'none',
-                position: 'absolute',
-                top: '60px',
+                position: 'fixed', // Use fixed position to match active card
+                top: '60px', // Same positioning as active card
                 left: 0,
                 right: 0,
                 width: '100%',
@@ -1224,23 +1366,24 @@ const NewsColossal = () => {
                 background: getGenreBackground(item.genre)
               };
             } else {
-              // Other cards - hidden off-screen
+              // Other cards - hidden off-screen but maintain position for transitions
               cardStyle = {
                 transform: relativePosition < 0 
                   ? 'translateY(-120%)' 
                   : 'translateY(120%)',
-                zIndex: 5,
+                zIndex: relativePosition < 0 ? 7 : 5, // Lower z-index for farther cards
                 opacity: 0,
                 visibility: 'hidden',
                 pointerEvents: 'none',
-                position: 'absolute',
-                top: '60px',
+                position: 'fixed', // Use fixed position to match active card
+                top: '60px', // Same positioning as active card
                 left: 0,
                 right: 0,
                 width: '100%',
                 margin: 0,
                 padding: 0,
-                borderRadius: 0
+                borderRadius: 0,
+                background: getGenreBackground(item.genre)
               };
             }
             
