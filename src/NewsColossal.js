@@ -972,8 +972,29 @@ const NewsColossal = () => {
       // Force apply mobile styles to body for cascade
       if (mobileView) {
         document.body.classList.add('mobile-view');
+        
+        // Check if we're in landscape mode on mobile
+        if (window.matchMedia("(orientation: landscape)").matches) {
+          // Show notification or handle landscape mode
+          console.log('Please rotate your device to portrait mode for the best experience');
+        }
       } else {
         document.body.classList.remove('mobile-view');
+      }
+    };
+    
+    // Handle orientation change
+    const handleOrientationChange = () => {
+      if (window.innerWidth <= 768) {
+        if (window.matchMedia("(orientation: landscape)").matches) {
+          // We're in landscape on mobile - show notification
+          console.log('Landscape mode detected - app is optimized for portrait mode');
+          
+          // Optional: vibrate to notify user
+          if (window.navigator && window.navigator.vibrate) {
+            window.navigator.vibrate(100);
+          }
+        }
       }
     };
     
@@ -982,7 +1003,12 @@ const NewsColossal = () => {
     
     // Listen for changes
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
   }, []);
 
   const handleCardClick = async (uuid) => {

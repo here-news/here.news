@@ -101,6 +101,44 @@ body.mobile-view .news-colossal-container {
   z-index: 1000;
 }
 
+/* Lock screen to portrait orientation on mobile */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  body.mobile-view {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+  
+  body.mobile-view .news-colossal-container {
+    transform: rotate(90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: fixed;
+  }
+  
+  body.mobile-view .news-header-mobile::after {
+    content: "Please rotate your device to portrait mode";
+    position: fixed;
+    top: 50%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 20px;
+    z-index: 3000;
+    font-weight: bold;
+    transform: translateY(-50%);
+  }
+}
+
 /* Special rule to force hide previous cards */
 .news-carousel.mobile .news-card[style*="-9999px"],
 .news-carousel.mobile .news-card[style*="-200%"] {
