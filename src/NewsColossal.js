@@ -715,15 +715,21 @@ const NewsColossal = () => {
   const containerRef = useRef(null);
   
   // Fetch news from API with console logging for debugging
+  // Return a promise so we can chain with .then()
   const fetchTopNews = async () => {
     setIsLoading(true);
     
-    console.log('Fetching news from API...', serviceUrl);
+    // Log detailed information about the service URL and current location
+    console.log('Current window location:', window.location.href);
+    console.log('Using API service URL:', serviceUrl);
     
     try {
-      // Use the topnews endpoint as specified
-      console.log('Fetching from /topnews endpoint');
-      const response = await fetch(`${serviceUrl}/topnews?range=2h&limit=9`);
+      // Use the topnews endpoint as specified, with cache buster
+      const cacheBuster = new Date().getTime();
+      console.log(`Fetching from ${serviceUrl}/topnews endpoint (${window.location.hostname})`);
+      
+      // Simple fetch without credentials or special headers to avoid CORS issues
+      const response = await fetch(`${serviceUrl}/topnews?range=2h&limit=9&_=${cacheBuster}`);
       
       if (!response.ok) {
         throw new Error(`Error fetching news: ${response.status} ${response.statusText}`);
@@ -825,8 +831,14 @@ const NewsColossal = () => {
   // Fetch news details for a specific article
   const fetchNewsDetails = async (uuid) => {
     try {
-      console.log(`Making fetch request to ${serviceUrl}/news/${uuid}`);
-      const response = await fetch(`${serviceUrl}/news/${uuid}`);
+      // Log information about the API URL being used
+      console.log('Current window location for detail fetch:', window.location.href);
+      console.log('Using API service URL for detail fetch:', serviceUrl);
+      console.log(`Making request to: ${serviceUrl}/news/${uuid}`);
+      
+      // Add cache buster to prevent caching
+      const cacheBuster = new Date().getTime();
+      const response = await fetch(`${serviceUrl}/news/${uuid}?_=${cacheBuster}`);
       
       if (!response.ok) {
         console.error(`API error: ${response.status} ${response.statusText}`);
@@ -903,9 +915,31 @@ const NewsColossal = () => {
     }
   };
   
-  useEffect(() => {
-    fetchTopNews();
+  // Track if data has been loaded to prevent multiple fetches
+  const [hasLoadedData, setHasLoadedData] = useState(false);
 
+  // Only fetch data once on initial component mount
+  useEffect(() => {
+    // Only fetch if we haven't loaded data yet
+    if (!hasLoadedData && news.length === 0) {
+      console.log('Initial data fetch...');
+      fetchTopNews()
+        .then(() => {
+          setHasLoadedData(true);
+          console.log('Data loaded successfully, marking as loaded');
+        })
+        .catch(error => {
+          console.error('Error in initial data fetch:', error);
+          // Still mark as loaded to prevent constant retries
+          setHasLoadedData(true);
+        });
+    }
+  // The empty dependency array ensures this only runs once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Separate useEffect for mobile setup to avoid mixing concerns
+  useEffect(() => {
     // Prevent default scrolling on mobile
     if (isMobile && containerRef.current) {
       containerRef.current.style.overscrollBehavior = 'none';
@@ -1205,8 +1239,13 @@ const NewsColossal = () => {
     
     // Only handle vertical swipes when allowed
     if (Math.abs(deltaY) > Math.abs(deltaX) && canSwipe) {
-      // Prevent browser's default behavior (scrolling)
-      e.preventDefault();
+      // Try to prevent default scrolling behavior, but handle gracefully if we can't
+      // due to passive event listeners in modern browsers
+      try {
+        e.preventDefault();
+      } catch (error) {
+        // This is expected in some browsers with passive listeners - continue anyway
+      }
       
       // Track swipe state
       if (!isSwiping) {
@@ -1446,6 +1485,9 @@ const NewsColossal = () => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        // Add this attribute to make touch events non-passive
+        // This helps with preventDefault() but may affect performance
+        style={{'touchAction': 'none'}}
       >
         {news.map((item, index) => {
           // Set up card style and positioning
