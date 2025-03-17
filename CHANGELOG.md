@@ -5,6 +5,23 @@ All notable changes to the Here.news application will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-03-17
+
+### Added
+- Integrated search functionality in the header across all pages
+- Added colorful genre badges for better content categorization
+
+### Changed
+- Redesigned news cards as slim, one-line entries for improved information density
+- Converted card layout from grid to list view to show more news at once
+- Optimized thumbnail size and placement for better screen real estate usage
+- Improved header and footer consistency across all pages
+- Enhanced typography and readability throughout the application
+
+### Removed
+- Removed action buttons from cards for cleaner interface
+- Eliminated card background colors in favor of subtle separators
+
 ## [0.4.0] - 2025-03-17
 
 ### Added
