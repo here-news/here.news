@@ -19,15 +19,6 @@ const Home = () => {
 
     return (
         <>
-            <Navbar bg="light" className="justify-content-center">
-                <Navbar.Brand>
-                    <div className="d-flex align-items-center">
-                        <span className="ml-2"><b>NEWS&nbsp;&nbsp;</b></span>
-                        <img src="/static/logo.svg" alt="Logo" id="top-logo" className="navbar-brand" />
-                        <span className="ml-2"><b>HERE</b></span>
-                    </div>
-                </Navbar.Brand>
-            </Navbar>
             
             {/* New Colossal News UI */}
             <div className="colossal-section mb-5">

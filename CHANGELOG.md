@@ -5,6 +5,21 @@ All notable changes to the Here.news application will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2025-03-17
+
+### Changed
+- Refined desktop news card design with single-line summaries
+- Improved genre labels with white backgrounds and colored borders/text for better readability
+- Fixed background color consistency in desktop view (all cards have white backgrounds)
+- Reduced overall card height for more compact display
+- Enhanced hover/active states with better contrast
+
+### Fixed
+- Fixed issue with scrolling and loading more news items
+- Removed unexpected animated logo in desktop view
+- Improved genre label contrast and readability
+- Fixed inconsistent card widths when loading more content
+
 ## [0.5.0] - 2025-03-17
 
 ### Added

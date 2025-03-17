@@ -21,18 +21,17 @@ a:visited {
 }
 
 #top-logo {
-    animation: pulse 2s infinite ease-in-out;
+    /* Animation removed to prevent unwanted animation in NewsColossal view */
     max-width: 48px;
     height: auto;
-    display: block;
+    display: none; /* Hide the logo entirely */
     margin: 10px auto;
 }
 
 .colossal-section {
     background-color: #f8f9fa;
-    padding: 20px 0 40px;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
+    padding: 0;
+    margin-bottom: 0;
 }
 
 .colossal-section h2 {

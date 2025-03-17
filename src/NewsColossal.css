@@ -5,13 +5,11 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 10px;
-  padding-top: 70px; /* Add extra top padding to account for the header */
+  padding-top: 10px; /* Reduced padding - header is already accounted for in layout */
   padding-bottom: 70px; /* Add extra bottom padding for footer */
-  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 140px); /* Make sure it takes up full height minus header and footer */
 }
 
 /* Desktop search bar styles */
@@ -132,7 +130,13 @@
   display: none; /* Hide scrollbar Chrome, Safari, Opera */
 }
 
-.news-colossal-container {
+/* Completely disable any pulsing animations */
+@keyframes pulse {
+  0%, 25%, 50%, 75%, 100% { transform: scale(1); }
+}
+
+/* Mobile specific container styles */
+body.mobile-view .news-colossal-container {
   height: 100vh;
   height: -webkit-fill-available; /* For iOS Safari */
   position: fixed;
@@ -145,6 +149,12 @@
   flex-direction: column;
   touch-action: none; /* Prevent browser handling of all panning and zooming gestures */
   overscroll-behavior: none; /* Prevent pull-to-refresh */
+}
+
+/* Hide any logos or animated elements from the Home component */
+.navbar, #top-logo, .navbar-brand {
+  display: none !important;
+  animation: none !important;
 }
 
 /* Fixed header styles */
@@ -259,10 +269,11 @@ body.mobile-view .news-colossal-container {
   flex-direction: column;
   gap: 0;
   padding: 0 8px;
-  max-width: 1400px;
+  width: 100%; /* Use 100% width instead of max-width */
   margin: 0 auto;
   overflow-y: auto;
-  height: calc(100vh - 70px); /* Allow room for header and footer */
+  height: calc(100vh - 140px); /* Fixed height to enable scrolling */
+  margin-top: 70px; /* Add margin to account for fixed header */
 }
 
 /* Grid positioning for desktop layout */
@@ -404,55 +415,86 @@ body.mobile-view .news-card {
 /* Hidden by default - position will be set in JS */
 /* Remove this style as we're now handling visibility in JavaScript */
 
-/* Genre-specific backgrounds for active cards */
-.news-card.genre-science,
-.news-card.genre-science-technology,
-.news-card.genre-technology {
+/* Genre-specific backgrounds for active cards - MOBILE ONLY */
+/* Force white background on all desktop news cards */
+body.desktop-view .news-card,
+body:not(.mobile-view) .news-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Override any genre-specific backgrounds in desktop view */
+body.desktop-view .news-card.genre-science,
+body.desktop-view .news-card.genre-science-technology,
+body.desktop-view .news-card.genre-technology,
+body.desktop-view .news-card.genre-environment,
+body.desktop-view .news-card.genre-economy,
+body.desktop-view .news-card.genre-finance,
+body.desktop-view .news-card.genre-health,
+body.desktop-view .news-card.genre-health-technology,
+body.desktop-view .news-card.genre-archaeology,
+body.desktop-view .news-card.genre-history,
+body.desktop-view .news-card.genre-politics,
+body.desktop-view .news-card.genre-culture,
+body.desktop-view .news-card.genre-sports,
+body.desktop-view .news-card.genre-entertainment,
+body.desktop-view .news-card.genre-news {
+  background: #ffffff !important;
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+/* Mobile-only genre backgrounds */
+body.mobile-view .news-card.genre-science,
+body.mobile-view .news-card.genre-science-technology,
+body.mobile-view .news-card.genre-technology {
   background: linear-gradient(135deg, #4a148c 0%, #7c43bd 100%);
 }
 
-.news-card.genre-environment {
+body.mobile-view .news-card.genre-environment {
   background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
 }
 
-.news-card.genre-economy,
-.news-card.genre-finance {
+body.mobile-view .news-card.genre-economy,
+body.mobile-view .news-card.genre-finance {
   background: linear-gradient(135deg, #0d47a1 0%, #2196f3 100%);
 }
 
-.news-card.genre-health,
-.news-card.genre-health-technology {
+body.mobile-view .news-card.genre-health,
+body.mobile-view .news-card.genre-health-technology {
   background: linear-gradient(135deg, #b71c1c 0%, #f44336 100%);
 }
 
-.news-card.genre-archaeology,
-.news-card.genre-history {
+body.mobile-view .news-card.genre-archaeology,
+body.mobile-view .news-card.genre-history {
   background: linear-gradient(135deg, #795548 0%, #a1887f 100%);
 }
 
-.news-card.genre-politics {
+body.mobile-view .news-card.genre-politics {
   background: linear-gradient(135deg, #880e4f 0%, #e91e63 100%);
 }
 
-.news-card.genre-culture {
+body.mobile-view .news-card.genre-culture {
   background: linear-gradient(135deg, #e65100 0%, #ff9800 100%);
 }
 
-.news-card.genre-sports {
+body.mobile-view .news-card.genre-sports {
   background: linear-gradient(135deg, #006064 0%, #00bcd4 100%);
 }
 
-.news-card.genre-entertainment {
+body.mobile-view .news-card.genre-entertainment {
   background: linear-gradient(135deg, #4a148c 0%, #9c27b0 100%);
 }
 
-.news-card.genre-news {
+body.mobile-view .news-card.genre-news {
   background: linear-gradient(135deg, #bf360c 0%, #ff5722 100%);
 }
 
 .news-carousel.desktop .news-card {
-  width: 100%;
-  height: 86px;
+  width: 100% !important; /* Force 100% width */
+  min-width: 100% !important; /* Ensure minimum width is also 100% */
+  height: 76px; /* Reduced height to match single-line summary */
   margin: 0;
   padding: 0;
   transition: all 0.2s ease;
@@ -461,27 +503,31 @@ body.mobile-view .news-card {
   overflow: hidden;
   cursor: pointer;
   border-bottom: 1px solid #eee;
-  background-color: transparent;
+  background-color: #ffffff !important; /* Force white background for all desktop cards */
+  background-image: none !important; /* Remove any background images or gradients */
+  box-sizing: border-box; /* Ensure padding is included in width */
 }
 
 .news-carousel.desktop .news-card:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: #f9f9f9 !important;
+  background-image: none !important;
 }
 
 .news-carousel.desktop .news-card.active {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: #f7f7f7 !important;
+  background-image: none !important;
 }
 
 /* Desktop card styles */
 .news-carousel.desktop .card-preview {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
   background-color: #f0f0f0;
   margin: 8px;
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .news-carousel.desktop .card-preview img {
@@ -500,22 +546,27 @@ body.mobile-view .news-card {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 10px 6px;
+  padding: 8px 6px;
   justify-content: center;
 }
 
 .news-carousel.desktop .card-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.2;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.2px;
   color: #222;
+  white-space: nowrap;
+}
+
+.news-carousel.desktop .news-card:hover .card-title {
+  color: #000;
 }
 
 .news-carousel.desktop .card-summary {
@@ -523,10 +574,19 @@ body.mobile-view .news-card {
   line-height: 1.3;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1; /* Show only one line */
   -webkit-box-orient: vertical;
   text-overflow: ellipsis;
   margin-bottom: 0;
+  color: #555;
+  max-height: 1.3em; /* Ensure it's only one line tall */
+  white-space: nowrap; /* Alternative approach to ensure single line */
+  width: 95%; /* Prevent overlap with other elements */
+}
+
+/* Ensure source name and other text remain legible on hover/active states */
+.news-carousel.desktop .news-card:hover .source-name,
+.news-carousel.desktop .news-card.active .source-name {
   color: #555;
 }
 
@@ -713,6 +773,59 @@ body.mobile-view .news-card {
   animation: spin 1s ease-in-out infinite;
 }
 
+/* Show More Button */
+.show-more-container {
+  text-align: center;
+  margin: 20px 0 40px;
+  padding: 10px;
+  position: relative;
+  clear: both;
+  width: 100%;
+  display: block;
+}
+
+.show-more-button {
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #0d47a1, #2196f3);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.show-more-button:hover {
+  box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4);
+  transform: translateY(-2px);
+}
+
+.show-more-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.show-more-button::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.show-more-button:hover::after {
+  opacity: 1;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -813,50 +926,158 @@ body.mobile-view .card-content {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
-/* Genre-specific badge colors */
+/* Desktop view should have clean, white badge with colored border */
+.news-carousel.desktop .genre-badge {
+  background-color: white;
+  color: #333;
+  font-weight: 600;
+  text-shadow: none;
+  border: 1px solid #ddd;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  box-shadow: none;
+  display: inline-block;
+  line-height: 1.1;
+  margin-left: 8px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+/* Genre-specific badge colors - full color for mobile */
 .genre-badge.genre-science,
 .genre-badge.genre-science-technology,
 .genre-badge.genre-technology {
-  background-color: #7c43bd;
+  background: linear-gradient(135deg, #4a148c 0%, #7c43bd 100%);
 }
 
 .genre-badge.genre-environment {
-  background-color: #4caf50;
+  background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
 }
 
 .genre-badge.genre-economy,
 .genre-badge.genre-finance {
-  background-color: #2196f3;
+  background: linear-gradient(135deg, #0d47a1 0%, #2196f3 100%);
 }
 
 .genre-badge.genre-health,
 .genre-badge.genre-health-technology {
-  background-color: #f44336;
+  background: linear-gradient(135deg, #b71c1c 0%, #f44336 100%);
 }
 
 .genre-badge.genre-archaeology,
 .genre-badge.genre-history {
-  background-color: #795548;
+  background: linear-gradient(135deg, #795548 0%, #a1887f 100%);
 }
 
 .genre-badge.genre-politics {
-  background-color: #e91e63;
+  background: linear-gradient(135deg, #880e4f 0%, #e91e63 100%);
 }
 
 .genre-badge.genre-culture {
-  background-color: #ff9800;
+  background: linear-gradient(135deg, #e65100 0%, #ff9800 100%);
 }
 
 .genre-badge.genre-sports {
-  background-color: #00bcd4;
+  background: linear-gradient(135deg, #006064 0%, #00bcd4 100%);
 }
 
 .genre-badge.genre-entertainment {
-  background-color: #9c27b0;
+  background: linear-gradient(135deg, #4a148c 0%, #9c27b0 100%);
 }
 
 .genre-badge.genre-news {
-  background-color: #ff5722;
+  background: linear-gradient(135deg, #bf360c 0%, #ff5722 100%);
+}
+
+/* Genre-specific colors for desktop - with consistent, high-contrast styling */
+.news-carousel.desktop .genre-badge {
+  background-color: white;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  font-weight: 600;
+}
+
+/* Science & Technology */
+.news-carousel.desktop .genre-badge.genre-science,
+.news-carousel.desktop .genre-badge.genre-science-technology,
+.news-carousel.desktop .genre-badge.genre-technology {
+  background-color: white;
+  color: #673ab7;
+  border-color: #673ab7;
+}
+
+/* Environment */
+.news-carousel.desktop .genre-badge.genre-environment {
+  background-color: white;
+  color: #2e7d32;
+  border-color: #2e7d32;
+}
+
+/* Economy & Finance */
+.news-carousel.desktop .genre-badge.genre-economy,
+.news-carousel.desktop .genre-badge.genre-finance {
+  background-color: white;
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+/* Health */
+.news-carousel.desktop .genre-badge.genre-health,
+.news-carousel.desktop .genre-badge.genre-health-technology {
+  background-color: white;
+  color: #d32f2f;
+  border-color: #d32f2f;
+}
+
+/* History & Archaeology */
+.news-carousel.desktop .genre-badge.genre-archaeology,
+.news-carousel.desktop .genre-badge.genre-history {
+  background-color: white;
+  color: #795548;
+  border-color: #795548;
+}
+
+/* Politics */
+.news-carousel.desktop .genre-badge.genre-politics {
+  background-color: white;
+  color: #c2185b;
+  border-color: #c2185b;
+}
+
+/* Culture */
+.news-carousel.desktop .genre-badge.genre-culture {
+  background-color: white;
+  color: #ff8f00;
+  border-color: #ff8f00;
+}
+
+/* Sports */
+.news-carousel.desktop .genre-badge.genre-sports {
+  background-color: white;
+  color: #0097a7;
+  border-color: #0097a7;
+}
+
+/* Entertainment */
+.news-carousel.desktop .genre-badge.genre-entertainment {
+  background-color: white;
+  color: #8e24aa;
+  border-color: #8e24aa;
+}
+
+/* News */
+.news-carousel.desktop .genre-badge.genre-news {
+  background-color: white;
+  color: #f4511e;
+  border-color: #f4511e;
+}
+
+/* Miscellaneous */
+.news-carousel.desktop .genre-badge.genre-miscellaneous {
+  background-color: white;
+  color: #607d8b;
+  border-color: #607d8b;
 }
 
 .card-title {

@@ -943,9 +943,10 @@ const NewsColossal = () => {
       console.log('Screen width:', window.innerWidth, 'Mobile:', mobileView);
       setIsMobile(mobileView);
       
-      // Force apply mobile styles to body for cascade
+      // Force apply correct styles to body for cascade
       if (mobileView) {
         document.body.classList.add('mobile-view');
+        document.body.classList.remove('desktop-view');
         
         // Check if we're in landscape mode on mobile
         if (window.matchMedia("(orientation: landscape)").matches) {
@@ -954,6 +955,7 @@ const NewsColossal = () => {
         }
       } else {
         document.body.classList.remove('mobile-view');
+        document.body.classList.add('desktop-view');
       }
     };
     
@@ -982,6 +984,8 @@ const NewsColossal = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleOrientationChange);
+      document.body.classList.remove('mobile-view');
+      document.body.classList.remove('desktop-view');
     };
   }, []);
   
@@ -997,6 +1001,8 @@ const NewsColossal = () => {
         const currentScrollTop = containerRef.current.scrollTop;
         const scrollDirection = currentScrollTop > scrollLeft ? 'down' : 'up';
         
+        console.log(`Scrolling: direction=${scrollDirection}, position=${currentScrollTop}`);
+        
         if (scrollDirection === 'down') {
           scrollCount++;
           
@@ -1009,8 +1015,11 @@ const NewsColossal = () => {
           const { scrollHeight, scrollTop, clientHeight } = containerRef.current;
           const scrollBottom = scrollHeight - scrollTop - clientHeight;
           
-          // If we're within 200px of the bottom, load more
-          if (scrollBottom < 200 && !isLoadingMore) {
+          console.log(`Scroll metrics: Bottom=${scrollBottom}, Height=${scrollHeight}, Top=${scrollTop}, ClientHeight=${clientHeight}`);
+          
+          // If we're within 500px of the bottom, load more (increased threshold for better responsiveness)
+          if (scrollBottom < 500 && !isLoadingMore) {
+            console.log('Near bottom, loading more news...');
             loadMoreNews();
           }
         }
@@ -1037,44 +1046,105 @@ const NewsColossal = () => {
     // In a real implementation, we would fetch the next page of news
     // For now, let's just simulate a delay and add more mock news
     setTimeout(() => {
-      // Clone some existing news items to simulate new data
-      const additionalNews = news.slice(0, 3).map(item => ({
-        ...item,
-        uuid: `${item.uuid}-${Date.now()}`, // Ensure unique IDs
-        title: `[NEW] ${item.title}`
-      }));
-      
-      setNews([...news, ...additionalNews]);
-      setIsLoadingMore(false);
+      try {
+        // Create more substantial mock news
+        const additionalNews = [];
+        
+        // Add variations of existing news items with different titles
+        for (let i = 0; i < Math.min(news.length, 5); i++) {
+          const baseItem = news[i % news.length];
+          additionalNews.push({
+            ...baseItem,
+            uuid: `${baseItem.uuid}-${Date.now()}-${i}`, // Ensure unique IDs
+            title: `Latest: ${baseItem.title.replace(/^\[NEW\] /, '')}`,
+            summary: `Updated information on this topic. ${baseItem.summary}`
+          });
+        }
+        
+        // Add some completely new mock items
+        const genres = ['Technology', 'Finance', 'Health', 'Culture', 'Politics', 'Environment'];
+        const sources = ['TechDaily', 'FinanceReport', 'HealthJournal', 'CultureToday', 'PoliticsWeekly'];
+        
+        for (let i = 0; i < 5; i++) {
+          const randomGenre = genres[Math.floor(Math.random() * genres.length)];
+          const randomSource = sources[Math.floor(Math.random() * sources.length)];
+          
+          additionalNews.push({
+            uuid: `new-item-${Date.now()}-${i}`,
+            title: `${randomGenre} News: Latest developments in ${randomGenre.toLowerCase()} sector`,
+            summary: `This is a summary of the latest developments in the ${randomGenre.toLowerCase()} sector. Read more for detailed information and analysis.`,
+            preview: '/static/3d.webp',
+            source: randomSource,
+            genre: randomGenre,
+            canonical: 'https://example.com',
+            current_value: (Math.random() * 100).toFixed(2),
+            trending: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)],
+            percent_change_24h: (Math.random() * 10 - 5).toFixed(2),
+            price_history: Array(10).fill().map(() => Math.random() * 100 + 50)
+          });
+        }
+        
+        // Properly update state to avoid layout shifts
+        console.log(`Adding ${additionalNews.length} new items to existing ${news.length} items`);
+        
+        // Update the news state with the combined array
+        setNews(prevNews => {
+          const combined = [...prevNews, ...additionalNews];
+          console.log(`Total news count after update: ${combined.length}`);
+          return combined;
+        });
+        
+        // Ensure the layout is maintained
+        setTimeout(() => {
+          if (containerRef.current) {
+            console.log('Maintaining container width and layout');
+            
+            // Make sure all cards have proper width
+            const allCards = containerRef.current.querySelectorAll('.news-card');
+            allCards.forEach(card => {
+              card.style.width = '100%';
+            });
+            
+            // Force a small scroll to update view without changing layout
+            const currentScrollPos = containerRef.current.scrollTop;
+            containerRef.current.scrollTop = currentScrollPos + 1;
+          }
+          
+          setIsLoadingMore(false);
+        }, 200);
+      } catch (error) {
+        console.error('Error loading more news:', error);
+        setIsLoadingMore(false);
+      }
     }, 1000);
   };
 
   const handleCardClick = async (uuid) => {
     const index = news.findIndex(item => item.uuid === uuid);
-    if (index !== activeIndex) {
-      setActiveIndex(index);
-    } else {
-      // When opening fullscreen, fetch detailed news if available
-      setIsLoading(true);
-      try {
-        console.log(`Fetching detailed news for UUID: ${uuid}`);
-        const detailedNews = await fetchNewsDetails(uuid);
-        console.log('Fetched detailed news:', detailedNews);
-        
-        if (detailedNews) {
-          setFullScreenNews(detailedNews);
-        } else {
-          // Fallback to the news we already have
-          console.log('No detailed news found, using existing news item');
-          setFullScreenNews(news[index]);
-        }
-      } catch (error) {
-        console.error('Error fetching detailed news:', error);
-        console.log('Error in fetch, using existing news item');
+    
+    // Always set the active index for visual feedback
+    setActiveIndex(index);
+    
+    // Immediately fetch and show detailed news
+    setIsLoading(true);
+    try {
+      console.log(`Fetching detailed news for UUID: ${uuid}`);
+      const detailedNews = await fetchNewsDetails(uuid);
+      console.log('Fetched detailed news:', detailedNews);
+      
+      if (detailedNews) {
+        setFullScreenNews(detailedNews);
+      } else {
+        // Fallback to the news we already have
+        console.log('No detailed news found, using existing news item');
         setFullScreenNews(news[index]);
-      } finally {
-        setIsLoading(false);
       }
+    } catch (error) {
+      console.error('Error fetching detailed news:', error);
+      console.log('Error in fetch, using existing news item');
+      setFullScreenNews(news[index]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1471,7 +1541,7 @@ const NewsColossal = () => {
         </div>
       )}
       
-      {/* Fixed header for mobile */}
+      {/* Fixed header for mobile only */}
       {isMobile && (
         <div className="news-header-mobile">
           <div className="logo">
@@ -1501,7 +1571,7 @@ const NewsColossal = () => {
         onTouchEnd={handleTouchEnd}
         // Add this attribute to make touch events non-passive
         // This helps with preventDefault() but may affect performance
-        style={{'touchAction': 'none'}}
+        style={{'touchAction': 'none', 'paddingTop': isMobile ? '0' : '0'}} 
       >
         {news.map((item, index) => {
           // Set up card style and positioning
@@ -1732,22 +1802,9 @@ const NewsColossal = () => {
       
       {/* "Show more" button for desktop view as an alternative to scrolling */}
       {!isMobile && news.length > 0 && !isLoadingMore && (
-        <div className="show-more-container" style={{ textAlign: 'center', margin: '20px 0 40px' }}>
-          <button
-            className="show-more-button"
-            onClick={loadMoreNews}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-              fontWeight: 'bold'
-            }}
-          >
-            Show More
+        <div className="show-more-container">
+          <button className="show-more-button" onClick={loadMoreNews}>
+            Show More News
           </button>
         </div>
       )}
