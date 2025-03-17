@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
+import Footer from './Footer';
 import ButtonVote from './ButtonVote';
 import RatingBar from './RatingBar';
 import Comments from './Comments';
@@ -14,8 +15,20 @@ const News = () => {
   const [showIframe, setShowIframe] = useState(false);
   const [referencedStories, setReferencedStories] = useState([]);
   const [relatedNews, setRelatedNews] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   let genre_emoji_mapping = { "News": "📰", "Analysis": "📊", "Interview": "🗣️", "Editorial": "✍️", "Opinion": "💬", "Feature": "📚", "Investigative": "🔍", "Entertainment & Lifestyle": "🎥", "Sports": "🏅", "Science & Education": "🧪", "Miscellaneous": "🪁" };
+  
+  // Handle window resize for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   useEffect(() => {
     fetch(`${serviceUrl}/news/${uuid}`)
       .then(response => response.json())
@@ -120,6 +133,7 @@ const News = () => {
           </div>
         </div>
       )}
+      <Footer isMobile={isMobile} />
     </>
   );
 };

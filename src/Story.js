@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
+import Footer from './Footer';
 import NewsCard from './NewsCard';
 import ButtonFollow from './ButtonFollow';
 import './Story.css';
@@ -16,6 +17,17 @@ const Story = () => {
   const [displayRefs, setDisplayRefs] = useState(new Set()); // Track refs to display as embedded
   const [hoveredRef, setHoveredRef] = useState(null);
   const [relatedStories, setRelatedStories] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Handle window resize for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetch(`${serviceUrl}/story/${storyId}`)
@@ -200,6 +212,7 @@ const Story = () => {
       ) : 'Loading...'
       }
     </div>
+    <Footer isMobile={isMobile} />
     </>
   );
 };

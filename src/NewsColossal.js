@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import getFaviconUrl from './util';
 import serviceUrl from './config';
+import Header from './Header';
+import Footer from './Footer';
 import './NewsColossal.css';
 
 // Example news entry - will be replaced by API data
@@ -326,27 +328,8 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
             <span className="text-white">{news.source}</span>
             <span className="genre-badge genre-badge-active">{news.genre}</span>
           </div>
-          <h3 className="card-title text-white">{news.title}</h3>
+          <h2 className="card-title text-white">{news.title}</h2>
           <p className="card-summary text-white">{news.summary}</p>
-          
-          <div className="card-metrics">
-            <div className="metric">
-              <span className="metric-icon">👍</span>
-              <span className="metric-value">{news.positive_ratings}</span>
-            </div>
-            <div className="metric">
-              <span className="metric-icon">👎</span>
-              <span className="metric-value">{news.negative_ratings}</span>
-            </div>
-            <div className="metric">
-              <span className="metric-icon">🔖</span>
-              <span className="metric-value">{news.adoption_count}</span>
-            </div>
-            <div className="metric">
-              <span className="metric-icon">💰</span>
-              <span className="metric-value">{news.tips}</span>
-            </div>
-          </div>
         </div>
         
         {/* Trading section for desktop */}
@@ -401,7 +384,7 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
           <span className="text-white">{news.source}</span>
           <span className="genre-badge genre-badge-active">{news.genre}</span>
         </div>
-        <h3 className="card-title text-white">{news.title}</h3>
+        <h2 className="card-title text-white">{news.title}</h2>
         <p className="card-summary text-white">{news.summary}</p>
         
       </div>
@@ -488,10 +471,12 @@ const NewsFullScreen = ({ news, onClose }) => {
   };
 
   return (
-    <div 
-      className={`news-fullscreen ${isPulling ? 'pulling' : ''}`}
-      ref={fullscreenRef}
-    >
+    <>
+      <Header />
+      <div 
+        className={`news-fullscreen ${isPulling ? 'pulling' : ''}`}
+        ref={fullscreenRef}
+      >
       {/* Pull-to-refresh indicator - only shown when pulling */}
       {isMobile && (
         <div className="pull-indicator">
@@ -499,20 +484,15 @@ const NewsFullScreen = ({ news, onClose }) => {
         </div>
       )}
       
-      <div className="fullscreen-header" style={{ background: getCategoryColor(news.genre) }}>
-        <div className="header-content">
-          <div className="site-logo" onClick={onClose}>
-            <img src="/static/logo.svg" alt="Here.news" />
-            <span>HERE.NEWS</span>
-          </div>
-          <button className="close-button" onClick={onClose}>×</button>
-        </div>
+      {/* Just add a close button in the top-right corner */}
+      <div className="fullscreen-close-button">
+        <button onClick={onClose} className="close-btn">×</button>
       </div>
       
       {isMobile ? (
         // Mobile layout with swipeable sections
         <div className="fullscreen-content">
-          {/* First section: Article content */}
+          {/* Single section with article content */}
           <section className="fullscreen-section">
             <div className="fullscreen-image">
               <img src={news.preview} alt={news.title} onError={(e) => e.target.src = '/static/3d.webp'} />
@@ -539,43 +519,10 @@ const NewsFullScreen = ({ news, onClose }) => {
                 Read Original Article
               </a>
             </div>
-            
-            <div className="swipe-hint" style={{ textAlign: 'center', marginTop: 30, color: '#999' }}>
-              Swipe up for actions ↓
-            </div>
           </section>
           
-          {/* Second section: Actions and Trading */}
-          <section className="fullscreen-section">
-            <h2 style={{ marginTop: 40, marginBottom: 20 }}>Actions & Trading</h2>
-            
-            <div className="action-toolbar">
-              <button className="action-button">
-                <span className="action-icon">👍</span>
-                <span className="action-label">Upvote</span>
-                <span className="action-count">{news.positive_ratings}</span>
-              </button>
-              <button className="action-button">
-                <span className="action-icon">👎</span>
-                <span className="action-label">Downvote</span>
-                <span className="action-count">{news.negative_ratings}</span>
-              </button>
-              <button className="action-button">
-                <span className="action-icon">🔖</span>
-                <span className="action-label">Adopt</span>
-                <span className="action-count">{news.adoption_count}</span>
-              </button>
-              <button className="action-button">
-                <span className="action-icon">💰</span>
-                <span className="action-label">Tip</span>
-                <span className="action-count">{news.tips}</span>
-              </button>
-              <button className="action-button">
-                <span className="action-icon">🔄</span>
-                <span className="action-label">Share</span>
-                <span className="action-count">{news.shares}</span>
-              </button>
-            </div>
+          {/* Trading section */}
+          <section className="fullscreen-section trading-only-section">
             
             <div className="trading-section">
               <h3>Content Trading</h3>
@@ -644,34 +591,6 @@ const NewsFullScreen = ({ news, onClose }) => {
           <h1 className="fullscreen-title">{news.title}</h1>
           <p className="fullscreen-summary">{news.summary}</p>
           
-          <div className="action-toolbar">
-            <button className="action-button">
-              <span className="action-icon">👍</span>
-              <span className="action-label">Upvote</span>
-              <span className="action-count">{news.positive_ratings}</span>
-            </button>
-            <button className="action-button">
-              <span className="action-icon">👎</span>
-              <span className="action-label">Downvote</span>
-              <span className="action-count">{news.negative_ratings}</span>
-            </button>
-            <button className="action-button">
-              <span className="action-icon">🔖</span>
-              <span className="action-label">Adopt</span>
-              <span className="action-count">{news.adoption_count}</span>
-            </button>
-            <button className="action-button">
-              <span className="action-icon">💰</span>
-              <span className="action-label">Tip</span>
-              <span className="action-count">{news.tips}</span>
-            </button>
-            <button className="action-button">
-              <span className="action-icon">🔄</span>
-              <span className="action-label">Share</span>
-              <span className="action-count">{news.shares}</span>
-            </button>
-          </div>
-          
           <div className="trading-section">
             <h3>Content Trading</h3>
             <div className="trading-stats">
@@ -717,6 +636,8 @@ const NewsFullScreen = ({ news, onClose }) => {
         </div>
       )}
     </div>
+    <Footer isMobile={isMobile} />
+    </>
   );
 };
 
@@ -1540,7 +1461,9 @@ const NewsColossal = () => {
   };
 
   return (
-    <div className="news-colossal-container">
+    <>
+      <Header />
+      <div className="news-colossal-container">
       
       {isLoading && (
         <div className="loading-overlay">
@@ -1841,6 +1764,8 @@ const NewsColossal = () => {
         </div>
       )}
     </div>
+    <Footer isMobile={isMobile} />
+    </>
   );
 };
 
