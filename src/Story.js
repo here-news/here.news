@@ -162,7 +162,7 @@ const Story = () => {
 
   return (
     <>
-    <Header/>
+    <Header />
     <div className="story-container">
     {story ? (
       <>

@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ProfileWidget from './ProfileWidget';
 import './Header.css';  
 
-const Header = () => {
+const Header = ({ searchQuery, setSearchQuery }) => {
+    const handleSearchChange = (e) => {
+        if (setSearchQuery) {
+            setSearchQuery(e.target.value);
+        }
+    };
+
     return (
         <header className="header">
             <div className="container">
@@ -12,6 +18,17 @@ const Header = () => {
                         <img src="/static/logo.svg" alt="Logo" />
                     </Link>
                     <span style={{color:'grey', padding:'0 10px'}}> Balanced Intelligence</span>
+                </div>
+                <div className="header-center">
+                    <div className="header-search-bar">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            placeholder="Search news..."
+                            value={searchQuery || ''}
+                            onChange={handleSearchChange}
+                        />
+                    </div>
                 </div>
                 <div className="header-right">
                     <ProfileWidget />

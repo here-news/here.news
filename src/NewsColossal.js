@@ -1462,7 +1462,7 @@ const NewsColossal = () => {
 
   return (
     <>
-      <Header />
+      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <div className="news-colossal-container">
       
       {isLoading && (
@@ -1487,19 +1487,7 @@ const NewsColossal = () => {
       )}
       
       {/* Desktop search bar */}
-      {!isMobile && (
-        <div className="desktop-search-container">
-          <div className="desktop-search-bar">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search news..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </div>
-        </div>
-      )}
+      {/* Search moved to header */}
       
       <div 
         ref={containerRef}
