@@ -197,7 +197,7 @@ const realNews = [
 ];
 
 // Mini price chart component to show price history
-const MiniPriceChart = ({ priceHistory, percentChange, width = 50, height = 24 }) => {
+const MiniPriceChart = ({ priceHistory, percentChange, width = 40, height = 20 }) => {
   // Default empty array if no price history provided
   const data = priceHistory || [];
   
@@ -341,8 +341,8 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
             <MiniPriceChart 
               priceHistory={news.price_history} 
               percentChange={news.percent_change_24h}
-              width={80}
-              height={30}
+              width={50}
+              height={20}
             />
           </div>
           <div className="trading-buttons">
