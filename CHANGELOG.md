@@ -1,0 +1,45 @@
+# Changelog
+
+All notable changes to the Here.news application will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.4.0] - 2025-03-17
+
+### Added
+- Desktop-specific news layout with rectangular cards in a vertical list
+- Trading section on each news card with price, mini-chart, and LONG/SHORT buttons
+- Infinite scrolling functionality to load more news when reaching the bottom
+- Search bar at the top of the page for desktop view
+- Bottom search bar that appears after sufficient scrolling
+- "Show More" button as an alternative to scrolling
+- Loading spinner for infinite scroll loading states
+
+### Changed
+- Completely redesigned desktop news card layout
+- Made news cards larger on desktop with better content organization
+- Improved visual hierarchy for news information
+- Enhanced responsiveness for desktop view
+- Better trending indicators with color-coding
+
+## [0.3.0] - 2025-03-16
+
+### Added
+- Mobile portrait mode enforcement
+- Mini price chart next to prices
+
+### Fixed
+- API host consistency issues
+- Swipe order issues on mobile
+
+## [0.2.0] - 2025-03-15
+
+### Added
+- More consistent mobile version
+
+## [0.1.0] - 2025-03-14
+
+### Added
+- Initial working version for mobile
+- Basic functionality to demonstrate the concept

@@ -301,8 +301,8 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
   // Join all classes
   const cardClasses = baseClasses.join(' ');
   
-  // For desktop card, return horizontal layout
-  if (!isMobile && isActive) {
+  // Standard desktop card
+  if (!isMobile) {
     return (
       <div 
         ref={ref}
@@ -310,52 +310,69 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
         onClick={handleCardClick} 
         style={style}
       >
-        <div className="desktop-active-layout">
-          <div className="active-image">
-            <img src={news.preview} alt={news.title} onError={(e) => e.target.src = '/static/3d.webp'} />
-          </div>
-          <div className="active-content">
-            <div className="card-source">
-              <img src={getFaviconUrl(news.canonical, 16)} alt={news.source} className="source-favicon" />
-              <span className="text-white">{news.source}</span>
-              <span className="genre-badge genre-badge-active">{news.genre}</span>
-            </div>
-            <h3 className="card-title text-white">{news.title}</h3>
-            <p className="card-summary text-white">{news.summary}</p>
-            
-            <div className="card-metrics">
-              <div className="metric">
-                <span className="metric-icon">👍</span>
-                <span className="metric-value text-white">{news.positive_ratings}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-icon">👎</span>
-                <span className="metric-value text-white">{news.negative_ratings}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-icon">🔖</span>
-                <span className="metric-value text-white">{news.adoption_count}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-icon">💰</span>
-                <span className="metric-value text-white">{news.tips}</span>
-              </div>
-              <div className={`metric ${trendingClass}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span className="metric-icon">📈</span>
-                <span className="metric-value text-white">
-                  ${news.current_value} {trendingArrow}
-                </span>
-                <MiniPriceChart 
-                  priceHistory={news.price_history} 
-                  percentChange={news.percent_change_24h}
-                  width={40}
-                  height={20}
-                />
-              </div>
-            </div>
-          </div>
-          {children}
+        <div className="card-preview">
+          <img src={news.preview} alt={news.title} onError={(e) => e.target.src = '/static/3d.webp'} />
         </div>
+        <div className="card-content">
+          <div className="card-source">
+            <img 
+              src={getFaviconUrl(news.canonical, 16)} 
+              alt={news.source} 
+              className="source-favicon"
+              width="16"
+              height="16"
+              style={{ width: '16px', height: '16px', objectFit: 'contain' }}
+            />
+            <span className="text-white">{news.source}</span>
+            <span className="genre-badge genre-badge-active">{news.genre}</span>
+          </div>
+          <h3 className="card-title text-white">{news.title}</h3>
+          <p className="card-summary text-white">{news.summary}</p>
+          
+          <div className="card-metrics">
+            <div className="metric">
+              <span className="metric-icon">👍</span>
+              <span className="metric-value">{news.positive_ratings}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-icon">👎</span>
+              <span className="metric-value">{news.negative_ratings}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-icon">🔖</span>
+              <span className="metric-value">{news.adoption_count}</span>
+            </div>
+            <div className="metric">
+              <span className="metric-icon">💰</span>
+              <span className="metric-value">{news.tips}</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Trading section for desktop */}
+        <div className="card-trading-section">
+          <div className="card-trading-info">
+            <div className={`current-value ${trendingClass}`}>
+              ${news.current_value} {trendingArrow}
+            </div>
+            <MiniPriceChart 
+              priceHistory={news.price_history} 
+              percentChange={news.percent_change_24h}
+              width={80}
+              height={30}
+            />
+          </div>
+          <div className="trading-buttons">
+            <button className="trading-button long" onClick={handleLongPosition}>
+              LONG
+            </button>
+            <button className="trading-button short" onClick={handleShortPosition}>
+              SHORT
+            </button>
+          </div>
+        </div>
+        
+        {children}
       </div>
     );
   }
@@ -712,6 +729,8 @@ const NewsColossal = () => {
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBottomSearch, setShowBottomSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef(null);
   
   // Fetch news from API with console logging for debugging
@@ -1044,6 +1063,70 @@ const NewsColossal = () => {
       window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
+  
+  // Track scroll position for showing bottom search bar and infinite scrolling
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  useEffect(() => {
+    if (!isMobile && containerRef.current) {
+      let scrollCount = 0;
+      
+      const handleScroll = () => {
+        // Get current scroll position
+        const currentScrollTop = containerRef.current.scrollTop;
+        const scrollDirection = currentScrollTop > scrollLeft ? 'down' : 'up';
+        
+        if (scrollDirection === 'down') {
+          scrollCount++;
+          
+          // Show bottom search after 10 scroll events
+          if (scrollCount >= 10 && !showBottomSearch) {
+            setShowBottomSearch(true);
+          }
+          
+          // Check if we're near the bottom for infinite scrolling
+          const { scrollHeight, scrollTop, clientHeight } = containerRef.current;
+          const scrollBottom = scrollHeight - scrollTop - clientHeight;
+          
+          // If we're within 200px of the bottom, load more
+          if (scrollBottom < 200 && !isLoadingMore) {
+            loadMoreNews();
+          }
+        }
+        
+        // Update scrollLeft for next comparison
+        setScrollLeft(currentScrollTop);
+      };
+      
+      containerRef.current.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        if (containerRef.current) {
+          containerRef.current.removeEventListener('scroll', handleScroll);
+        }
+      };
+    }
+  }, [isMobile, scrollLeft, showBottomSearch, isLoadingMore]);
+  
+  // Function to load more news on scroll
+  const loadMoreNews = () => {
+    setIsLoadingMore(true);
+    console.log('Loading more news...');
+    
+    // In a real implementation, we would fetch the next page of news
+    // For now, let's just simulate a delay and add more mock news
+    setTimeout(() => {
+      // Clone some existing news items to simulate new data
+      const additionalNews = news.slice(0, 3).map(item => ({
+        ...item,
+        uuid: `${item.uuid}-${Date.now()}`, // Ensure unique IDs
+        title: `[NEW] ${item.title}`
+      }));
+      
+      setNews([...news, ...additionalNews]);
+      setIsLoadingMore(false);
+    }, 1000);
+  };
 
   const handleCardClick = async (uuid) => {
     const index = news.findIndex(item => item.uuid === uuid);
@@ -1449,6 +1532,13 @@ const NewsColossal = () => {
   // Progress bar calculation
   const progressPercentage = isMobile ? (activeIndex / (news.length - 1)) * 100 : 0;
   
+  // Handle search query changes
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    // In a real implementation, this would trigger search as the user types
+    console.log('Search query:', e.target.value);
+  };
+
   return (
     <div className="news-colossal-container">
       
@@ -1473,7 +1563,20 @@ const NewsColossal = () => {
         </div>
       )}
       
-      {/* Progress indicator removed as requested */}
+      {/* Desktop search bar */}
+      {!isMobile && (
+        <div className="desktop-search-container">
+          <div className="desktop-search-bar">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search news..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </div>
+        </div>
+      )}
       
       <div 
         ref={containerRef}
@@ -1615,20 +1718,12 @@ const NewsColossal = () => {
             }
           } 
           else {
-            // Desktop grid layout
-            if (index === activeIndex) {
-              gridPosition = 'center';
-              cardStyle.zIndex = news.length;
-            } else {
-              const positions = [
-                'center', 'top', 'top-right', 'right', 'bottom-right',
-                'bottom', 'bottom-left', 'left', 'top-left'
-              ];
-              
-              // Determine relative position (modulo to wrap around)
-              const relativePos = ((index - activeIndex) + 9) % 9;
-              gridPosition = positions[relativePos];
-              cardStyle.zIndex = news.length - Math.abs(index - activeIndex);
+            // Simple grid layout for desktop - no special positioning
+            gridPosition = 'grid-item';
+            
+            // Add extra margin to the last item for better scrolling
+            if (index === news.length - 1) {
+              cardStyle.marginBottom = '100px';
             }
           }
           
@@ -1669,27 +1764,20 @@ const NewsColossal = () => {
         })}
       </div>
       
-      {/* Only show controls for desktop */}
+      {/* Bottom search bar that appears after scrolling (desktop only) */}
       {!isMobile && (
-        <div className="carousel-controls">
-          <button 
-            className="control-button prev"
-            onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
-            disabled={activeIndex === 0}
-          >
-            ←
-          </button>
-          <button 
-            className="control-button next"
-            onClick={() => setActiveIndex(Math.min(news.length - 1, activeIndex + 1))}
-            disabled={activeIndex === news.length - 1}
-          >
-            →
-          </button>
+        <div className={`bottom-search-container ${showBottomSearch ? 'visible' : ''}`}>
+          <div className="bottom-search-bar">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search news..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </div>
         </div>
       )}
-      
-      {/* Removed progress indicators as requested */}
       
       {/* Global trading actions - always visible on mobile, more compact design */}
       {isMobile && news.length > 0 && ReactDOM.createPortal(
@@ -1722,6 +1810,35 @@ const NewsColossal = () => {
       {fullScreenNews && ReactDOM.createPortal(
         <NewsFullScreen news={fullScreenNews} onClose={closeFullScreen} />,
         document.body
+      )}
+      
+      {/* Loading indicator for infinite scroll */}
+      {!isMobile && isLoadingMore && (
+        <div className="loading-more-indicator">
+          <div className="loading-more-spinner"></div>
+        </div>
+      )}
+      
+      {/* "Show more" button for desktop view as an alternative to scrolling */}
+      {!isMobile && news.length > 0 && !isLoadingMore && (
+        <div className="show-more-container" style={{ textAlign: 'center', margin: '20px 0 40px' }}>
+          <button
+            className="show-more-button"
+            onClick={loadMoreNews}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+              fontWeight: 'bold'
+            }}
+          >
+            Show More
+          </button>
+        </div>
       )}
     </div>
   );

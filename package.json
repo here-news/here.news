@@ -1,6 +1,6 @@
 {
   "name": "here-news",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "description": "Here.news Web App",
   "main": "index.js",
   "license": "MIT",

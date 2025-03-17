@@ -38,9 +38,24 @@ Here.news v2 (HN2) provides a whole news experience (WNE) allowing users to cons
 
 ## Current Features
 
-- **Evolutional Stories**: Follow all kinds of events in the world in different languages, curated by AI but from unbiased media articles, user comments, and neutral language moderators.
-- **Engagement with Spices**: Users can upvote, downvote, and reply to each event with credit (called "spice"). Replies and interactions are dynamically displayed. Spices can be deposited and withdrawn from the user's account via both fiat and bitcoin (LN) gateways.
-- **Deeper Discussions**: Indicate deeper discussion threads with specific icons and provide links to extended comment threads.
+- **Smart News Interface**: Optimized experiences for both mobile and desktop users
+  - Mobile: Swipeable card interface with full-screen immersive content
+  - Desktop: Responsive grid layout with news cards, search, and infinite scrolling
+- **Content Trading**: Buy and sell positions on news stories with LONG/SHORT buttons
+  - Real-time price charts for content value tracking
+  - Trading directly from news cards
+- **Evolutional Stories**: Follow all kinds of events in the world in different languages, curated by AI but from unbiased media articles, user comments, and neutral language moderators
+- **Engagement with Spices**: Users can upvote, downvote, and reply to each event with credit (called "spice"). Replies and interactions are dynamically displayed. Spices can be deposited and withdrawn from the user's account via both fiat and bitcoin (LN) gateways
+- **Deeper Discussions**: Indicate deeper discussion threads with specific icons and provide links to extended comment threads
+
+## Recent Development
+
+- **v0.4.0** - Redesigned desktop interface with trading capabilities and improved UX
+- **v0.3.0** - Mobile optimization with portrait mode enforcement and price charts
+- **v0.2.0** - Improved mobile version consistency
+- **v0.1.0** - Initial working prototype
+
+Check the [CHANGELOG.md](CHANGELOG.md) file for a detailed list of changes in each version.
 
 
 ## Installation
