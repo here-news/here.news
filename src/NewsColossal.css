@@ -257,8 +257,8 @@ body.mobile-view .news-colossal-container {
 .news-carousel.desktop {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 0;
+  padding: 0 8px;
   max-width: 1400px;
   margin: 0 auto;
   overflow-y: auto;
@@ -452,39 +452,47 @@ body.mobile-view .news-card {
 
 .news-carousel.desktop .news-card {
   width: 100%;
-  height: 92px;
+  height: 86px;
   margin: 0;
-  transition: all 0.3s ease;
+  padding: 0;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: row;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #eee;
+  background-color: transparent;
 }
 
 .news-carousel.desktop .news-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .news-carousel.desktop .news-card.active {
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 /* Desktop card styles */
 .news-carousel.desktop .card-preview {
-  width: 80px;
-  height: 92px;
+  width: 70px;
+  height: 70px;
   flex-shrink: 0;
   background-color: #f0f0f0;
+  margin: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .news-carousel.desktop .card-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.news-carousel.desktop .news-card:hover .card-preview img {
+  transform: scale(1.05);
 }
 
 .news-carousel.desktop .card-content {
@@ -492,7 +500,8 @@ body.mobile-view .news-card {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 10px 15px;
+  padding: 10px 6px;
+  justify-content: center;
 }
 
 .news-carousel.desktop .card-title {
@@ -506,6 +515,7 @@ body.mobile-view .news-card {
   text-overflow: ellipsis;
   font-weight: 700;
   letter-spacing: -0.2px;
+  color: #222;
 }
 
 .news-carousel.desktop .card-summary {
@@ -517,7 +527,7 @@ body.mobile-view .news-card {
   -webkit-box-orient: vertical;
   text-overflow: ellipsis;
   margin-bottom: 0;
-  opacity: 0.85;
+  color: #555;
 }
 
 /* Desktop trading section */
@@ -527,8 +537,7 @@ body.mobile-view .news-card {
   flex-direction: column;
   justify-content: center;
   padding: 6px 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.08);
+  border-left: 1px solid #eaeaea;
 }
 
 .news-carousel.desktop .card-trading-info {
@@ -541,7 +550,7 @@ body.mobile-view .news-card {
 .news-carousel.desktop .current-value {
   font-size: 0.9rem;
   font-weight: bold;
-  color: white;
+  color: #333;
 }
 
 .news-carousel.desktop .mini-chart-container {
@@ -567,13 +576,15 @@ body.mobile-view .news-card {
 }
 
 .news-carousel.desktop .trading-button.long {
-  background-color: rgba(40, 167, 69, 0.8);
+  background-color: rgba(40, 167, 69, 0.9);
   color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .news-carousel.desktop .trading-button.short {
-  background-color: rgba(220, 53, 69, 0.8);
+  background-color: rgba(220, 53, 69, 0.9);
   color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .news-carousel.desktop .trading-button:hover {
@@ -599,14 +610,17 @@ body.mobile-view .news-card {
 /* Trending indicators for desktop */
 .news-carousel.desktop .trending-up {
   color: #28a745;
+  font-weight: bold;
 }
 
 .news-carousel.desktop .trending-down {
   color: #dc3545;
+  font-weight: bold;
 }
 
 .news-carousel.desktop .trending-stable {
-  color: #ffc107;
+  color: #6c757d;
+  font-weight: bold;
 }
 
 .news-carousel.desktop .percent-change {
@@ -709,6 +723,11 @@ body.mobile-view .news-card {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); /* Add text shadow for better readability */
 }
 
+.source-name {
+  color: #666;
+  font-weight: 500;
+}
+
 /* Enhance text visibility on colored backgrounds */
 .news-card.active .card-title,
 .news-card.active .card-summary,
@@ -786,11 +805,58 @@ body.mobile-view .card-content {
 
 .genre-badge {
   margin-left: 8px;
-  background-color: rgba(240, 240, 240, 0.7);
   padding: 1px 6px;
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Genre-specific badge colors */
+.genre-badge.genre-science,
+.genre-badge.genre-science-technology,
+.genre-badge.genre-technology {
+  background-color: #7c43bd;
+}
+
+.genre-badge.genre-environment {
+  background-color: #4caf50;
+}
+
+.genre-badge.genre-economy,
+.genre-badge.genre-finance {
+  background-color: #2196f3;
+}
+
+.genre-badge.genre-health,
+.genre-badge.genre-health-technology {
+  background-color: #f44336;
+}
+
+.genre-badge.genre-archaeology,
+.genre-badge.genre-history {
+  background-color: #795548;
+}
+
+.genre-badge.genre-politics {
+  background-color: #e91e63;
+}
+
+.genre-badge.genre-culture {
+  background-color: #ff9800;
+}
+
+.genre-badge.genre-sports {
+  background-color: #00bcd4;
+}
+
+.genre-badge.genre-entertainment {
+  background-color: #9c27b0;
+}
+
+.genre-badge.genre-news {
+  background-color: #ff5722;
 }
 
 .card-title {

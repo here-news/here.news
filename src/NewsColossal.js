@@ -325,11 +325,11 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
               height="16"
               style={{ width: '16px', height: '16px', objectFit: 'contain' }}
             />
-            <span className="text-white">{news.source}</span>
-            <span className="genre-badge genre-badge-active">{news.genre}</span>
+            <span className="source-name">{news.source}</span>
+            <span className={`genre-badge ${getGenreClass()}`}>{news.genre}</span>
           </div>
-          <h2 className="card-title text-white">{news.title}</h2>
-          <p className="card-summary text-white">{news.summary}</p>
+          <h2 className="card-title">{news.title}</h2>
+          <p className="card-summary">{news.summary}</p>
         </div>
         
         {/* Trading section for desktop */}
@@ -381,11 +381,11 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
             height="16"
             style={{ width: '16px', height: '16px', objectFit: 'contain' }}
           />
-          <span className="text-white">{news.source}</span>
-          <span className="genre-badge genre-badge-active">{news.genre}</span>
+          <span className="source-name">{news.source}</span>
+          <span className={`genre-badge ${getGenreClass()}`}>{news.genre}</span>
         </div>
-        <h2 className="card-title text-white">{news.title}</h2>
-        <p className="card-summary text-white">{news.summary}</p>
+        <h2 className="card-title">{news.title}</h2>
+        <p className="card-summary">{news.summary}</p>
         
       </div>
       
@@ -507,7 +507,7 @@ const NewsFullScreen = ({ news, onClose }) => {
                 style={{ width: '24px', height: '24px', objectFit: 'contain' }}
               />
               <span>{news.source}</span>
-              <span className="genre-badge">{news.genre}</span>
+              <span className={`genre-badge genre-${news.genre ? news.genre.toLowerCase().replace(/\s+|&/g, '-') : 'news'}`}>{news.genre}</span>
               <span className="publish-date">Published: {new Date(news.pub_time).toLocaleDateString()}</span>
               <span className="author">By {news.author}</span>
             </div>
@@ -584,7 +584,7 @@ const NewsFullScreen = ({ news, onClose }) => {
               style={{ width: '24px', height: '24px', objectFit: 'contain' }}
             />
             <span>{news.source}</span>
-            <span className="genre-badge">{news.genre}</span>
+            <span className={`genre-badge genre-${news.genre ? news.genre.toLowerCase().replace(/\s+|&/g, '-') : 'news'}`}>{news.genre}</span>
             <span className="publish-date">Published: {new Date(news.pub_time).toLocaleDateString()}</span>
             <span className="author">By {news.author}</span>
           </div>
