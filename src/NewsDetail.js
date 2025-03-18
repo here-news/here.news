@@ -35,18 +35,8 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
   }).join(' ');
   
   return (
-    <div style={{ 
-      width: '100%',
-      margin: '15px 0',
-      position: 'relative' 
-    }}>
-      <svg width={width} height={height} style={{
-        width: '100%',
-        height: '80px',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
-        borderRadius: '4px',
-        padding: '5px'
-      }}>
+    <div className="mini-chart-container">
+      <svg width={width} height={height} className="mini-chart">
         <polyline
           points={points}
           fill="none"
@@ -56,14 +46,7 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
           strokeLinecap="round"
         />
       </svg>
-      <span style={{
-        position: 'absolute',
-        right: '10px',
-        top: '5px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        color: parseFloat(percentChange) >= 0 ? '#28a745' : '#dc3545'
-      }}>
+      <span className={`percent-change ${parseFloat(percentChange) >= 0 ? 'percent-positive' : 'percent-negative'}`}>
         {parseFloat(percentChange) >= 0 ? '+' : ''}{percentChange || '2.5'}%
       </span>
     </div>
@@ -177,6 +160,19 @@ const NewsDetail = () => {
   }, [uuid]);
   
 
+  // Add a class to body when on mobile to enable fixed trading panel
+  useEffect(() => {
+    if (isMobile) {
+      document.body.classList.add('has-fixed-trading');
+    } else {
+      document.body.classList.remove('has-fixed-trading');
+    }
+    
+    return () => {
+      document.body.classList.remove('has-fixed-trading');
+    };
+  }, [isMobile]);
+
   if (!news) {
     return <div>Loading...</div>;
   }
@@ -201,7 +197,7 @@ const NewsDetail = () => {
     : trending === 'down' 
       ? '↓' 
       : '→';
-
+  
   return (
     <>
       <Header />
@@ -209,24 +205,48 @@ const NewsDetail = () => {
         <div className="row">
           <div className="col-md-8">
             <div className="refcard">
-              <p><img src={getFaviconUrl(news.canonical, 32)} /> <b><a href={`/outlet/${news.source_id}`}>{news.source}</a></b> / <b> {genre_emoji_mapping[news.genre] + ' ' + news.genre}</b></p>
-              <h3>{news.title}</h3>
-              <p>🔗 <u><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></u></p>
-              <p>{new Date(news.pub_time).toLocaleDateString()}, by {news.author}</p>
+              <div className="news-header">
+                <div className="news-source">
+                  <img className="news-favicon" src={getFaviconUrl(news.canonical, 24)} alt={news.source} />
+                  <a href={`/outlet/${news.source_id}`}><b>{news.source}</b></a>
+                  <span className={`genre-badge genre-${news.genre.toLowerCase().replace(/ /g, '-')}`}>
+                    {genre_emoji_mapping[news.genre]} {news.genre}
+                  </span>
+                </div>
+                <h1 className="news-title">{news.title}</h1>
+                <div className="news-meta">
+                  <p>{new Date(news.pub_time).toLocaleDateString()}, by {news.author}</p>
+                  <p><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></p>
+                </div>
+              </div>
+              
               <img src={news.preview} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} alt="News preview" />
-              <p><b><u>Summary</u>:</b> {news.summary} </p>
-              <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} target='#comments-list'/>
-              <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
-              <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
-              <p><b>Please read the original article and rate it. </b>(can't read? <span>Ask</span> community.)</p>
-              <hr/>
+              
+              <div className="news-summary">
+                <p>{news.summary}</p>
+              </div>
+              
+              <div className="news-actions">
+                <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} target='#comments-list'/>
+                <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
+                <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
+              </div>
+              
+              <p className="mt-3"><b>Please read the original article and rate it. </b>(can't read? <span>Ask</span> community.)</p>
+              
+              <hr className="mt-4 mb-4"/>
+              
               <div className="related-news">
                 <h3>Related News</h3>
                 {relatedNews.length > 0 && (
                   <ul>
                     {relatedNews.map(related => (
                       <li key={related.uuid}>
-                        {new Date(related.pub_time).toLocaleDateString()}, <b>{related.source}</b> <img src={getFaviconUrl(related.canonical, 20)} />
+                        <div className="d-flex align-items-center">
+                          <span className="mr-2">{new Date(related.pub_time).toLocaleDateString()}</span>
+                          <b className="mr-2">{related.source}</b>
+                          <img src={getFaviconUrl(related.canonical, 16)} alt={related.source} />
+                        </div>
                         <h4><a href={`/news/${related.uuid}`}>{related.title}</a></h4>
                       </li>
                     ))}
@@ -237,40 +257,12 @@ const NewsDetail = () => {
           </div>
 
           <div className="col-md-4" id="news-sidebar">
-            {/* Trading Panel with direct inline styling */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '10px',
-              padding: '20px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              marginBottom: '20px',
-              border: '2px solid #007bff',
-              backgroundImage: 'linear-gradient(to bottom, #f8f9fa, #e9ecef)',
-              position: 'sticky',
-              top: '20px'
-            }}>
-              <h3 style={{
-                fontSize: '20px',
-                marginTop: '0',
-                color: '#007bff',
-                borderBottom: '2px solid #007bff',
-                paddingBottom: '10px',
-                marginBottom: '15px',
-                textAlign: 'center',
-                fontWeight: 'bold'
-              }}>Trading Panel</h3>
+            {/* Trading Panel with CSS classes */}
+            <div className="trading-panel">
+              <h3 className="trading-panel-title">Trading Panel</h3>
               
-              <div style={{
-                fontSize: '32px',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                margin: '15px 0',
-                padding: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '5px',
-                color: trending === 'up' ? '#28a745' : trending === 'down' ? '#dc3545' : '#6c757d'
-              }}>
-                <span style={{ letterSpacing: '0.5px' }}>${newsValue}</span> 
+              <div className={`trading-value ${trending === 'up' ? 'trending-up' : trending === 'down' ? 'trending-down' : 'trending-stable'}`}>
+                <span>${newsValue}</span> 
                 <span style={{ fontSize: '1.2em', marginLeft: '5px' }}>{trendingArrow}</span>
               </div>
               
@@ -278,53 +270,25 @@ const NewsDetail = () => {
                 percentChange={trending === 'up' ? '+4.5' : trending === 'down' ? '-2.8' : '0.0'} 
               />
               
-              <div style={{ display: 'flex', gap: '10px', margin: '15px 0' }}>
-                <button onClick={handleLongPosition} style={{
-                  flex: '1',
-                  padding: '10px',
-                  border: 'none',
-                  borderRadius: '5px',
-                  fontWeight: 'bold',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}>
+              <div className="trading-buttons">
+                <button onClick={handleLongPosition} className="trading-button long-button">
                   LONG
                 </button>
-                <button onClick={handleShortPosition} style={{
-                  flex: '1',
-                  padding: '10px',
-                  border: 'none',
-                  borderRadius: '5px',
-                  fontWeight: 'bold',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}>
+                <button onClick={handleShortPosition} className="trading-button short-button">
                   SHORT
                 </button>
               </div>
               
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '14px',
-                color: '#666',
-                marginTop: '15px',
-                borderTop: '1px solid #eee',
-                paddingTop: '15px'
-              }}>
+              <div className="trading-stats">
                 <p><strong>Traders:</strong> {tradersCount}</p>
                 <p><strong>24h Volume:</strong> ${tradeVolume}</p>
               </div>
             </div>
             
             {/* Referenced Stories Section */}
-            <div className="referenced-stories mt-4">
+            <div className="referenced-stories">
               <h3>Cited by Stories</h3>
-              {referencedStories.length > 0 && (
+              {referencedStories.length > 0 ? (
                 <ul>
                   {referencedStories.map(story => (
                     <li key={story.uuid}>
@@ -332,12 +296,34 @@ const NewsDetail = () => {
                     </li>
                   ))}
                 </ul>
+              ) : (
+                <p>No stories referencing this news yet.</p>
               )}
-              <tagline>(Coming soon) <br/>Create your own story based on similar news</tagline>
+              <div className="mt-3">
+                <i>(Coming soon) <br/>Create your own story based on similar news</i>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Fixed mobile trading panel */}
+      {isMobile && (
+        <div className="mobile-trading-actions">
+          <div className={`mobile-price ${trending === 'up' ? 'trending-up' : trending === 'down' ? 'trending-down' : 'trending-stable'}`}>
+            ${newsValue} {trendingArrow}
+          </div>
+          <div className="mobile-trading-buttons">
+            <button onClick={handleLongPosition} className="mobile-trading-button long-button">
+              LONG
+            </button>
+            <button onClick={handleShortPosition} className="mobile-trading-button short-button">
+              SHORT
+            </button>
+          </div>
+        </div>
+      )}
+      
       {showIframe && (
         <div className="iframe-popup">
           <div className="iframe-popup-content">
@@ -349,6 +335,7 @@ const NewsDetail = () => {
           </div>
         </div>
       )}
+      
       <Footer isMobile={isMobile} />
     </>
   );

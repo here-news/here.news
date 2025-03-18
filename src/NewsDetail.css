@@ -2,13 +2,140 @@
 .news-detail-page {
   min-height: 100%;
   overflow-y: auto;
+  background-color: #f8f9fa;
+  padding-top: 20px;
 }
 
+/* Typography */
+.news-detail-page h1, 
+.news-detail-page h2, 
+.news-detail-page h3, 
+.news-detail-page h4, 
+.news-detail-page h5, 
+.news-detail-page h6 {
+  font-family: 'Lato', sans-serif;
+  font-weight: bolder;
+}
+
+.news-detail-page a {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+.news-detail-page a:hover {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+.news-detail-page a:visited {
+  color: #555555;
+}
+
+/* Main news content */
 .news-image {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.news-header {
+  margin-bottom: 20px;
+}
+
+.news-source {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+}
+
+.news-favicon {
+  margin-right: 10px;
+}
+
+.genre-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background-color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Genre-specific badge styles */
+.genre-badge.genre-news {
+  color: #f4511e;
+  border-color: #f4511e;
+}
+
+.genre-badge.genre-analysis {
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+.genre-badge.genre-interview {
+  color: #8e24aa;
+  border-color: #8e24aa;
+}
+
+.genre-badge.genre-editorial {
+  color: #2e7d32;
+  border-color: #2e7d32;
+}
+
+.genre-badge.genre-opinion {
+  color: #c2185b;
+  border-color: #c2185b;
+}
+
+.genre-badge.genre-feature {
+  color: #0097a7;
+  border-color: #0097a7;
+}
+
+.genre-badge.genre-investigative {
+  color: #673ab7;
+  border-color: #673ab7;
+}
+
+.genre-badge.genre-entertainment-lifestyle {
+  color: #ff8f00;
+  border-color: #ff8f00;
+}
+
+.genre-badge.genre-sports {
+  color: #0097a7;
+  border-color: #0097a7;
+}
+
+.genre-badge.genre-science-education {
+  color: #673ab7;
+  border-color: #673ab7;
+}
+
+.genre-badge.genre-miscellaneous {
+  color: #607d8b;
+  border-color: #607d8b;
+}
+
+.news-title {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 20px;
+  color: #222;
+  letter-spacing: -0.5px;
+}
+
+.news-meta {
+  font-size: 0.9rem;
+  color: #666;
   margin-bottom: 20px;
 }
 
@@ -16,16 +143,31 @@
   background: white;
   border-radius: 15px;
   padding: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  margin-bottom: 20px;
+  border: 1px solid #eaeaea;
+}
+
+.news-summary {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #444;
   margin-bottom: 20px;
 }
 
+.news-actions {
+  display: flex;
+  margin-top: 20px;
+  align-items: center;
+}
+
 .referenced-stories {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   margin-bottom: 20px;
+  border: 1px solid #eaeaea;
 }
 
 .iframe-popup {
@@ -81,8 +223,31 @@
 
 /* Mobile styling for news detail */
 @media (max-width: 768px) {
+  .news-detail-page {
+    padding-top: 10px;
+  }
+  
   .news-image {
     height: 200px;
+    border-radius: 10px;
+  }
+  
+  .news-title {
+    font-size: 1.6rem;
+    line-height: 1.3;
+  }
+  
+  .news-summary {
+    font-size: 1rem;
+  }
+  
+  .news-source {
+    font-size: 0.85rem;
+  }
+  
+  .refcard {
+    padding: 15px;
+    border-radius: 10px;
   }
   
   /* Make sure the sidebar is responsive on mobile */
@@ -90,11 +255,233 @@
     position: relative !important;
     top: 0 !important;
   }
+  
+  /* Mobile trading panel */
+  .trading-panel {
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .trading-panel-title {
+    font-size: 1.1rem;
+  }
+  
+  .trading-value {
+    font-size: 1.6rem;
+  }
+  
+  .trading-button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  /* Mobile fixed trading actions */
+  .mobile-trading-actions {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 0 15px;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+  }
+  
+  .mobile-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  
+  .mobile-trading-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .mobile-trading-button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  .mobile-trading-button.long-button {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .mobile-trading-button.short-button {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  /* Adjust padding to account for fixed bottom bar */
+  body.has-fixed-trading .news-detail-page {
+    padding-bottom: 80px;
+  }
+}
+
+/* Trading panel styles */
+.trading-panel {
+  background-color: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  margin-bottom: 20px;
+  border: 1px solid #eaeaea;
+  position: sticky;
+  top: 20px;
+}
+
+.trading-panel-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.trading-value {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 15px 0;
+  padding: 10px;
+  background-color: rgba(248, 249, 250, 0.6);
+  border-radius: 5px;
+}
+
+.trending-up {
+  color: #28a745;
+}
+
+.trending-down {
+  color: #dc3545;
+}
+
+.trending-stable {
+  color: #6c757d;
+}
+
+.trading-buttons {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.trading-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.trading-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.trading-button:active {
+  transform: translateY(1px);
+}
+
+.long-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.short-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.trading-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.trading-stats p {
+  margin-bottom: 0;
+}
+
+/* Mini chart styling */
+.mini-chart-container {
+  width: 100%;
+  margin: 15px 0;
+  position: relative;
+}
+
+.mini-chart {
+  width: 100%;
+  height: 80px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.percent-change {
+  position: absolute;
+  right: 10px;
+  top: 5px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.percent-positive {
+  color: #28a745;
+}
+
+.percent-negative {
+  color: #dc3545;
 }
 
 /* Additional styling for sticky sidebar */
 #news-sidebar {
   position: relative;
+}
+
+/* Related stories styling */
+.related-news {
+  margin-top: 20px;
+}
+
+.related-news h3 {
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.related-news ul {
+  list-style: none;
+  padding: 0;
+}
+
+.related-news li {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.related-news h4 {
+  font-size: 1rem;
+  margin: 5px 0;
 }
 
 /* Ensure main content area has proper padding on bottom to allow full scrolling */
