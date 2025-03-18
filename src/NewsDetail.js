@@ -6,15 +6,36 @@ import Footer from './Footer';
 import getFaviconUrl from "./util";
 import './NewsDetail.css';
 
-// Mini price chart component for trading panel
-const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80 }) => {
-  // Generate random data if none provided
-  const data = priceHistory || Array(7).fill(0).map(() => Math.random() * 5 + 1);
+// Mini price chart component to match the NewsColossal implementation
+const NewsDetailChart = ({ percentChange, width = 100, height = 40 }) => {
+  // Generate sample data points based on trend - 10 points of predictable data
+  const generateSampleData = () => {
+    const parsedChange = parseFloat(percentChange || 0);
+    const baseValue = 10; // Arbitrary base value
+    const points = [];
+    
+    if (parsedChange > 0) {
+      // Upward trend
+      for (let i = 0; i < 10; i++) {
+        points.push(baseValue * (0.85 + (i / 10) * 0.3));
+      }
+    } else if (parsedChange < 0) {
+      // Downward trend
+      for (let i = 0; i < 10; i++) {
+        points.push(baseValue * (1.15 - (i / 10) * 0.3));
+      }
+    } else {
+      // Stable trend with slight variations
+      for (let i = 0; i < 10; i++) {
+        points.push(baseValue * (0.95 + (i % 2) * 0.1));
+      }
+    }
+    
+    return points;
+  };
   
-  // Check if we have price data
-  if (!data || data.length === 0) {
-    return null;
-  }
+  // Generate sample data
+  const data = generateSampleData();
   
   // Find min/max for scaling
   const minPrice = Math.min(...data);
@@ -33,8 +54,8 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
   }).join(' ');
   
   return (
-    <div className="mini-chart-container">
-      <svg width={width} height={height} className="mini-chart">
+    <div className="nd-chart-container">
+      <svg width={width} height={height} className="nd-price-chart">
         <polyline
           points={points}
           fill="none"
@@ -44,8 +65,8 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
           strokeLinecap="round"
         />
       </svg>
-      <span className={`percent-change ${parseFloat(percentChange) >= 0 ? 'percent-positive' : 'percent-negative'}`}>
-        {parseFloat(percentChange) >= 0 ? '+' : ''}{percentChange || '2.5'}%
+      <span className={`nd-percent-change ${parseFloat(percentChange) >= 0 ? 'nd-positive' : 'nd-negative'}`}>
+        {parseFloat(percentChange) >= 0 ? '+' : ''}{percentChange || '0.0'}%
       </span>
     </div>
   );
@@ -298,7 +319,7 @@ const NewsDetail = () => {
               
               <div className={`trading-value ${trending === 'up' ? 'trending-up' : trending === 'down' ? 'trending-down' : 'trending-stable'}`}>
                 <span>${newsValue}</span> 
-                <span style={{ fontSize: '1.2em', marginLeft: '5px' }}>{trendingArrow}</span>
+                <span>{trendingArrow}</span>
               </div>
               
               <NewsDetailChart 

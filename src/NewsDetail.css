@@ -390,6 +390,14 @@
     font-size: 0.9rem;
   }
   
+  .nd-price-chart {
+    height: 40px;
+  }
+  
+  .nd-percent-change {
+    font-size: 12px;
+  }
+  
   /* Mobile read original button */
   .read-original-btn {
     width: 100%;
@@ -490,10 +498,14 @@
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
-  margin: 15px 0;
+  margin: 15px 0 5px 0;
   padding: 10px;
   background-color: rgba(248, 249, 250, 0.6);
   border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .trending-up {
@@ -559,34 +571,36 @@
   margin-bottom: 0;
 }
 
-/* Mini chart styling */
-.mini-chart-container {
-  width: 100%;
+/* NewsDetail-specific price chart styles with nd- prefix to avoid conflicts */
+.nd-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin: 15px 0;
+  width: 100%;
   position: relative;
 }
 
-.mini-chart {
+.nd-price-chart {
   width: 100%;
-  height: 80px;
+  height: 50px;
   background-color: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
-  padding: 5px;
+  border-radius: 4px;
+  padding: 2px;
 }
 
-.percent-change {
-  position: absolute;
-  right: 10px;
-  top: 5px;
+.nd-percent-change {
   font-size: 14px;
   font-weight: bold;
+  align-self: flex-end;
+  margin-top: 4px;
 }
 
-.percent-positive {
+.nd-percent-change.nd-positive {
   color: #28a745;
 }
 
-.percent-negative {
+.nd-percent-change.nd-negative {
   color: #dc3545;
 }
 
