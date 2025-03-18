@@ -32,28 +32,38 @@
 }
 
 /* Main news content */
-.news-image {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+/* Hero section with improved layout */
+.news-hero {
+  margin-bottom: 25px;
 }
 
-.news-header {
-  margin-bottom: 20px;
+.news-source-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .news-source {
   display: flex;
   align-items: center;
   font-size: 0.95rem;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .news-favicon {
+  width: 24px;
+  height: 24px;
   margin-right: 10px;
+  border-radius: 50%;
+  border: 1px solid #eee;
+}
+
+.news-source-name {
+  font-weight: 600;
+  color: #444;
+  margin-right: 8px;
 }
 
 .genre-badge {
@@ -66,6 +76,54 @@
   text-transform: uppercase;
   letter-spacing: 0.2px;
   border: 1px solid #e0e0e0;
+}
+
+.news-publish-info {
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.news-date {
+  margin-right: 8px;
+}
+
+.news-author {
+  font-style: italic;
+}
+
+.news-image-container {
+  position: relative;
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.news-image {
+  width: 100%;
+  max-height: 450px;
+  object-fit: cover;
+  display: block;
+}
+
+.news-source-link {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  border-top-left-radius: 8px;
+  text-decoration: none;
+}
+
+.news-source-link:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
 }
 
 /* Genre-specific badge styles */
@@ -133,12 +191,6 @@
   letter-spacing: -0.5px;
 }
 
-.news-meta {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 20px;
-}
-
 .refcard {
   background: white;
   border-radius: 15px;
@@ -155,31 +207,49 @@
   margin-bottom: 20px;
 }
 
+.news-actions-container {
+  margin-top: 30px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
 .news-read-original {
   display: flex;
   justify-content: center;
-  margin-top: 30px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .read-original-btn {
   display: inline-block;
-  padding: 12px 24px;
-  background-color: #007bff;
+  padding: 14px 28px;
+  background-color: #28a745;
   color: white;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
+  font-size: 1.1rem;
   transition: all 0.3s ease;
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.5px;
 }
 
 .read-original-btn:hover {
-  background-color: #0056b3;
+  background-color: #218838;
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.news-action-description {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  font-style: italic;
 }
 
 .related-news-sidebar {
@@ -254,8 +324,9 @@
   }
   
   .news-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     line-height: 1.3;
+    margin-bottom: 15px;
   }
   
   .news-summary {
@@ -266,9 +337,31 @@
     font-size: 0.85rem;
   }
   
+  .news-source-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .news-publish-info {
+    margin-top: 5px;
+  }
+  
   .refcard {
     padding: 15px;
     border-radius: 10px;
+  }
+  
+  .news-image-container {
+    margin-bottom: 15px;
+  }
+  
+  .news-image {
+    max-height: 250px;
+  }
+  
+  .news-actions-container {
+    padding: 15px;
+    margin-top: 20px;
   }
   
   /* Make sure the sidebar is responsive on mobile */
@@ -301,8 +394,13 @@
   .read-original-btn {
     width: 100%;
     max-width: 250px;
-    padding: 10px 16px;
-    font-size: 0.9rem;
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+  
+  .news-action-description {
+    font-size: 0.8rem;
+    line-height: 1.4;
   }
   
   /* Mobile related news */

@@ -248,31 +248,45 @@ const NewsDetail = () => {
         <div className="row">
           <div className="col-md-8">
             <div className="refcard">
-              <div className="news-header">
-                <div className="news-source">
-                  <img className="news-favicon" src={getFaviconUrl(news.canonical, 24)} alt={news.source} />
-                  <a href={`/outlet/${news.source_id}`}><b>{news.source}</b></a>
-                  <span className={`genre-badge genre-${news.genre.toLowerCase().replace(/ /g, '-')}`}>
-                    {genre_emoji_mapping[news.genre]} {news.genre}
-                  </span>
+              {/* Hero section with improved layout for title and image */}
+              <div className="news-hero">
+                <div className="news-source-container">
+                  <div className="news-source">
+                    <img className="news-favicon" src={getFaviconUrl(news.canonical, 24)} alt={news.source} />
+                    <a href={`/outlet/${news.source_id}`} className="news-source-name">{news.source}</a>
+                    <span className={`genre-badge genre-${news.genre.toLowerCase().replace(/ /g, '-')}`}>
+                      {genre_emoji_mapping[news.genre]} {news.genre}
+                    </span>
+                  </div>
+                  <div className="news-publish-info">
+                    <span className="news-date">{new Date(news.pub_time).toLocaleDateString()}</span>
+                    {news.author && <span className="news-author">by {news.author}</span>}
+                  </div>
                 </div>
+                
                 <h1 className="news-title">{news.title}</h1>
-                <div className="news-meta">
-                  <p>{new Date(news.pub_time).toLocaleDateString()}, by {news.author}</p>
-                  <p><a target="_blank" href={news.canonical} onClick={handleUrlClick}>{news.canonical}</a></p>
+                
+                <div className="news-image-container">
+                  <img src={news.preview} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} alt={news.title} />
+                  <a href={news.canonical} className="news-source-link" onClick={handleUrlClick}>
+                    Source: {new URL(news.canonical).hostname.replace('www.', '')}
+                  </a>
                 </div>
               </div>
-              
-              <img src={news.preview} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} alt="News preview" />
               
               <div className="news-summary">
                 <p>{news.summary}</p>
               </div>
               
-              <div className="news-read-original mt-4">
-                <a href={news.canonical} target="_blank" rel="noopener noreferrer" className="read-original-btn">
-                  Read Full Article
-                </a>
+              <div className="news-actions-container">
+                <div className="news-read-original">
+                  <a href={news.canonical} target="_blank" rel="noopener noreferrer" className="read-original-btn">
+                    Read Full Article
+                  </a>
+                </div>
+                <div className="news-action-description">
+                  <p>Click to read the original article or use the trading panel to buy a share at market price.</p>
+                </div>
               </div>
             </div>
           </div>
