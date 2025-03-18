@@ -141,14 +141,61 @@ const NewsDetail = () => {
         
         // Fetch related news using the new endpoint
         fetch(`${serviceUrl}/news/${uuid}/related`)
-          .then(response => response.json())
-          .then(data => { setRelatedNews(data) })
+          .then(response => {
+            console.log('Related news response status:', response.status);
+            return response.json();
+          })
+          .then(data => { 
+            console.log('Related news data from new endpoint:', data);
+            // Check if data is directly an array or if it's an object with an array property
+            if (Array.isArray(data)) {
+              setRelatedNews(data);
+            } else if (data && typeof data === 'object') {
+              // Check for common properties that might contain the array
+              const possibleArrayProps = ['data', 'results', 'items', 'news', 'relatedNews'];
+              for (const prop of possibleArrayProps) {
+                if (Array.isArray(data[prop])) {
+                  console.log(`Found related news in "${prop}" property`);
+                  setRelatedNews(data[prop]);
+                  return;
+                }
+              }
+              
+              // If we couldn't find an array in the expected properties, log it and use whatever we got
+              console.log('Could not find array property in data, using as-is');
+              setRelatedNews(data);
+            } else {
+              console.log('Unexpected data format for related news:', typeof data);
+              setRelatedNews([]);
+            }
+          })
           .catch(error => {
             console.error('Error fetching related news:', error);
             // Fallback to old endpoint if new one fails
+            console.log('Falling back to old endpoint for related news');
             fetch(`${serviceUrl}/relatednews/${uuid}?range=10d`)
               .then(response => response.json())
-              .then(data => { setRelatedNews(data) })
+              .then(data => { 
+                console.log('Related news data from fallback endpoint:', data);
+                // Same logic as above for handling the data format
+                if (Array.isArray(data)) {
+                  setRelatedNews(data);
+                } else if (data && typeof data === 'object') {
+                  const possibleArrayProps = ['data', 'results', 'items', 'news', 'relatedNews'];
+                  for (const prop of possibleArrayProps) {
+                    if (Array.isArray(data[prop])) {
+                      console.log(`Found related news in "${prop}" property from fallback`);
+                      setRelatedNews(data[prop]);
+                      return;
+                    }
+                  }
+                  console.log('Could not find array property in fallback data, using as-is');
+                  setRelatedNews(data);
+                } else {
+                  console.log('Unexpected data format for related news from fallback:', typeof data);
+                  setRelatedNews([]);
+                }
+              })
               .catch(fallbackError => console.error('Error with fallback related news fetch:', fallbackError));
           });
       })
@@ -262,23 +309,27 @@ const NewsDetail = () => {
             {/* Related News Section */}
             <div className="related-news-sidebar">
               <h3>Similar News</h3>
+              {console.log('Current relatedNews state:', relatedNews)}
               {relatedNews && relatedNews.length > 0 ? (
                 <ul className="related-news-list">
-                  {relatedNews.map(related => (
-                    <li key={related.uuid} className="related-news-item">
-                      <div className="related-news-source">
-                        <img src={getFaviconUrl(related.canonical, 16)} alt={related.source} className="related-news-favicon" />
-                        <span className="related-news-source-name">{related.source}</span>
-                        <span className="related-news-date">{new Date(related.pub_time).toLocaleDateString()}</span>
-                      </div>
-                      <a href={`/news/${related.uuid}`} className="related-news-title">
-                        {related.title}
-                      </a>
-                    </li>
-                  ))}
+                  {relatedNews.map(related => {
+                    console.log('Rendering related news item:', related);
+                    return (
+                      <li key={related.uuid} className="related-news-item">
+                        <div className="related-news-source">
+                          <img src={getFaviconUrl(related.canonical || "#", 16)} alt={related.source} className="related-news-favicon" />
+                          <span className="related-news-source-name">{related.source}</span>
+                          <span className="related-news-date">{new Date(related.pub_time).toLocaleDateString()}</span>
+                        </div>
+                        <a href={`/news/${related.uuid}`} className="related-news-title">
+                          {related.title}
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
-                <p>No similar news available.</p>
+                <p>No similar news available. {JSON.stringify(relatedNews)}</p>
               )}
             </div>
           </div>
