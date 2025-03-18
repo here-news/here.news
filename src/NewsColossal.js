@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import getFaviconUrl from './util';
 import serviceUrl from './config';
 import Header from './Header';
@@ -642,6 +643,9 @@ const NewsFullScreen = ({ news, onClose }) => {
 };
 
 const NewsColossal = () => {
+  // Initialize navigate function for routing
+  const navigate = useNavigate();
+  
   const [activeIndex, setActiveIndex] = useState(0);
   const [news, setNews] = useState([]);
   const [fullScreenNews, setFullScreenNews] = useState(null);
@@ -1120,32 +1124,8 @@ const NewsColossal = () => {
   };
 
   const handleCardClick = async (uuid) => {
-    const index = news.findIndex(item => item.uuid === uuid);
-    
-    // Always set the active index for visual feedback
-    setActiveIndex(index);
-    
-    // Immediately fetch and show detailed news
-    setIsLoading(true);
-    try {
-      console.log(`Fetching detailed news for UUID: ${uuid}`);
-      const detailedNews = await fetchNewsDetails(uuid);
-      console.log('Fetched detailed news:', detailedNews);
-      
-      if (detailedNews) {
-        setFullScreenNews(detailedNews);
-      } else {
-        // Fallback to the news we already have
-        console.log('No detailed news found, using existing news item');
-        setFullScreenNews(news[index]);
-      }
-    } catch (error) {
-      console.error('Error fetching detailed news:', error);
-      console.log('Error in fetch, using existing news item');
-      setFullScreenNews(news[index]);
-    } finally {
-      setIsLoading(false);
-    }
+    // Navigate to the dedicated news detail page with the UUID using React Router
+    navigate(`/news/${uuid}`);
   };
 
   const closeFullScreen = () => {

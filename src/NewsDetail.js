@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
 import Footer from './Footer';
 import ButtonVote from './ButtonVote';
 import RatingBar from './RatingBar';
-import Comments from './Comments';
 import getFaviconUrl from "./util";
-import './News.css';
+import './NewsDetail.css';
 
-// News detail price chart component with unique class names to avoid conflicts
+// Mini price chart component for trading panel
 const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80 }) => {
   // Generate random data if none provided
   const data = priceHistory || Array(7).fill(0).map(() => Math.random() * 5 + 1);
@@ -36,8 +35,18 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
   }).join(' ');
   
   return (
-    <div className="news-detail-chart-container">
-      <svg width={width} height={height} className="news-detail-chart">
+    <div style={{ 
+      width: '100%',
+      margin: '15px 0',
+      position: 'relative' 
+    }}>
+      <svg width={width} height={height} style={{
+        width: '100%',
+        height: '80px',
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderRadius: '4px',
+        padding: '5px'
+      }}>
         <polyline
           points={points}
           fill="none"
@@ -47,16 +56,23 @@ const NewsDetailChart = ({ priceHistory, percentChange, width = 180, height = 80
           strokeLinecap="round"
         />
       </svg>
-      <span className={`news-detail-percent ${parseFloat(percentChange) >= 0 ? 'news-detail-up' : 'news-detail-down'}`}>
+      <span style={{
+        position: 'absolute',
+        right: '10px',
+        top: '5px',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        color: parseFloat(percentChange) >= 0 ? '#28a745' : '#dc3545'
+      }}>
         {parseFloat(percentChange) >= 0 ? '+' : ''}{percentChange || '2.5'}%
       </span>
     </div>
   );
 };
 
-const News = () => {
-  const [news, setNews] = useState(null);
+const NewsDetail = () => {
   const { uuid } = useParams();
+  const [news, setNews] = useState(null);
   const [showIframe, setShowIframe] = useState(false);
   const [referencedStories, setReferencedStories] = useState([]);
   const [relatedNews, setRelatedNews] = useState([]);
@@ -68,7 +84,19 @@ const News = () => {
   const [tradersCount, setTradersCount] = useState(0);
   const [tradeVolume, setTradeVolume] = useState(0);
 
-  let genre_emoji_mapping = { "News": "📰", "Analysis": "📊", "Interview": "🗣️", "Editorial": "✍️", "Opinion": "💬", "Feature": "📚", "Investigative": "🔍", "Entertainment & Lifestyle": "🎥", "Sports": "🏅", "Science & Education": "🧪", "Miscellaneous": "🪁" };
+  let genre_emoji_mapping = { 
+    "News": "📰", 
+    "Analysis": "📊", 
+    "Interview": "🗣️", 
+    "Editorial": "✍️", 
+    "Opinion": "💬", 
+    "Feature": "📚", 
+    "Investigative": "🔍", 
+    "Entertainment & Lifestyle": "🎥", 
+    "Sports": "🏅", 
+    "Science & Education": "🧪", 
+    "Miscellaneous": "🪁" 
+  };
   
   // Handle trading actions
   const handleLongPosition = (e) => {
@@ -155,7 +183,6 @@ const News = () => {
 
   const handleUrlClick = (event) => {
     event.preventDefault();
-    // setShowIframe(true);
     openInNewTab();
   };
 
@@ -178,7 +205,7 @@ const News = () => {
   return (
     <>
       <Header />
-      <div className="container mt-3">
+      <div className="container mt-3 news-detail-page">
         <div className="row">
           <div className="col-md-8">
             <div className="refcard">
@@ -210,7 +237,7 @@ const News = () => {
           </div>
 
           <div className="col-md-4" id="news-sidebar">
-            {/* Moved Trading Panel to TOP of sidebar for visibility - with direct inline styling */}
+            {/* Trading Panel with direct inline styling */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '10px',
@@ -327,4 +354,4 @@ const News = () => {
   );
 };
 
-export default News;
+export default NewsDetail;
