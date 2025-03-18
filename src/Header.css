@@ -63,6 +63,29 @@
     align-items: center;
 }
 
+.logo-text {
+    font-weight: 800;
+    font-size: 18px;
+    margin-right: 4px;
+    color: #333;
+    letter-spacing: 1px;
+}
+
+.slogan-text {
+    font-size: 14px;
+    color: #666;
+    margin-left: 10px;
+    font-style: italic;
+}
+
+.desktop-only {
+    display: inline-block;
+}
+
+.mobile-only {
+    display: none;
+}
+
 .header-right {
     display: flex;
     justify-content: flex-end;
@@ -112,8 +135,12 @@
         height: 28px; /* Smaller logo on mobile */
     }
     
-    .header-left span {
-        display: none; /* Hide tagline on smaller screens */
+    .desktop-only {
+        display: none; /* Hide desktop elements on mobile */
+    }
+    
+    .mobile-only {
+        display: inline-block; /* Show mobile elements */
     }
     
     .header-center {

@@ -14,10 +14,11 @@ const Header = ({ searchQuery, setSearchQuery }) => {
         <header className="header">
             <div className="container">
                 <div className="header-left">
+                    <span className="logo-text desktop-only">HERE</span>
                     <Link to="/" className="logo">
                         <img src="/static/logo.svg" alt="Logo" />
                     </Link>
-                    <span style={{color:'grey', padding:'0 10px'}}> Balanced Intelligence</span>
+                    <span className="slogan-text desktop-only">Truth, Gains</span>
                 </div>
                 <div className="header-center">
                     <div className="header-search-bar">
