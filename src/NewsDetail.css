@@ -155,13 +155,34 @@
   margin-bottom: 20px;
 }
 
-.news-actions {
+.news-read-original {
   display: flex;
-  margin-top: 20px;
-  align-items: center;
+  justify-content: center;
+  margin-top: 30px;
+  margin-bottom: 10px;
 }
 
-.referenced-stories {
+.read-original-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.read-original-btn:hover {
+  background-color: #0056b3;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.related-news-sidebar {
   background-color: white;
   padding: 20px;
   border-radius: 15px;
@@ -273,6 +294,24 @@
   
   .trading-button {
     padding: 10px;
+    font-size: 0.9rem;
+  }
+  
+  /* Mobile read original button */
+  .read-original-btn {
+    width: 100%;
+    max-width: 250px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+  
+  /* Mobile related news */
+  .related-news-sidebar {
+    padding: 15px;
+    border-radius: 10px;
+  }
+  
+  .related-news-title {
     font-size: 0.9rem;
   }
   
@@ -458,30 +497,69 @@
   position: relative;
 }
 
-/* Related stories styling */
-.related-news {
-  margin-top: 20px;
-}
-
-.related-news h3 {
-  margin-bottom: 15px;
-  font-size: 1.3rem;
+/* Related news sidebar styling */
+.related-news-sidebar h3 {
+  font-size: 1.2rem;
   font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
 }
 
-.related-news ul {
+.related-news-list {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
-.related-news li {
+.related-news-item {
   border-bottom: 1px solid #eee;
-  padding: 10px 0;
+  padding: 12px 0;
 }
 
-.related-news h4 {
-  font-size: 1rem;
-  margin: 5px 0;
+.related-news-item:last-child {
+  border-bottom: none;
+}
+
+.related-news-source {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.related-news-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.related-news-source-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.related-news-date {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.related-news-title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #333;
+  text-decoration: none;
+  margin-top: 4px;
+  transition: color 0.2s ease;
+}
+
+.related-news-title:hover {
+  color: #007bff;
 }
 
 /* Ensure main content area has proper padding on bottom to allow full scrolling */

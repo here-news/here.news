@@ -3,8 +3,6 @@ import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
 import Footer from './Footer';
-import ButtonVote from './ButtonVote';
-import RatingBar from './RatingBar';
 import getFaviconUrl from "./util";
 import './NewsDetail.css';
 
@@ -57,7 +55,7 @@ const NewsDetail = () => {
   const { uuid } = useParams();
   const [news, setNews] = useState(null);
   const [showIframe, setShowIframe] = useState(false);
-  const [referencedStories, setReferencedStories] = useState([]);
+  // We no longer need referencedStories state
   const [relatedNews, setRelatedNews] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
@@ -121,6 +119,7 @@ const NewsDetail = () => {
   }, []);
   
   useEffect(() => {
+    // Fetch main news data
     fetch(`${serviceUrl}/news/${uuid}`)
       .then(response => response.json())
       .then(data => {
@@ -140,22 +139,19 @@ const NewsDetail = () => {
         // Random volume ($500-$5000)
         setTradeVolume((Math.random() * 4500 + 500).toFixed(2));
         
-        return data.uuid;
-      })
-      .then(uuid => {
-          fetch(`${serviceUrl}/stories/referencing/${uuid}`)
-            .then(response => response.json())
-            .then(data => setReferencedStories(data))
-            .catch(error => console.error('Error fetching referenced stories:', error));
-            return uuid;
-      })
-      .then(uuid=>{  // fetch related news
-        fetch(`${serviceUrl}/relatednews/${uuid}?range=10d`)
+        // Fetch related news using the new endpoint
+        fetch(`${serviceUrl}/news/${uuid}/related`)
           .then(response => response.json())
           .then(data => { setRelatedNews(data) })
-          .catch(error => console.error('Error fetching related news:', error));
-      }
-      )
+          .catch(error => {
+            console.error('Error fetching related news:', error);
+            // Fallback to old endpoint if new one fails
+            fetch(`${serviceUrl}/relatednews/${uuid}?range=10d`)
+              .then(response => response.json())
+              .then(data => { setRelatedNews(data) })
+              .catch(fallbackError => console.error('Error with fallback related news fetch:', fallbackError));
+          });
+      })
       .catch(error => console.error('Error fetching news:', error));
   }, [uuid]);
   
@@ -226,32 +222,10 @@ const NewsDetail = () => {
                 <p>{news.summary}</p>
               </div>
               
-              <div className="news-actions">
-                <RatingBar positive={news.positive_ratings} negative={news.negative_ratings} displayNumber={false} target='#comments-list'/>
-                <ButtonVote type="up" initialCount={news.positive_ratings} newsId={news.uuid} icon="🡅" />
-                <ButtonVote type="down" initialCount={news.negative_ratings} newsId={news.uuid} icon="🡇" />
-              </div>
-              
-              <p className="mt-3"><b>Please read the original article and rate it. </b>(can't read? <span>Ask</span> community.)</p>
-              
-              <hr className="mt-4 mb-4"/>
-              
-              <div className="related-news">
-                <h3>Related News</h3>
-                {relatedNews.length > 0 && (
-                  <ul>
-                    {relatedNews.map(related => (
-                      <li key={related.uuid}>
-                        <div className="d-flex align-items-center">
-                          <span className="mr-2">{new Date(related.pub_time).toLocaleDateString()}</span>
-                          <b className="mr-2">{related.source}</b>
-                          <img src={getFaviconUrl(related.canonical, 16)} alt={related.source} />
-                        </div>
-                        <h4><a href={`/news/${related.uuid}`}>{related.title}</a></h4>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="news-read-original mt-4">
+                <a href={news.canonical} target="_blank" rel="noopener noreferrer" className="read-original-btn">
+                  Read Full Article
+                </a>
               </div>
             </div>
           </div>
@@ -285,23 +259,27 @@ const NewsDetail = () => {
               </div>
             </div>
             
-            {/* Referenced Stories Section */}
-            <div className="referenced-stories">
-              <h3>Cited by Stories</h3>
-              {referencedStories.length > 0 ? (
-                <ul>
-                  {referencedStories.map(story => (
-                    <li key={story.uuid}>
-                      <h4><a href={`/story/${story.uuid}`}>{story.title}</a></h4>
+            {/* Related News Section */}
+            <div className="related-news-sidebar">
+              <h3>Similar News</h3>
+              {relatedNews && relatedNews.length > 0 ? (
+                <ul className="related-news-list">
+                  {relatedNews.map(related => (
+                    <li key={related.uuid} className="related-news-item">
+                      <div className="related-news-source">
+                        <img src={getFaviconUrl(related.canonical, 16)} alt={related.source} className="related-news-favicon" />
+                        <span className="related-news-source-name">{related.source}</span>
+                        <span className="related-news-date">{new Date(related.pub_time).toLocaleDateString()}</span>
+                      </div>
+                      <a href={`/news/${related.uuid}`} className="related-news-title">
+                        {related.title}
+                      </a>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p>No stories referencing this news yet.</p>
+                <p>No similar news available.</p>
               )}
-              <div className="mt-3">
-                <i>(Coming soon) <br/>Create your own story based on similar news</i>
-              </div>
             </div>
           </div>
         </div>
