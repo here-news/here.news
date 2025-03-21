@@ -1,0 +1,142 @@
+.market-actions {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+.stats-container {
+  margin-bottom: 1rem;
+}
+
+.stats-container p {
+  margin: 0.5rem 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-buttons button {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.buy-button {
+  background-color: #0077cc;
+}
+
+.buy-button:hover {
+  background-color: #005fa3;
+}
+
+.short-button {
+  background-color: #cc0000;
+}
+
+.short-button:hover {
+  background-color: #990000;
+}
+
+.action-buttons button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Trade Modal */
+.trade-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-summary {
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modal-actions button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.confirm-buy {
+  background-color: #0077cc;
+  color: white;
+}
+
+.confirm-short {
+  background-color: #cc0000;
+  color: white;
+}
+
+.modal-actions button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}

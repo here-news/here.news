@@ -1,0 +1,82 @@
+.price-bar-container {
+  margin-bottom: 1.5rem;
+}
+
+.market-bar {
+  position: relative;
+  height: 30px;
+  background: #ddd;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.price-indicator {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background-color: green;
+  transition: left 0.4s ease-in-out;
+  z-index: 5;
+}
+
+.stake-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  background-color: orange;
+  border-radius: 3px;
+  z-index: 3;
+}
+
+.short-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  background-color: red;
+  border-radius: 3px;
+  border: 1px solid black;
+  z-index: 3;
+}
+
+.issuance-marker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background-color: blue;
+  opacity: 0.5;
+  z-index: 2;
+}
+
+.legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.issuance-note {
+  font-size: 0.85rem;
+  color: #004080;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.price-up {
+  color: green;
+  margin-left: 0.5rem;
+}
+
+.price-down {
+  color: red;
+  margin-left: 0.5rem;
+}
+
+.stats p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}

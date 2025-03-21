@@ -1,0 +1,74 @@
+.personal-stats {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+.personal-stats h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.position-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.8rem 0;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid #eee;
+}
+
+.position-details {
+  font-weight: 500;
+  color: #333;
+  margin: 0 0.5rem;
+}
+
+.sell-button {
+  background-color: #ff6600;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-left: 1rem;
+}
+
+.sell-button:hover {
+  background-color: #cc5200;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0.5rem 0 1rem;
+  font-style: italic;
+}
+
+.gain-loss {
+  font-weight: 500;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid #eee;
+}
+
+.positive {
+  color: green;
+}
+
+.negative {
+  color: red;
+}
+
+.no-positions {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0;
+}

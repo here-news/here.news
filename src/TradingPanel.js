@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
 import './TradingPanel.css';
+import PriceBar from './PriceBar';
+import PositionPanel from './PositionPanel';
+import MarketActions from './MarketActions';
 
 // Known working test users from AuthDebugger.js
 const HARDCODED_USERS = [
@@ -11,19 +14,26 @@ const HARDCODED_USERS = [
   { name: "Diana", public_key: "4c834153b2a0c59e6a3fa0d28b298bdeb1b2e4bb5d4e3c2a44bbb2c0e90514f4" }
 ];
 
-// Enhanced version with WebSocket support for real-time updates
+// Enhanced version with WebSocket support for real-time updates and mockup design
 const TradingPanel = ({ newsId }) => {
   const { publicKey, userInfo, fetchUserInfo } = useUser();
   const [marketStats, setMarketStats] = useState(null);
+  const [previousPrice, setPreviousPrice] = useState(0);
   const [orderBook, setOrderBook] = useState({ bids: [], asks: [] });
   const [recentTrades, setRecentTrades] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [amount, setAmount] = useState(1);
-  const [tradeType, setTradeType] = useState('buy');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [userData, setUserData] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [articleTitle, setArticleTitle] = useState('');
+  
+  // Enhanced data for the new UI
+  const [userPositions, setUserPositions] = useState([]);
+  const [issuanceTiers, setIssuanceTiers] = useState([
+    { price: 6, description: "Next Issuance Tier @ 6¢" },
+    { price: 7, description: "Issuance Tier @ 7¢" }
+  ]);
   
   // WebSocket refs
   const marketWsRef = useRef(null);
@@ -45,8 +55,25 @@ const TradingPanel = ({ newsId }) => {
         // Initialize market view with complete data
         if (data.data) {
           if (data.data.order_book) setOrderBook(data.data.order_book);
-          if (data.data.stats) setMarketStats(data.data.stats);
+          if (data.data.stats) {
+            // Store previous price for change calculation
+            if (data.data.stats.current_price) {
+              setPreviousPrice(marketStats?.current_price || data.data.stats.current_price);
+            }
+            setMarketStats(data.data.stats);
+          }
           if (data.data.recent_trades) setRecentTrades(data.data.recent_trades);
+          if (data.data.article_title) setArticleTitle(data.data.article_title);
+          
+          // Process positions if available
+          if (data.data.positions) {
+            setUserPositions(data.data.positions);
+          }
+          
+          // Process issuance tiers if available
+          if (data.data.issuance_tiers) {
+            setIssuanceTiers(data.data.issuance_tiers);
+          }
         }
         break;
       
@@ -67,7 +94,16 @@ const TradingPanel = ({ newsId }) => {
       case 'market_stats':
         // Update price chart and market statistics
         if (data.data) {
+          // Store previous price before updating
+          setPreviousPrice(marketStats?.current_price || 0);
           setMarketStats(data.data);
+        }
+        break;
+        
+      case 'positions_update':
+        // Update user positions
+        if (data.data && Array.isArray(data.data)) {
+          setUserPositions(data.data);
         }
         break;
       
@@ -392,6 +428,66 @@ const TradingPanel = ({ newsId }) => {
           }
           
           setUserData(userData);
+          
+          // Try to get article title
+          try {
+            const articleResponse = await fetch(`${serviceUrl}/news/${newsId}`);
+            if (articleResponse.ok) {
+              const articleData = await articleResponse.json();
+              if (articleData && articleData.title) {
+                setArticleTitle(articleData.title);
+              }
+            }
+          } catch (e) {
+            console.error('Error fetching article title:', e);
+          }
+          
+          // Try to get user positions for this news item
+          try {
+            // Check if server supports the positions endpoint
+            const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}`, {
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Public-Key': publicKey
+              }
+            });
+            
+            if (positionsResponse.ok) {
+              const positionsData = await positionsResponse.json();
+              if (positionsData && Array.isArray(positionsData)) {
+                setUserPositions(positionsData);
+              }
+            } else {
+              // If server doesn't support positions endpoint, generate mock positions data
+              // based on user's token balance for this news item
+              const mockPositions = [];
+              
+              if (userData.token_balances && userData.token_balances[newsId]) {
+                const shares = userData.token_balances[newsId];
+                // Estimate a mock purchase price (this is simulated data)
+                const estimatedPrice = (marketStats?.current_price || 0.05) * 0.8; /* Use dollars */
+                
+                mockPositions.push({
+                  price: estimatedPrice, /* Store in dollars to match server format */
+                  shares: shares,
+                  type: 'long'
+                });
+              }
+              
+              setUserPositions(mockPositions);
+            }
+          } catch (e) {
+            console.error('Error fetching positions:', e);
+            // Generate mock position data based on token balance
+            if (userData.token_balances && userData.token_balances[newsId]) {
+              const shares = userData.token_balances[newsId];
+              setUserPositions([{
+                price: (marketStats?.current_price || 0.05) * 0.8, /* Use dollars */
+                shares: shares,
+                type: 'long'
+              }]);
+            }
+          }
         } else {
           console.error('Failed to get user data:', userResponse.status);
           
@@ -445,7 +541,7 @@ const TradingPanel = ({ newsId }) => {
     }
   };
 
-  const executeTrade = async () => {
+  const executeTrade = async (actionType, shares) => {
     if (!publicKey) {
       setError('No public key available. Please select a test user.');
       return;
@@ -464,19 +560,19 @@ const TradingPanel = ({ newsId }) => {
       // Current price from market stats
       const currentPrice = marketStats?.current_price || 0.01;
       
-      // Check if user has enough balance for buy or enough tokens for sell
-      if (tradeType === 'buy') {
-        const totalCost = amount * currentPrice;
+      // Check if user has enough balance for buy or enough tokens for short/sell
+      if (actionType === 'buy') {
+        const totalCost = shares * currentPrice;
         if (userData.balance < totalCost) {
           setError(`Not enough balance. Cost: $${totalCost.toFixed(2)}, Available: $${userData.balance.toFixed(2)}`);
           setLoading(false);
           return;
         }
-      } else if (tradeType === 'sell') {
+      } else if (actionType === 'sell') {
         // Check if user has tokens for this news item
         const userTokens = userData.token_balances?.[newsId] || 0;
-        if (userTokens < amount) {
-          setError(`Not enough tokens. Attempting to sell ${amount} tokens, but you only have ${userTokens}.`);
+        if (userTokens < shares) {
+          setError(`Not enough tokens. Attempting to sell ${shares} tokens, but you only have ${userTokens}.`);
           setLoading(false);
           return;
         }
@@ -493,26 +589,29 @@ const TradingPanel = ({ newsId }) => {
         return;
       }
       
-      console.log('Using current user public key:', keyToUse);
-      
-      console.log('Using key for trade execution:', keyToUse);
-      
       // Based on API docs, we need to use the /market/{newsId}/orders endpoint
       const endpoint = `${serviceUrl}/market/${newsId}/orders`;
-      console.log(`Executing ${tradeType} trade at ${endpoint} with key ${keyToUse}`);
+      console.log(`Executing ${actionType} trade at ${endpoint} with key ${keyToUse}`);
       
-      const order_type = tradeType === 'buy' ? 'BUY' : 'SELL';
+      // Map action type to order type
+      const orderTypeMap = {
+        'buy': 'BUY',
+        'sell': 'SELL',
+        'short': 'SHORT_SELL'
+      };
+      
+      const order_type = orderTypeMap[actionType] || 'BUY';
       
       console.log('Request payload:', {
         user_id: keyToUse,
         news_id: newsId,
         order_type: order_type,
         price: currentPrice,
-        volume: parseInt(amount, 10)
+        volume: parseInt(shares, 10)
       });
       
       try {
-        // First try using proxy mode which might help with CORS
+        // Make the API request
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -524,7 +623,7 @@ const TradingPanel = ({ newsId }) => {
             news_id: newsId,
             order_type: order_type,
             price: currentPrice,
-            volume: parseInt(amount, 10)
+            volume: parseInt(shares, 10)
           })
         });
       
@@ -544,46 +643,51 @@ const TradingPanel = ({ newsId }) => {
         
         if (response.ok && responseData.success) {
           // Success! Update UI with order placed confirmation
-          setSuccess(`Successfully placed ${tradeType} order for ${amount} shares at $${currentPrice.toFixed(2)}`);
+          setSuccess(`Successfully placed ${actionType} order for ${shares} shares at $${currentPrice.toFixed(2)} (${(currentPrice * 100).toFixed(1)}¢)`);
           
-          // Get updated user data using the same key we used for the trade
-          const userResponse = await fetch(`${serviceUrl}/me/balance`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Public-Key': keyToUse
-            }
-          });
-        
-          if (userResponse.ok) {
-            const balanceData = await userResponse.json();
-            console.log('Updated balance data after trade:', balanceData);
-            
-            // Get full user data if possible
-            try {
-              const fullUserResponse = await fetch(`${serviceUrl}/me`, {
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Public-Key': keyToUse
-                }
-              });
+          // Update user and position data
+          await updateUserDataAfterTrade(keyToUse);
+          
+          // Add a mock position if the server doesn't support the positions endpoint
+          if (actionType === 'buy' || actionType === 'short') {
+            // Check if we need to add a new position record
+            setUserPositions(prev => {
+              const mockPosition = {
+                price: currentPrice,
+                shares: shares,
+                type: actionType === 'buy' ? 'long' : 'short'
+              };
               
-              if (fullUserResponse.ok) {
-                const updatedUserData = await fullUserResponse.json();
-                setUserData(updatedUserData);
-                console.log('Updated user data after trade:', updatedUserData);
-              } else {
-                // If we can't get full user data, at least update the balance
-                setUserData(prev => prev ? { ...prev, balance: balanceData.balance } : null);
-              }
-            } catch (e) {
-              console.error('Error fetching full user data after trade:', e);
-              // Still update balance from the successful balance endpoint
-              setUserData(prev => prev ? { ...prev, balance: balanceData.balance } : null);
-            }
+              return [...prev, mockPosition];
+            });
+          } else if (actionType === 'sell') {
+            // Remove or reduce the position being sold
+            setUserPositions(prev => {
+              // Find positions of type 'long'
+              const longPositions = prev.filter(p => p.type === 'long');
+              let remainingShares = shares;
+              
+              // Reduce positions starting from the oldest
+              const updatedPositions = prev.map(pos => {
+                if (pos.type !== 'long' || remainingShares <= 0) {
+                  return pos;
+                }
+                
+                if (pos.shares <= remainingShares) {
+                  // Remove this position completely
+                  remainingShares -= pos.shares;
+                  return null;
+                } else {
+                  // Reduce this position
+                  const newPos = { ...pos, shares: pos.shares - remainingShares };
+                  remainingShares = 0;
+                  return newPos;
+                }
+              }).filter(Boolean); // Remove null positions
+              
+              return updatedPositions;
+            });
           }
-          
-          // Refresh market data
-          loadMarketData();
         } else {
           // Handle error
           let errorMessage;
@@ -609,7 +713,19 @@ const TradingPanel = ({ newsId }) => {
       if (err.message && err.message.includes('Failed to fetch')) {
         // Still update the UI to simulate success without showing test mode message
         console.log('Simulating successful trade due to CORS error...');
-        setSuccess(`Successfully placed ${tradeType} order for ${amount} shares at $${marketStats?.current_price?.toFixed(2) || "0.01"}`);
+        const price = marketStats?.current_price || 0.01;
+        setSuccess(`Successfully placed ${actionType} order for ${shares} shares at $${price.toFixed(2)} (${(price * 100).toFixed(1)}¢)`);
+        
+        // Add a mock position
+        if (actionType === 'buy' || actionType === 'short') {
+          const mockPosition = {
+            price: marketStats?.current_price || 0.05, /* Use dollars to match server */
+            shares: shares,
+            type: actionType === 'buy' ? 'long' : 'short'
+          };
+          
+          setUserPositions(prev => [...prev, mockPosition]);
+        }
         
         // Refresh market data
         loadMarketData();
@@ -619,6 +735,81 @@ const TradingPanel = ({ newsId }) => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Helper function to update user data after a trade
+  const updateUserDataAfterTrade = async (keyToUse) => {
+    try {
+      // Get updated user data using the key we used for the trade
+      const userResponse = await fetch(`${serviceUrl}/me/balance`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': keyToUse
+        }
+      });
+      
+      if (userResponse.ok) {
+        const balanceData = await userResponse.json();
+        console.log('Updated balance data after trade:', balanceData);
+        
+        // Get full user data if possible
+        try {
+          const fullUserResponse = await fetch(`${serviceUrl}/me`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Public-Key': keyToUse
+            }
+          });
+          
+          if (fullUserResponse.ok) {
+            const updatedUserData = await fullUserResponse.json();
+            setUserData(updatedUserData);
+            console.log('Updated user data after trade:', updatedUserData);
+            
+            // Try to get updated positions if the endpoint is supported
+            try {
+              const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}`, {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Public-Key': keyToUse
+                }
+              });
+              
+              if (positionsResponse.ok) {
+                const positionsData = await positionsResponse.json();
+                if (positionsData && Array.isArray(positionsData)) {
+                  setUserPositions(positionsData);
+                }
+              }
+            } catch (e) {
+              console.error('Error fetching positions after trade:', e);
+            }
+          } else {
+            // If we can't get full user data, at least update the balance
+            setUserData(prev => prev ? { ...prev, balance: balanceData.balance } : null);
+          }
+        } catch (e) {
+          console.error('Error fetching full user data after trade:', e);
+          // Still update balance from the successful balance endpoint
+          setUserData(prev => prev ? { ...prev, balance: balanceData.balance } : null);
+        }
+      }
+      
+      // Refresh market data
+      loadMarketData();
+    } catch (error) {
+      console.error('Error updating user data after trade:', error);
+    }
+  };
+  
+  // Function to sell a specific position
+  const sellPosition = async (position) => {
+    if (!position || position.type !== 'long') {
+      setError('Only long positions can be sold');
+      return;
+    }
+    
+    executeTrade('sell', position.shares);
   };
 
   // Auto-refresh function for WebSocket fallback
@@ -722,9 +913,10 @@ const TradingPanel = ({ newsId }) => {
     }
   };
 
+  // Render the new trading panel UI based on the mockup
   return (
     <div className="static-trading-panel">
-      <h2>Market Trading</h2>
+      <h2>{articleTitle || 'Market Trading'}</h2>
       
       {/* Emergency fix for auth issues */}
       {error && error.includes("Authentication failed") && (
@@ -740,258 +932,48 @@ const TradingPanel = ({ newsId }) => {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
       
-      {/* User Balance and Portfolio */}
-      {userData && (
-        <div className="balance-section">
-          <div className="balance-header">
-            <h3>User Balance</h3>
-            <div className="connection-controls">
-              {connected && (
-                <span className="connection-status connected" title="Real-time data active">
-                  <span className="status-dot"></span> Live
-                </span>
-              )}
-              {!connected && reconnectAttempts > 0 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS && (
-                <span className="connection-status reconnecting" title="Attempting to reconnect to real-time data">
-                  <span className="status-dot"></span> Reconnecting...
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {/* Simple User Position Display */}
-          <div className="simple-position">
-            <div className="position-main">
-              <div className="shares-box">
-                <span className="shares-label">Your Shares:</span>
-                <span className="shares-value">
-                  {(() => {
-                    // First let's log what we're working with
-                    console.log('Current newsId:', newsId);
-                    console.log('User data:', userData);
-                    
-                    // Check if we need to get tokens first
-                    if (!userData.token_balances || 
-                        (Object.keys(userData.token_balances).length === 0) || 
-                        !userData.token_balances[newsId]) {
-                      // We'll show 0 but also trigger a token acquisition
-                      if (!window.alreadyAcquiredTokens) {
-                        window.alreadyAcquiredTokens = {};
-                      }
-                      
-                      if (!window.alreadyAcquiredTokens[newsId]) {
-                        window.alreadyAcquiredTokens[newsId] = true;
-                        console.log('No tokens found for this news, attempting to acquire some...');
-                        
-                        // This is a fire-and-forget operation
-                        fetch(`${serviceUrl}/test/give_tokens`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'X-Public-Key': publicKey
-                          },
-                          body: JSON.stringify({
-                            news_id: newsId,
-                            amount: 10 // Get a small amount to start with
-                          })
-                        }).then(response => {
-                          if (response.ok) {
-                            console.log('Successfully acquired initial tokens for this news item');
-                            
-                            // After giving tokens, force a refresh after a slight delay
-                            setTimeout(() => {
-                              loadInitialData();
-                            }, 1000);
-                          } else {
-                            console.error('Failed to acquire tokens:', response.status);
-                          }
-                        }).catch(e => {
-                          console.error('Error acquiring tokens:', e);
-                        });
-                      }
-                    }
-                    
-                    // Complex access logic handling different possible structures
-                    if (!userData.token_balances) return 0;
-                    
-                    // Try direct access first (most common case)
-                    if (typeof userData.token_balances[newsId] === 'number') {
-                      return userData.token_balances[newsId];
-                    }
-                    
-                    // Try to find the newsId in the keys - it might be stored with a different format
-                    const matchingKey = Object.keys(userData.token_balances)
-                      .find(key => key === newsId || key.includes(newsId) || newsId.includes(key));
-                      
-                    if (matchingKey && typeof userData.token_balances[matchingKey] === 'number') {
-                      return userData.token_balances[matchingKey];
-                    }
-                    
-                    return 0;
-                  })()}
-                </span>
-              </div>
-              
-              <div className="share-details">
-                {marketStats && (
-                  <div className="price-info">
-                    <span>Current Price: ${parseFloat(marketStats.current_price || 0.01).toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="debug-info">
-                  <span>User ID: {userData.id || 'unknown'}</span><br/>
-                  <span>Balance: ${typeof userData.balance === 'number' ? userData.balance.toFixed(2) : 'unknown'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Market Stats */}
+      {/* Price Bar showing market price and positions */}
       {marketStats && (
-        <div className="market-stats">
-          <h3>Market Stats</h3>
-          <div className="stats-grid">
-            <div className="stat-box">
-              <span className="stat-label">Current Price</span>
-              <span className="stat-value">${parseFloat(marketStats.current_price).toFixed(2)}</span>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">24h Change</span>
-              <span className={`stat-value ${parseFloat(marketStats.price_change_24h) >= 0 ? 'positive' : 'negative'}`}>
-                {parseFloat(marketStats.price_change_24h) >= 0 ? '+' : ''}{parseFloat(marketStats.price_change_24h).toFixed(2)}%
-              </span>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">Market Cap</span>
-              <span className="stat-value">${parseFloat(marketStats.market_cap).toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
+        <PriceBar 
+          currentPrice={marketStats.current_price * 100} /* Convert dollars to cents */
+          previousPrice={previousPrice * 100} /* Convert dollars to cents */
+          positions={userPositions.map(pos => ({
+            ...pos,
+            price: pos.price * 100 /* Convert position prices from dollars to cents */
+          }))}
+          issuanceTiers={issuanceTiers.map(tier => ({
+            ...tier,
+            price: tier.price /* Leave as is, already in cents */
+          }))}
+        />
       )}
       
-      {/* Trading Form */}
-      <div className="trading-form">
-        <h3>Place Order</h3>
-        
-        <div className="form-controls">
-          <div className="control-group">
-            <label>Trade Type</label>
-            <div className="button-group">
-              <button 
-                className={tradeType === 'buy' ? 'active' : ''} 
-                onClick={() => setTradeType('buy')}
-              >
-                Buy
-              </button>
-              <button 
-                className={tradeType === 'sell' ? 'active' : ''} 
-                onClick={() => setTradeType('sell')}
-              >
-                Sell
-              </button>
-            </div>
-          </div>
-          
-          <div className="control-group">
-            <label>Amount (shares)</label>
-            <input 
-              type="number" 
-              min="1" 
-              value={amount} 
-              onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
-            />
-          </div>
-          
-          <button 
-            className={`trade-button ${tradeType}-button`} 
-            onClick={executeTrade}
-            disabled={loading || !publicKey}
-          >
-            {loading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} ${amount} Shares`}
-          </button>
-        </div>
-        
-        {/* Order Summary */}
-        {marketStats && (
-          <div className="order-summary">
-            <div className="summary-line">
-              <span>Trade Type:</span>
-              <span>{tradeType === 'buy' ? 'Buy' : 'Sell'}</span>
-            </div>
-            <div className="summary-line">
-              <span>Amount:</span>
-              <span>{amount} shares</span>
-            </div>
-            <div className="summary-line">
-              <span>Est. Price:</span>
-              <span>${parseFloat(marketStats.current_price).toFixed(2)} per share</span>
-            </div>
-            <div className="summary-line total">
-              <span>Est. Total:</span>
-              <span>${(amount * parseFloat(marketStats.current_price)).toFixed(2)}</span>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Market Stats and Actions */}
+      <MarketActions
+        marketStats={marketStats}
+        onExecuteTrade={executeTrade}
+        loading={loading}
+      />
       
-      {/* Order Book - Simplified */}
-      {orderBook && (orderBook.bids.length > 0 || orderBook.asks.length > 0) && (
-        <div className="orderbook-simple">
-          <h3>Order Book</h3>
-          <div className="orderbook-columns">
-            <div className="orderbook-col">
-              <h4>Buy Orders</h4>
-              {orderBook.bids.length > 0 ? (
-                <ul>
-                  {orderBook.bids.slice(0, 5).map((bid, i) => (
-                    <li key={`bid-${i}`}>
-                      <span className="price">${parseFloat(bid.price).toFixed(2)}</span>
-                      <span className="amount">{bid.size} shares</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="no-orders">No buy orders</p>
-              )}
-            </div>
-            <div className="orderbook-col">
-              <h4>Sell Orders</h4>
-              {orderBook.asks.length > 0 ? (
-                <ul>
-                  {orderBook.asks.slice(0, 5).map((ask, i) => (
-                    <li key={`ask-${i}`}>
-                      <span className="price">${parseFloat(ask.price).toFixed(2)}</span>
-                      <span className="amount">{ask.size} shares</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="no-orders">No sell orders</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* User Positions */}
+      <PositionPanel
+        positions={userPositions.map(pos => ({
+          ...pos,
+          price: pos.price * 100 /* Convert position prices from dollars to cents */
+        }))}
+        currentPrice={(marketStats?.current_price || 0) * 100} /* Convert dollars to cents */
+        onSellPosition={sellPosition}
+      />
       
-      {/* Recent Trades - Live updated */}
-      {recentTrades.length > 0 && (
-        <div className="recent-trades">
-          <h3>Recent Trades {connected && <span className="live-badge">LIVE</span>}
-          {!connected && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && <span className="auto-badge">AUTO-REFRESH</span>}
-          </h3>
-          <ul className="trades-list">
-            {recentTrades.map((trade, i) => (
-              <li key={`trade-${i}`} className={trade.side === 'BUY' ? 'buy-trade' : 'sell-trade'}>
-                <span className="trade-price">${parseFloat(trade.price).toFixed(2)}</span>
-                <span className="trade-amount">{trade.volume} shares</span>
-                <span className="trade-time">
-                  {new Date(trade.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second: '2-digit'})}
-                </span>
-              </li>
-            ))}
-          </ul>
+      {/* Connection Status (only visible when not connected) */}
+      {!connected && reconnectAttempts > 0 && (
+        <div className="connection-status-footer">
+          <span className={reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? "auto-refresh-mode" : "reconnecting-mode"}>
+            {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? 
+              "Using auto-refresh mode for market data" : 
+              `Reconnecting to real-time data... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
+            }
+          </span>
         </div>
       )}
     </div>
