@@ -16,40 +16,27 @@
   top: 0;
   height: 100%;
   width: 2px;
-  background-color: green;
+  background-color: #111;
   transition: left 0.4s ease-in-out;
   z-index: 5;
 }
 
-.stake-marker {
+.price-change-up {
   position: absolute;
   top: 0;
   height: 100%;
-  width: 6px;
-  background-color: orange;
-  border-radius: 3px;
-  z-index: 3;
+  background-color: rgba(0, 128, 0, 0.3);
+  transition: width 0.4s ease-in-out;
+  z-index: 1;
 }
 
-.short-marker {
+.price-change-down {
   position: absolute;
   top: 0;
   height: 100%;
-  width: 6px;
-  background-color: red;
-  border-radius: 3px;
-  border: 1px solid black;
-  z-index: 3;
-}
-
-.issuance-marker {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 2px;
-  background-color: blue;
-  opacity: 0.5;
-  z-index: 2;
+  background-color: rgba(255, 0, 0, 0.3);
+  transition: width 0.4s ease-in-out;
+  z-index: 1;
 }
 
 .legend {

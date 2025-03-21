@@ -1,9 +1,54 @@
 .market-actions {
-  background: white;
   padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 1.5rem;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1rem;
+}
+
+.market-buy-button,
+.market-short-button {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.market-buy-button {
+  background-color: #e6f7e6;
+  color: #007700;
+  border: 1px solid #007700;
+}
+
+.market-buy-button:hover:not(:disabled) {
+  background-color: #c8ecc8;
+  transform: translateY(-2px);
+}
+
+.market-short-button {
+  background-color: #fefefe;
+  color: #cc0000;
+  border: 1px solid #ffb0b0;
+}
+
+.market-short-button:hover:not(:disabled) {
+  background-color: #ffdddd;
+  transform: translateY(-2px);
+}
+
+.market-buy-button:disabled,
+.market-short-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .stats-container {
@@ -12,139 +57,60 @@
 
 .stats-container p {
   margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #444;
 }
 
 .info-tooltip {
-  display: inline-block;
-  font-size: 0.8rem;
-  color: #4a90e2;
-  margin-left: 5px;
   cursor: help;
+  font-size: 0.8rem;
+  color: #999;
+  margin-left: 0.5rem;
 }
 
-.action-buttons {
+/* Sentiment bar styles */
+.sentiment-bar-container {
+  margin: 0.5rem 0;
+}
+
+.sentiment-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-bottom: 0.15rem;
+  color: #555;
+}
+
+.sentiment-bar {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.action-buttons button {
-  flex: 1;
-  padding: 0.8rem 1rem;
-  border: none;
-  border-radius: 5px;
+.sentiment-long {
+  background-color: rgba(76, 175, 80, 0.7);
   color: white;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.buy-button {
-  background-color: #0077cc;
-}
-
-.buy-button:hover {
-  background-color: #005fa3;
-}
-
-.short-button {
-  background-color: #cc0000;
-}
-
-.short-button:hover {
-  background-color: #990000;
-}
-
-.action-buttons button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-/* Trade Modal */
-.trade-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  font-size: 0.7rem;
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  transition: width 0.5s ease;
 }
 
-.modal-content {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  padding: 1.5rem;
-  width: 90%;
-  max-width: 400px;
-}
-
-.modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.form-summary {
-  background-color: #f9f9f9;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.modal-actions {
+.sentiment-short {
+  background-color: rgba(244, 67, 54, 0.7);
+  color: white;
+  font-size: 0.7rem;
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.5s ease;
 }
 
-.modal-actions button {
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.cancel-button {
-  background-color: #f1f1f1;
-  color: #333;
-}
-
-.confirm-buy {
-  background-color: #0077cc;
-  color: white;
-}
-
-.confirm-short {
-  background-color: #cc0000;
-  color: white;
-}
-
-.modal-actions button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.sentiment-text {
+  font-size: 0.85rem;
+  color: #444;
+  margin-top: 0.25rem;
+  text-align: center;
 }

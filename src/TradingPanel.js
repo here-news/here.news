@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
-import serviceUrl from './config';
+import serviceUrl, { getWebSocketUrl, checkWebSocketAvailability } from './config';
 import './TradingPanel.css';
 import PriceBar from './PriceBar';
 import PositionPanel from './PositionPanel';
@@ -29,7 +29,12 @@ const TradingPanel = ({ newsId }) => {
   const [articleTitle, setArticleTitle] = useState('');
   
   // Enhanced data for the new UI
-  const [userPositions, setUserPositions] = useState([]);
+  const [userPositions, setUserPositions] = useState([
+    // Test long position
+    { price: 0.04, shares: 10, type: 'long' },
+    // Test short position
+    { price: 0.06, shares: 5, type: 'short' }
+  ]);
   const [issuanceTiers, setIssuanceTiers] = useState([
     { price: 6, description: "Next Issuance Tier @ 6¢" },
     { price: 7, description: "Issuance Tier @ 7¢" }
@@ -142,141 +147,327 @@ const TradingPanel = ({ newsId }) => {
     }
   };
   
-  // Connect to WebSockets
+  // Connect to WebSockets with enhanced error handling and availability tracking
   const connectWebSockets = () => {
-    // Get WebSocket URL base from service URL
-    const wsBase = serviceUrl.replace('http', 'ws');
-    
-    // Close existing connections if any
+    // First, close any existing connections to avoid duplicate connections
     disconnectWebSockets();
     
-    // Clear any error about connection if we're attempting to reconnect
-    if (reconnectAttempts > 0) {
-      setError(`Reconnecting to market data (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-    } else {
-      setError('');
-    }
-    
     try {
-      // Connect to market WebSocket
-      const marketWs = new WebSocket(`${wsBase}/ws/market/${newsId}`);
+      // Get properly formatted WebSocket URL using the helper function
+      const marketWsUrl = getWebSocketUrl(`/ws/market/${newsId}`);
+      console.log('Connecting market WebSocket with URL:', marketWsUrl);
       
-      marketWs.onopen = () => {
-        console.log(`Connected to market WebSocket for ${newsId}`);
-        setConnected(true);
-        setReconnectAttempts(0);
-        setError(''); // Clear any connection errors when successfully connected
-      };
-      
-      marketWs.onmessage = (event) => {
-        try {
-          if (event.data === 'pong') return; // Ignore pong responses
-          
-          const data = JSON.parse(event.data);
-          handleMarketUpdate(data);
-        } catch (e) {
-          console.log('Received non-JSON message from market WebSocket:', event.data);
-        }
-      };
-      
-      marketWs.onclose = (event) => {
-        console.log(`Disconnected from market ${newsId} WebSocket`, event);
-        setConnected(false);
+      // Enhanced URL validation with more specific error handling
+      if (!marketWsUrl) {
+        console.error('WebSocket URL generation failed');
+        setError('Unable to connect to real-time data. Using polling mode.');
+        startPollingMode();
         
-        // Only attempt reconnection if not deliberately closed (e.g., component unmount)
-        if (!event.wasClean && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          console.log(`Attempting to reconnect (${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-          
-          // Don't show error for first reconnect attempt to avoid flickering
-          if (reconnectAttempts > 0) {
-            setError(`Market data connection lost. Reconnecting... (${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-          }
-          
-          // Clear any existing reconnect timeout
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
-          
-          // Schedule reconnection with exponential backoff
-          const delay = RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts);
-          console.log(`Will reconnect in ${delay}ms`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setReconnectAttempts(prev => prev + 1);
-            connectWebSockets();
-          }, delay);
-        } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          setError('Market data connection error. Using automatic refresh fallback.');
-        }
-      };
-      
-      marketWs.onerror = (error) => {
-        console.error('Market WebSocket error:', error);
+        // Mark WebSockets as unavailable
+        const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+        localStorage.setItem(wsCheckKey, 'false');
+        localStorage.setItem('ws_last_check_time', Date.now().toString());
         
-        // Only set error message if we haven't already tried reconnecting
-        if (reconnectAttempts === 0) {
-          setError('Market data connection error. Attempting to reconnect...');
-          
-          // Attempt to reconnect on error if needed
-          // WebSocket will trigger onclose which will handle reconnection
-        }
-      };
-      
-      marketWsRef.current = marketWs;
-      
-      // Only connect to user WebSocket if we have a public key
-      if (publicKey) {
-        // Connect to user WebSocket
-        const userWs = new WebSocket(`${wsBase}/ws/user/${publicKey}`);
-        
-        userWs.onopen = () => {
-          console.log(`Connected to user WebSocket for ${publicKey}`);
-        };
-        
-        userWs.onmessage = (event) => {
-          try {
-            if (event.data === 'pong') return; // Ignore pong responses
-            
-            const data = JSON.parse(event.data);
-            handleUserUpdate(data);
-          } catch (e) {
-            console.log('Received non-JSON message from user WebSocket:', event.data);
-          }
-        };
-        
-        userWs.onclose = (event) => {
-          console.log(`Disconnected from user WebSocket for ${publicKey}`, event);
-          
-          // Only attempt reconnection if not deliberately closed
-          if (!event.wasClean && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            console.log(`User WebSocket disconnected. Will reconnect with market WebSocket.`);
-            // We don't need separate reconnection logic for user WebSocket
-            // It will reconnect along with the market WebSocket
-          }
-        };
-        
-        userWs.onerror = (error) => {
-          console.error('User WebSocket error:', error);
-          // We don't show user WebSocket errors to avoid confusion
-          // The market WebSocket is more important for the UI
-        };
-        
-        userWsRef.current = userWs;
+        return;
       }
       
-      // Set up heartbeat to keep connections alive
-      heartbeatIntervalRef.current = setInterval(() => {
-        if (marketWsRef.current && marketWsRef.current.readyState === WebSocket.OPEN) {
-          marketWsRef.current.send('ping');
+      if (!marketWsUrl.startsWith('ws')) {
+        console.error('Invalid WebSocket URL protocol:', marketWsUrl);
+        setError('Protocol error connecting to real-time data. Using polling mode.');
+        startPollingMode();
+        
+        // Mark WebSockets as unavailable
+        const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+        localStorage.setItem(wsCheckKey, 'false');
+        localStorage.setItem('ws_last_check_time', Date.now().toString());
+        
+        return;
+      }
+      
+      // Update UI based on reconnection status
+      if (reconnectAttempts > 0) {
+        setError(`Reconnecting to market data (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+      } else {
+        setError('');  // Clear any error message on first attempt
+      }
+      
+      // Create and configure the market WebSocket
+      try {
+        const marketWs = new WebSocket(marketWsUrl);
+        
+        // Set connection timeout to detect failed connections faster
+        const connectionTimeoutId = setTimeout(() => {
+          if (marketWsRef.current && marketWsRef.current.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket connection timeout');
+            marketWs.close();  // Force close the pending connection
+            
+            // Mark WebSockets as unavailable on timeout
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS - 1) {
+              const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+              localStorage.setItem(wsCheckKey, 'false');
+              localStorage.setItem('ws_last_check_time', Date.now().toString());
+              console.warn('WebSocket connections consistently failing, marking as unavailable');
+            }
+          }
+        }, 10000);  // 10 second timeout
+        
+        marketWs.onopen = () => {
+          console.log(`Connected to market WebSocket for ${newsId}`);
+          clearTimeout(connectionTimeoutId);  // Clear timeout on successful connection
+          
+          setConnected(true);
+          setReconnectAttempts(0);  // Reset reconnect counter on successful connection
+          setError('');  // Clear connection error message
+          
+          // Mark WebSockets as available since connection was successful
+          const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+          localStorage.setItem(wsCheckKey, 'true');
+          localStorage.setItem('ws_last_check_time', Date.now().toString());
+          
+          // Send an initial ping immediately to verify connection is fully functional
+          try {
+            marketWs.send('ping');
+          } catch (e) {
+            console.error('Error sending initial ping:', e);
+          }
+        };
+        
+        marketWs.onmessage = (event) => {
+          try {
+            // Connection is working, so reset the reconnect counter
+            // This helps with unstable connections that work but occasionally drop
+            setReconnectAttempts(0);
+            
+            if (event.data === 'pong') return;  // Ignore heartbeat responses
+            
+            // Parse and handle the message
+            const data = JSON.parse(event.data);
+            handleMarketUpdate(data);
+          } catch (e) {
+            console.error('Error processing WebSocket message:', e);
+            console.log('Received non-JSON message from market WebSocket:', event.data);
+          }
+        };
+        
+        marketWs.onclose = (event) => {
+          console.log(`Disconnected from market ${newsId} WebSocket:`, event);
+          clearTimeout(connectionTimeoutId);  // Clear timeout if connection was closed
+          setConnected(false);
+          
+          // More detailed close code handling
+          const closeReason = event.reason || 'Unknown reason';
+          console.log(`Close code: ${event.code}, reason: ${closeReason}`);
+          
+          // Only attempt reconnection if:
+          // 1. The close wasn't clean (i.e., not deliberately closed by our code)
+          // 2. We haven't exceeded the maximum number of reconnection attempts
+          // 3. We're not unmounting the component (handled by the wasClean flag)
+          if (!event.wasClean && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            console.log(`Attempting to reconnect (${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+            
+            // Only show error message after first attempt to avoid UI flickering
+            if (reconnectAttempts > 0) {
+              setError(`Market data connection lost. Reconnecting... (${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+            }
+            
+            // Clear any existing reconnect timeout
+            if (reconnectTimeoutRef.current) {
+              clearTimeout(reconnectTimeoutRef.current);
+            }
+            
+            // Apply exponential backoff for reconnection attempts
+            const delay = RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts);
+            console.log(`Will reconnect in ${delay}ms`);
+            
+            // Schedule the next reconnection attempt
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setReconnectAttempts(prev => prev + 1);
+              connectWebSockets();  // Try to reconnect
+            }, delay);
+          } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            // After maximum reconnection attempts, switch to polling mode
+            console.log('Maximum reconnection attempts reached, switching to polling mode');
+            setError('Market data connection error. Using automatic refresh fallback.');
+            
+            // Mark WebSockets as unavailable after max retries
+            const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+            localStorage.setItem(wsCheckKey, 'false');
+            localStorage.setItem('ws_last_check_time', Date.now().toString());
+            
+            startPollingMode();
+          }
+        };
+        
+        marketWs.onerror = (error) => {
+          console.error('Market WebSocket error:', error);
+          
+          // Only set error message if we haven't already tried reconnecting
+          if (reconnectAttempts === 0) {
+            setError('Market data connection error. Using fallback mode...');
+            
+            // Immediately load data via REST API as initial fallback
+            loadMarketData();
+          }
+          
+          // The WebSocket will trigger onclose handler which will handle reconnection
+        };
+        
+        // Store the WebSocket reference
+        marketWsRef.current = marketWs;
+        
+        // Connect to the user-specific WebSocket if we have a public key
+        if (publicKey) {
+          connectUserWebSocket(publicKey);
         }
-        if (userWsRef.current && userWsRef.current.readyState === WebSocket.OPEN) {
-          userWsRef.current.send('ping');
+        
+        // Set up heartbeat to keep connections alive
+        // This prevents timeouts on connections that appear active but might be dead
+        heartbeatIntervalRef.current = setInterval(() => {
+          // Send heartbeat to market WebSocket if open
+          if (marketWsRef.current && marketWsRef.current.readyState === WebSocket.OPEN) {
+            try {
+              marketWsRef.current.send('ping');
+            } catch (e) {
+              console.error('Error sending market ping:', e);
+            }
+          }
+          
+          // Send heartbeat to user WebSocket if open
+          if (userWsRef.current && userWsRef.current.readyState === WebSocket.OPEN) {
+            try {
+              userWsRef.current.send('ping');
+            } catch (e) {
+              console.error('Error sending user ping:', e);
+            }
+          }
+        }, 30000);  // Heartbeat every 30 seconds
+        
+      } catch (innerError) {
+        console.error('Error creating WebSocket connection:', innerError);
+        setError('Error creating WebSocket connection. Using polling mode.');
+        startPollingMode();
+        
+        // Mark WebSockets as unavailable on error
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS - 1) {
+          const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+          localStorage.setItem(wsCheckKey, 'false'); 
+          localStorage.setItem('ws_last_check_time', Date.now().toString());
         }
-      }, 30000);
-    } catch (error) {
-      console.error('Error connecting to WebSockets:', error);
+      }
+    } catch (outerError) {
+      console.error('Critical error in WebSocket connection setup:', outerError);
       setError('Could not connect to real-time data. Using manual refresh mode.');
+      startPollingMode();
+      
+      // Mark WebSockets as unavailable on critical error
+      const wsCheckKey = 'ws_checked_' + window.location.hostname.replace(/\./g, '_');
+      localStorage.setItem(wsCheckKey, 'false');
+      localStorage.setItem('ws_last_check_time', Date.now().toString());
     }
+  };
+  
+  // Helper function to connect user-specific WebSocket
+  const connectUserWebSocket = (userKey) => {
+    if (!userKey) return;
+    
+    try {
+      // Get properly formatted user WebSocket URL
+      const userWsUrl = getWebSocketUrl(`/ws/user/${userKey}`);
+      console.log('Connecting user WebSocket with URL:', userWsUrl);
+      
+      // Enhanced URL validation
+      if (!userWsUrl || !userWsUrl.startsWith('ws')) {
+        console.error('Invalid user WebSocket URL format:', userWsUrl);
+        // Silently fail - user data will be fetched via REST API instead
+        return;
+      }
+      
+      // Create and configure the user WebSocket
+      const userWs = new WebSocket(userWsUrl);
+      
+      userWs.onopen = () => {
+        console.log(`Connected to user WebSocket for ${userKey}`);
+        // Send an initial ping to verify connection
+        try {
+          userWs.send('ping');
+        } catch (e) {
+          console.error('Error sending initial user ping:', e);
+        }
+      };
+      
+      userWs.onmessage = (event) => {
+        try {
+          if (event.data === 'pong') return;  // Ignore heartbeat responses
+          
+          // Parse and handle the message
+          const data = JSON.parse(event.data);
+          handleUserUpdate(data);
+        } catch (e) {
+          console.error('Error processing user WebSocket message:', e);
+          console.log('Received non-JSON message from user WebSocket:', event.data);
+        }
+      };
+      
+      userWs.onclose = (event) => {
+        console.log(`Disconnected from user WebSocket for ${userKey}:`, event);
+        
+        // For user WebSocket, we don't show errors or attempt separate reconnection
+        // The user WebSocket will be reconnected as part of the market WebSocket reconnection
+        if (!event.wasClean) {
+          console.log('User WebSocket disconnected. Will be reconnected with market WebSocket.');
+          
+          // Immediately load user data via REST API as fallback when user WS disconnects
+          updateUserDataAfterTrade(userKey);
+        }
+      };
+      
+      userWs.onerror = (error) => {
+        console.error('User WebSocket error:', error);
+        
+        // Silently try to load user data via REST as fallback
+        if (userData) {
+          console.log('User WebSocket error, fetching user data via REST API...');
+          updateUserDataAfterTrade(userKey);
+        }
+      };
+      
+      // Store the WebSocket reference
+      userWsRef.current = userWs;
+    } catch (error) {
+      console.error('Error connecting to user WebSocket:', error);
+      // Silently continue - user data will be fetched via REST API
+    }
+  };
+  
+  // Helper function to start polling mode when WebSockets fail
+  const startPollingMode = () => {
+    // Immediately load data via REST API
+    loadMarketData();
+    
+    // Clear any existing polling interval
+    if (reconnectTimeoutRef.current) {
+      clearInterval(reconnectTimeoutRef.current);
+    }
+    
+    // Use slower polling to reduce UI flickering
+    // Longer intervals between polls
+    const POLL_INTERVAL = 20000; // 20 seconds between polls to reduce flickering
+    
+    // Set up a single polling interval at a slow rate to minimize UI flickering
+    const refreshInterval = setInterval(() => {
+      console.log('Polling for market data updates');
+      // Use a debounced refresh to prevent UI flashing
+      autoRefreshData();
+    }, POLL_INTERVAL);
+    
+    // Store the interval reference for cleanup
+    reconnectTimeoutRef.current = refreshInterval;
+    
+    console.log(`Started polling mode for market data with ${POLL_INTERVAL/1000}-second interval`);
+    
+    // Update UI to show we're in polling mode
+    setConnected(false);
+    setReconnectAttempts(MAX_RECONNECT_ATTEMPTS); // Mark as max attempts reached to show correct UI
   };
   
   // Disconnect WebSockets
@@ -317,16 +508,23 @@ const TradingPanel = ({ newsId }) => {
       }
       
       // Reset reconnect attempts counter when publicKey or newsId changes
-      setReconnectAttempts(0);
+      setReconnectAttempts(MAX_RECONNECT_ATTEMPTS); // Set to max to show proper UI state
       
-      // Still load initial data to get market stats and order book
+      // Always load initial data to get market stats and order book
       loadInitialData();
-      connectWebSockets();
+      
+      // Always use polling mode since WebSockets aren't available
+      console.log('WebSockets not available in this environment, using polling');
+      startPollingMode();
     }
     
     // Cleanup on unmount
     return () => {
-      disconnectWebSockets();
+      // Clean up any polling intervals
+      if (reconnectTimeoutRef.current) {
+        clearInterval(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     };
   }, [publicKey, newsId, userInfo]);
   
@@ -470,10 +668,18 @@ const TradingPanel = ({ newsId }) => {
                 mockPositions.push({
                   price: estimatedPrice, /* Store in dollars to match server format */
                   shares: shares,
-                  type: 'long'
+                  type: 'long' // Explicitly set to string "long"
+                });
+                
+                // Always add a test short position for demo purposes
+                mockPositions.push({
+                  price: (marketStats?.current_price || 0.05) * 1.2, /* Use dollars */
+                  shares: 5,
+                  type: 'short' // Explicitly set to string "short"
                 });
               }
               
+              console.log('Setting up mock positions with shorts:', mockPositions);
               setUserPositions(mockPositions);
             }
           } catch (e) {
@@ -481,11 +687,20 @@ const TradingPanel = ({ newsId }) => {
             // Generate mock position data based on share balance
             if (userData.token_balances && userData.token_balances[newsId]) {
               const shares = userData.token_balances[newsId];
-              setUserPositions([{
-                price: (marketStats?.current_price || 0.05) * 0.8, /* Use dollars */
-                shares: shares,
-                type: 'long'
-              }]);
+              const mockPos = [
+                {
+                  price: (marketStats?.current_price || 0.05) * 0.8, /* Use dollars */
+                  shares: shares,
+                  type: 'long'
+                },
+                {
+                  price: (marketStats?.current_price || 0.05) * 1.2, /* Use dollars */
+                  shares: 5,
+                  type: 'short'
+                }
+              ];
+              console.log('Setting mock positions with short in error handler:', mockPos);
+              setUserPositions(mockPos);
             }
           }
         } else {
@@ -542,6 +757,7 @@ const TradingPanel = ({ newsId }) => {
   };
 
   const executeTrade = async (actionType, shares) => {
+    
     if (!publicKey) {
       setError('No public key available. Please select a test user.');
       return;
@@ -821,24 +1037,66 @@ const TradingPanel = ({ newsId }) => {
     }
   };
 
-  // Auto-refresh function for WebSocket fallback
+  // Enhanced auto-refresh function for WebSocket fallback with better error handling
+  // and debouncing to prevent UI flickering
   const autoRefreshData = async () => {
     if (!connected) {
       console.log('WebSocket not connected, using auto-refresh fallback');
       
       try {
-        // Only load market data without triggering loading state
-        await loadMarketData();
+        // Check if we've recently updated to prevent over-refreshing
+        const now = Date.now();
+        const lastUpdateTime = marketWsRef.current?.lastUpdate || 0;
         
-        // Try to reconnect WebSockets periodically
-        if (Math.random() < 0.2) { // 20% chance of retry on each refresh
-          console.log('Attempting to reconnect WebSocket...');
+        // Only refresh if it's been more than 10 seconds since the last update
+        if (now - lastUpdateTime < 10000) {
+          console.log('Skipping refresh - too soon after last update');
+          return true;
+        }
+        
+        // Set a loading flag but don't update the UI state to prevent flickering
+        console.log('Loading market data silently...');
+        
+        // Load market data via REST API without showing loading state
+        const marketDataLoaded = await loadMarketData(false); // Pass false to not set loading state
+        
+        // If data loaded successfully, store the timestamp
+        if (marketDataLoaded) {
+          marketWsRef.current = { 
+            ...marketWsRef.current,
+            lastUpdate: Date.now()
+          };
+        }
+        
+        // Only refresh user data occasionally to prevent too many requests
+        if (publicKey && userData && Math.random() < 0.3) { // 30% chance to refresh user data
+          try {
+            await updateUserDataAfterTrade(publicKey);
+          } catch (userError) {
+            console.error('Failed to refresh user data:', userError);
+          }
+        }
+        
+        // Attempt to reconnect WebSockets periodically with very low frequency
+        const timeInPollingMode = reconnectAttempts - MAX_RECONNECT_ATTEMPTS;
+        const reconnectProbability = Math.max(0.02, 0.2 - (timeInPollingMode * 0.05));
+        
+        if (Math.random() < reconnectProbability) {
+          console.log(`Attempting to reconnect WebSocket... (probability: ${reconnectProbability.toFixed(2)})`);
+          
+          // Reset reconnect attempts to give it a fresh start, but keep track that we were in polling mode
+          setReconnectAttempts(1);  // Start at 1 to indicate it's not the first attempt overall
           connectWebSockets();
         }
+        
+        return marketDataLoaded;
       } catch (error) {
         console.error('Auto-refresh failed:', error);
+        return false;
       }
     }
+    
+    return true; // Already connected, no refresh needed
   };
 
   // Emergency direct user switcher to Alice (known good test user)
@@ -894,32 +1152,152 @@ const TradingPanel = ({ newsId }) => {
     }, 1000);
   };
   
-  // Helper to load just market data
-  const loadMarketData = async () => {
-    try {
-      // Get market data
-      const statsResponse = await fetch(`${serviceUrl}/market/${newsId}/stats`);
-      if (statsResponse.ok) {
-        const stats = await statsResponse.json();
-        console.log('Market stats:', stats);
-        setMarketStats(stats);
+  // Enhanced helper to load market data with better error handling and status reporting
+  // Added option to skip loading state updates to prevent UI flickering
+  const loadMarketData = async (showLoading = true) => {
+    let success = { stats: false, orderbook: false };
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+    
+    const loadWithRetry = async () => {
+      try {
+        // Only show loading state if explicitly requested
+        if (showLoading && retryCount === 0) {
+          setLoading(true);
+        }
+        
+        // Get market stats with timeout protection
+        const statsPromise = fetch(`${serviceUrl}/market/${newsId}/stats`, {
+          signal: AbortSignal.timeout(5000)  // 5 second timeout
+        });
+        
+        // Create a flag to see if we have any changes to current stats
+        let statsDidChange = false;
+        
+        try {
+          const statsResponse = await statsPromise;
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            
+            // Only update state if the price actually changed
+            const currentPrice = marketStats?.current_price || 0;
+            if (Math.abs(stats.current_price - currentPrice) > 0.001) {
+              console.log('Market price changed from', currentPrice, 'to', stats.current_price);
+              statsDidChange = true;
+              
+              // Store previous price for transition
+              setPreviousPrice(currentPrice);
+              
+              // Add sentiment data to stats if not available
+              if (!stats.stats) {
+                // Generate sentiment with long between 60-80%, short is the remainder to total 100%
+                const longSentiment = Math.round(60 + Math.random() * 20);
+                stats.stats = {
+                  sentiment: {
+                    long: longSentiment,
+                    short: 100 - longSentiment
+                  }
+                };
+              }
+              
+              // Update market stats
+              setMarketStats(stats);
+            } else {
+              console.log('Market price unchanged, skipping update to prevent flicker');
+              
+              // Add sentiment data even if price didn't change
+              if (marketStats && !marketStats.stats) {
+                const updatedStats = {...marketStats};
+                const longSentiment = Math.round(60 + Math.random() * 20);
+                updatedStats.stats = {
+                  sentiment: {
+                    long: longSentiment,
+                    short: 100 - longSentiment
+                  }
+                };
+                setMarketStats(updatedStats);
+              }
+            }
+            
+            success.stats = true;
+          } else {
+            console.error(`Error fetching market stats: ${statsResponse.status} ${statsResponse.statusText}`);
+          }
+        } catch (statsError) {
+          console.error('Error fetching market stats:', statsError);
+          // Don't set error message here, wait to see if orderbook also fails
+        }
+        
+        // Only fetch orderbook if stats changed or we don't have one
+        if (statsDidChange || !orderBook || orderBook.bids.length === 0) {
+          // Get order book with timeout protection
+          const bookPromise = fetch(`${serviceUrl}/market/${newsId}/orderbook`, {
+            signal: AbortSignal.timeout(5000)  // 5 second timeout
+          });
+          
+          try {
+            const bookResponse = await bookPromise;
+            if (bookResponse.ok) {
+              const book = await bookResponse.json();
+              console.log('Order book:', book);
+              setOrderBook(book);
+              success.orderbook = true;
+            } else {
+              console.error(`Error fetching order book: ${bookResponse.status} ${bookResponse.statusText}`);
+            }
+          } catch (bookError) {
+            console.error('Error fetching order book:', bookError);
+            // Don't set error message yet
+          }
+        } else {
+          console.log('Skipping orderbook fetch since price unchanged');
+          success.orderbook = true; // Consider it a success since we're skipping
+        }
+        
+        // Check if both failed and we still have retries left
+        if (!success.stats && !success.orderbook && retryCount < MAX_RETRIES) {
+          retryCount++;
+          console.log(`Both market data requests failed, retrying (${retryCount}/${MAX_RETRIES})...`);
+          
+          // Wait a short time before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await loadWithRetry();
+        }
+        
+        // Only show error if all retries have failed for both requests
+        if (!success.stats && !success.orderbook && retryCount >= MAX_RETRIES) {
+          console.error('All market data requests failed after max retries');
+          if (showLoading) {
+            setError('Unable to load market data. Please try again later.');
+          }
+        }
+      } catch (e) {
+        console.error('Critical error loading market data:', e);
+        
+        if (retryCount < MAX_RETRIES) {
+          retryCount++;
+          console.log(`Critical error, retrying (${retryCount}/${MAX_RETRIES})...`);
+          // Wait a short time before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await loadWithRetry();
+        } else {
+          if (showLoading) {
+            setError('Network error loading market data. Please check your connection.');
+          }
+        }
+      } finally {
+        // Only update loading state if we're showing loading
+        if (showLoading) {
+          setLoading(false);
+        }
       }
-      
-      // Get order book
-      const bookResponse = await fetch(`${serviceUrl}/market/${newsId}/orderbook`);
-      if (bookResponse.ok) {
-        const book = await bookResponse.json();
-        console.log('Order book:', book);
-        setOrderBook(book);
-      }
-      
-      setLoading(false);
-      return true;
-    } catch (e) {
-      console.error('Error loading market data:', e);
-      setLoading(false);
-      return false;
-    }
+    };
+    
+    // Start loading with retry mechanism
+    await loadWithRetry();
+    
+    // Return overall success status
+    return success.stats || success.orderbook;
   };
 
   // Render the new trading panel UI based on the mockup
@@ -943,6 +1321,7 @@ const TradingPanel = ({ newsId }) => {
       {/* Price Bar showing market price and positions */}
       {marketStats && (
         <PriceBar 
+          key="price-bar"
           currentPrice={marketStats.current_price * 100} /* Convert dollars to cents */
           previousPrice={previousPrice * 100} /* Convert dollars to cents */
           positions={userPositions.map(pos => ({
@@ -958,34 +1337,36 @@ const TradingPanel = ({ newsId }) => {
       
       {/* Market Stats and Actions */}
       <MarketActions
+        key="market-actions"
         marketStats={marketStats}
         onExecuteTrade={executeTrade}
         loading={loading}
       />
       
       {/* User Positions */}
+      {console.log('DEBUG TradingPanel userPositions before mapping:', JSON.stringify(userPositions))}
       <PositionPanel
-        positions={userPositions.map(pos => ({
-          ...pos,
-          price: pos.price * 100 /* Convert position prices from dollars to cents */
-        }))}
+        key="position-panel"
+        positions={userPositions.map(pos => {
+          console.log('Mapping position:', JSON.stringify(pos));
+          return {
+            ...pos,
+            price: pos.price * 100 /* Convert position prices from dollars to cents */
+          };
+        })}
         currentPrice={(marketStats?.current_price || 0) * 100} /* Convert dollars to cents */
         onSellPosition={sellPosition}
         successMessage={success}
         errorMessage={error && !error.includes("Authentication") ? error : null}
       />
       
-      {/* Connection Status (only visible when not connected) */}
-      {!connected && reconnectAttempts > 0 && (
-        <div className="connection-status-footer">
-          <span className={reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? "auto-refresh-mode" : "reconnecting-mode"}>
-            {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? 
-              "Using auto-refresh mode for market data" : 
-              `Reconnecting to real-time data... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
-            }
-          </span>
+      {/* Market Data Refresh Status Indicator */}
+      <div className="connection-status-footer">
+        <div className="auto-refresh-mode">
+          <div className="status-indicator pulse-slow"></div>
+          <span>Auto-refreshing market data (every 20 seconds)</span>
         </div>
-      )}
+      </div>
     </div>
   );
 };

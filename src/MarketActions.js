@@ -1,106 +1,115 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './MarketActions.css';
 
 /**
- * Market Actions component for trading operations
- * 
- * @param {Object} props Component props
- * @param {Object} props.marketStats Market statistics
- * @param {Function} props.onExecuteTrade Callback for executing a trade
- * @param {boolean} props.loading Loading state
+ * Simple MarketActions component with static buttons
+ * to prevent flickering during frequent renders
  */
-const MarketActions = ({ 
-  marketStats, 
-  onExecuteTrade,
-  loading = false 
-}) => {
-  const [amount, setAmount] = useState(1);
-  const [tradeModalOpen, setTradeModalOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState('buy');
+class MarketActions extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      amount: 1
+    };
+  }
   
-  const handleTradeClick = (action) => {
-    setSelectedAction(action);
-    setTradeModalOpen(true);
+  handleBuyClick = () => {
+    this.props.onExecuteTrade('buy', this.state.amount);
   };
   
-  const handleSubmitTrade = () => {
-    onExecuteTrade(selectedAction, amount);
-    setTradeModalOpen(false);
+  handleShortClick = () => {
+    this.props.onExecuteTrade('short', this.state.amount);
   };
   
-  const closeModal = () => {
-    setTradeModalOpen(false);
-  };
-  
-  return (
-    <div className="market-actions">
-      <div className="stats-container">
-        <p>🧮 Total Market Volume: ${marketStats?.volume?.toFixed(2) || '0.00'} from {marketStats?.user_count || '0'} users</p>
-        <p>💫 Market Cap: ${marketStats?.market_cap?.toFixed(2) || '0.00'}</p>
-        <p>
-          🔢 Total Shares: {marketStats?.total_shares || '0'} 
-          <span 
-            className="info-tooltip" 
-            title="Issuance increases as price crosses 6¢, 7¢, ... tiers (doubling shares per tier)"
+  renderSentiment = () => {
+    const { marketStats } = this.props;
+    const sentiment = marketStats?.stats?.sentiment || null;
+    
+    if (!sentiment || (sentiment.long === undefined && sentiment.short === undefined)) {
+      return null;
+    }
+    
+    // Normalize values to ensure they add up to 100%
+    let longPercent = sentiment.long !== undefined ? sentiment.long : 50;
+    let shortPercent = sentiment.short !== undefined ? sentiment.short : 50;
+    
+    // Ensure the values add up to 100
+    const total = longPercent + shortPercent;
+    if (total !== 100) {
+      longPercent = Math.round((longPercent / total) * 100);
+      shortPercent = 100 - longPercent; // Ensure perfect 100%
+    }
+    
+    return (
+      <div className="sentiment-bar-container">
+        <div className="sentiment-label">
+          Market Sentiment
+        </div>
+        <div className="sentiment-bar">
+          <div 
+            className="sentiment-long" 
+            style={{ width: `${longPercent}%` }}
+            title={`${longPercent}% Support`}
           >
-            ❓
-          </span>
-        </p>
-      </div>
-      
-      <div className="action-buttons">
-        <button 
-          onClick={() => handleTradeClick('buy')}
-          disabled={loading}
-          className="buy-button"
-        >
-          💚 Buy Long
-        </button>
-        <button 
-          onClick={() => handleTradeClick('short')}
-          disabled={loading}
-          className="short-button"
-        >
-          💔 Short
-        </button>
-      </div>
-      
-      {/* Trade Modal */}
-      {tradeModalOpen && (
-        <div className="trade-modal">
-          <div className="modal-content">
-            <h3>{selectedAction === 'buy' ? 'Buy Long Position' : 'Short Position'}</h3>
-            <p>Current Price: ${(marketStats?.current_price || 0).toFixed(2)} (${((marketStats?.current_price || 0) * 100).toFixed(1)}¢)</p>
-            
-            <div className="form-group">
-              <label>Amount (shares):</label>
-              <input
-                type="number"
-                min="1"
-                value={amount}
-                onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
-              />
-            </div>
-            
-            <div className="form-summary">
-              <p>Total Cost: ${((marketStats?.current_price || 0) * amount).toFixed(2)} (${((marketStats?.current_price || 0) * 100 * amount).toFixed(1)}¢)</p>
-            </div>
-            
-            <div className="modal-actions">
-              <button onClick={closeModal} className="cancel-button">Cancel</button>
-              <button 
-                onClick={handleSubmitTrade} 
-                className={selectedAction === 'buy' ? 'confirm-buy' : 'confirm-short'}
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : (selectedAction === 'buy' ? 'Confirm Buy' : 'Confirm Short')}
-              </button>
-            </div>
+            {longPercent >= 20 ? `${longPercent}%` : ''}
+          </div>
+          <div 
+            className="sentiment-short" 
+            style={{ width: `${shortPercent}%` }}
+            title={`${shortPercent}% Oppose`}
+          >
+            {shortPercent >= 20 ? `${shortPercent}%` : ''}
           </div>
         </div>
-      )}
-    </div>
-  );
-};
+      </div>
+    );
+  };
+  
+  render() {
+    const { marketStats, loading } = this.props;
+    
+    // Safe access to properties
+    const volume = marketStats?.volume || 0;
+    const userCount = marketStats?.user_count || 0;
+    const marketCap = marketStats?.market_cap || 0;
+    const totalShares = marketStats?.total_shares || 0;
+    
+    return (
+      <div className="market-actions">
+        <div className="stats-container">
+          <p>🧮 Total Market Volume: ${volume.toFixed(2)} from {userCount} users</p>
+          <p>💫 Market Cap: ${marketCap.toFixed(2)}</p>
+          <p>
+            🔢 Total Shares: {totalShares} 
+            <span 
+              className="info-tooltip" 
+              title="Issuance increases as price crosses 6¢, 7¢, ... tiers (doubling shares per tier)"
+            >
+              ❓
+            </span>
+          </p>
+          {this.renderSentiment()}
+        </div>
+        
+        <div className="action-buttons">
+          <button 
+            onClick={this.handleBuyClick}
+            disabled={loading}
+            className="market-buy-button"
+          >
+            💚 Buy Long
+          </button>
+          <button 
+            onClick={this.handleShortClick}
+            disabled={loading}
+            className="market-short-button"
+          >
+            💔 Short
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
 
 export default MarketActions;

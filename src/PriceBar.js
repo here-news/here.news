@@ -27,6 +27,7 @@ const PriceBar = ({
   // Calculate price change
   const priceChange = currentPrice - previousPrice;
   const priceChangeClass = priceChange >= 0 ? "price-up" : "price-down";
+  const priceChangePercent = Math.min(Math.abs(priceChange) / maxPrice * 100, pricePercent);
   
   return (
     <div className="price-bar-container">
@@ -37,34 +38,24 @@ const PriceBar = ({
       </div>
       
       <div className="market-bar">
+        {/* Price change gradient */}
+        {priceChange !== 0 && (
+          <div 
+            className={priceChange >= 0 ? "price-change-up" : "price-change-down"}
+            style={{ 
+              width: `${priceChangePercent}%`,
+              left: priceChange < 0 ? `${pricePercent}%` : 0
+            }}
+          />
+        )}
+
         {/* Current price indicator */}
         <div 
           className="price-indicator" 
           style={{ left: `${pricePercent}%` }}
           title={`Market Price: ${currentPrice.toFixed(1)}¢`}
         />
-        
-        {/* Issuance tier markers */}
-        {issuanceTiers.map((tier, i) => (
-          <div 
-            key={`tier-${i}`}
-            className="issuance-marker" 
-            style={{ left: `${(tier.price / maxPrice) * 100}%` }}
-            title={tier.description || `Issuance Tier @ ${tier.price}¢`}
-          />
-        ))}
-        
-        {/* User position markers */}
-        {positions.map((pos, i) => (
-          <div 
-            key={`pos-${i}`}
-            className={pos.type === 'short' ? 'short-marker' : 'stake-marker'} 
-            style={{ left: `${(pos.price / maxPrice) * 100}%` }}
-            title={`Your ${pos.type === 'short' ? 'Short' : 'Stake'}: ${pos.price}¢ (${pos.shares} shares)`}
-          />
-        ))}
       </div>
-      
       
       <div className="stats">
         <p>
