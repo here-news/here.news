@@ -597,7 +597,8 @@ const TradingPanel = ({ newsId }) => {
       const orderTypeMap = {
         'buy': 'BUY',
         'sell': 'SELL',
-        'short': 'SHORT_SELL'
+        'short': 'SHORT_SELL',
+        'short_close': 'SHORT_CLOSE'
       };
       
       const order_type = orderTypeMap[actionType] || 'BUY';
@@ -802,14 +803,22 @@ const TradingPanel = ({ newsId }) => {
     }
   };
   
-  // Function to sell a specific position
+  // Function to sell a specific position or close a short position
   const sellPosition = async (position) => {
-    if (!position || position.type !== 'long') {
-      setError('Only long positions can be sold');
+    if (!position) {
+      setError('Invalid position data');
       return;
     }
     
-    executeTrade('sell', position.shares);
+    if (position.type === 'long') {
+      // Sell a long position
+      executeTrade('sell', position.shares);
+    } else if (position.type === 'short') {
+      // Close a short position
+      executeTrade('short_close', position.shares);
+    } else {
+      setError(`Unknown position type: ${position.type}`);
+    }
   };
 
   // Auto-refresh function for WebSocket fallback
@@ -928,8 +937,8 @@ const TradingPanel = ({ newsId }) => {
         </div>
       )}
       
-      {/* Only show error messages at the top, success messages will appear in position panel */}
-      {error && <div className="error-message">{error}</div>}
+      {/* Only show auth error messages at the top, trading errors will appear in position panel */}
+      {error && error.includes("Authentication") && <div className="error-message">{error}</div>}
       
       {/* Price Bar showing market price and positions */}
       {marketStats && (
@@ -963,6 +972,7 @@ const TradingPanel = ({ newsId }) => {
         currentPrice={(marketStats?.current_price || 0) * 100} /* Convert dollars to cents */
         onSellPosition={sellPosition}
         successMessage={success}
+        errorMessage={error && !error.includes("Authentication") ? error : null}
       />
       
       {/* Connection Status (only visible when not connected) */}

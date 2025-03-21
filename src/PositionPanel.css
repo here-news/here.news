@@ -28,8 +28,7 @@
   margin: 0 0.5rem;
 }
 
-.sell-button {
-  background-color: #ff6600;
+.sell-button, .close-button {
   color: white;
   border: none;
   border-radius: 5px;
@@ -40,8 +39,20 @@
   margin-left: 1rem;
 }
 
+.sell-button {
+  background-color: #ff6600;
+}
+
 .sell-button:hover {
   background-color: #cc5200;
+}
+
+.close-button {
+  background-color: #dc3545;
+}
+
+.close-button:hover {
+  background-color: #c82333;
 }
 
 .note {
@@ -73,15 +84,23 @@
   padding: 1rem 0;
 }
 
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
+.success-message, .error-message {
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 15px;
   animation: fadeOut 5s forwards;
   position: relative;
   overflow: hidden;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 @keyframes fadeOut {
