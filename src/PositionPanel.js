@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './PositionPanel.css';
 
 /**
@@ -12,8 +12,24 @@ import './PositionPanel.css';
 const PositionPanel = ({ 
   positions = [], 
   currentPrice = 0,
-  onSellPosition 
+  onSellPosition,
+  successMessage
 }) => {
+  // State to track auto-disappearing success message
+  const [localSuccessMessage, setLocalSuccessMessage] = useState(successMessage);
+  
+  // Set up effect to make success message disappear after 5 seconds
+  useEffect(() => {
+    setLocalSuccessMessage(successMessage);
+    
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setLocalSuccessMessage(null);
+      }, 5000); // 5 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
   // Calculate total gain/loss (all values are already in cents here)
   const calculateGainLoss = () => {
     if (!positions || positions.length === 0) return 0;
@@ -36,6 +52,9 @@ const PositionPanel = ({
   return (
     <div className="personal-stats">
       <h3>Your Positions</h3>
+      
+      {/* Show success message in position panel with auto-disappear */}
+      {localSuccessMessage && <div className="success-message">{localSuccessMessage}</div>}
       
       {positions.length === 0 ? (
         <p className="no-positions">You don't have any positions yet. Buy or short to get started!</p>

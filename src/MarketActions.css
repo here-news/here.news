@@ -14,6 +14,14 @@
   margin: 0.5rem 0;
 }
 
+.info-tooltip {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #4a90e2;
+  margin-left: 5px;
+  cursor: help;
+}
+
 .action-buttons {
   display: flex;
   gap: 1rem;

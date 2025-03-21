@@ -459,11 +459,11 @@ const TradingPanel = ({ newsId }) => {
               }
             } else {
               // If server doesn't support positions endpoint, generate mock positions data
-              // based on user's token balance for this news item
+              // based on user's share balance for this news item
               const mockPositions = [];
               
               if (userData.token_balances && userData.token_balances[newsId]) {
-                const shares = userData.token_balances[newsId];
+                const shares = userData.token_balances[newsId]; // Share balance from server
                 // Estimate a mock purchase price (this is simulated data)
                 const estimatedPrice = (marketStats?.current_price || 0.05) * 0.8; /* Use dollars */
                 
@@ -478,7 +478,7 @@ const TradingPanel = ({ newsId }) => {
             }
           } catch (e) {
             console.error('Error fetching positions:', e);
-            // Generate mock position data based on token balance
+            // Generate mock position data based on share balance
             if (userData.token_balances && userData.token_balances[newsId]) {
               const shares = userData.token_balances[newsId];
               setUserPositions([{
@@ -560,7 +560,7 @@ const TradingPanel = ({ newsId }) => {
       // Current price from market stats
       const currentPrice = marketStats?.current_price || 0.01;
       
-      // Check if user has enough balance for buy or enough tokens for short/sell
+      // Check if user has enough balance for buy or enough shares for short/sell
       if (actionType === 'buy') {
         const totalCost = shares * currentPrice;
         if (userData.balance < totalCost) {
@@ -569,10 +569,10 @@ const TradingPanel = ({ newsId }) => {
           return;
         }
       } else if (actionType === 'sell') {
-        // Check if user has tokens for this news item
-        const userTokens = userData.token_balances?.[newsId] || 0;
-        if (userTokens < shares) {
-          setError(`Not enough tokens. Attempting to sell ${shares} tokens, but you only have ${userTokens}.`);
+        // Check if user has shares for this news item
+        const userShares = userData.token_balances?.[newsId] || 0;
+        if (userShares < shares) {
+          setError(`Not enough shares. Attempting to sell ${shares} shares, but you only have ${userShares}.`);
           setLoading(false);
           return;
         }
@@ -928,9 +928,8 @@ const TradingPanel = ({ newsId }) => {
         </div>
       )}
       
-      {/* Messages area */}
+      {/* Only show error messages at the top, success messages will appear in position panel */}
       {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
       
       {/* Price Bar showing market price and positions */}
       {marketStats && (
@@ -963,6 +962,7 @@ const TradingPanel = ({ newsId }) => {
         }))}
         currentPrice={(marketStats?.current_price || 0) * 100} /* Convert dollars to cents */
         onSellPosition={sellPosition}
+        successMessage={success}
       />
       
       {/* Connection Status (only visible when not connected) */}

@@ -36,6 +36,16 @@ const MarketActions = ({
     <div className="market-actions">
       <div className="stats-container">
         <p>🧮 Total Market Volume: ${marketStats?.volume?.toFixed(2) || '0.00'} from {marketStats?.user_count || '0'} users</p>
+        <p>💫 Market Cap: ${marketStats?.market_cap?.toFixed(2) || '0.00'}</p>
+        <p>
+          🔢 Total Shares: {marketStats?.total_shares || '0'} 
+          <span 
+            className="info-tooltip" 
+            title="Issuance increases as price crosses 6¢, 7¢, ... tiers (doubling shares per tier)"
+          >
+            ❓
+          </span>
+        </p>
       </div>
       
       <div className="action-buttons">

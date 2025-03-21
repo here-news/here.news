@@ -65,9 +65,6 @@ const PriceBar = ({
         ))}
       </div>
       
-      <div className="issuance-note">
-        🔷 Issuance increases as price crosses 6¢, 7¢, ... tiers (doubling shares per tier)
-      </div>
       
       <div className="stats">
         <p>

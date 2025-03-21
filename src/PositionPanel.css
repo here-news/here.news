@@ -72,3 +72,20 @@
   text-align: center;
   padding: 1rem 0;
 }
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  animation: fadeOut 5s forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
