@@ -19,10 +19,19 @@ const serviceUrl = (() => {
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
   
-  // IMPORTANT: ALWAYS use the current hostname with port 8282
-  // This is the key to allowing remote machines to access the API
-  // Ignore environment variables since they're causing the issue with remote access
-  const apiUrl = `${protocol}//${hostname}:8282`;
+  // Check if we're running in development mode (port 3000)
+  const isDevelopment = window.location.port === '3000';
+  
+  // Handle CORS issues by using explicit IP for local development
+  let apiUrl;
+  if (isDevelopment && (hostname === 'localhost' || /^192\.168\./.test(hostname))) {
+    // Use direct API URL for local development
+    apiUrl = `http://${hostname}:8282`;
+    console.log('Development mode detected, using direct API URL');
+  } else {
+    // Use standard URL for production
+    apiUrl = `${protocol}//${hostname}:8282`;
+  }
   
   console.log(`API URL configured as: ${apiUrl} (based on hostname: ${hostname})`);
   return apiUrl;
