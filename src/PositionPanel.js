@@ -64,6 +64,24 @@ const PositionPanel = ({
   const totalGainLoss = calculateGainLoss();
   const hasShorts = positions.some(pos => pos.type === 'short');
   
+  // Debug short positions - more detailed
+  console.log('=== DEBUG POSITIONS START ===');
+  console.log('Positions array:', JSON.stringify(positions));
+  positions.forEach((pos, index) => {
+    console.log(`Position ${index}:`, 
+      JSON.stringify(pos), 
+      'type:', typeof pos.type, 
+      'value:', pos.type,
+      'isLong:', pos.type === 'long',
+      'isShort:', pos.type === 'short'
+    );
+  });
+  console.log('Has shorts detected:', hasShorts);
+  console.log('=== DEBUG POSITIONS END ===');
+  
+  // Save to window for debugging from console
+  window.userPositions = positions;
+  
   return (
     <div className="personal-stats">
       <h3>Your Positions</h3>
@@ -78,25 +96,18 @@ const PositionPanel = ({
         <>
           {positions.map((pos, i) => (
             <p key={`position-${i}`} className="position-row">
-              {pos.type === 'long' ? '🧍‍♂️ Your Stake Position: ' : '📉 Your Short Position: '}
-              <span className="position-details">
-                {pos.price.toFixed(1)}¢ ({pos.shares} shares)
-              </span>
-              
               {pos.type === 'long' ? (
-                <button 
-                  className="sell-button" 
-                  onClick={() => onSellPosition(pos)}
-                >
-                  Sell
-                </button>
+                <>
+                  <span>🧍‍♂️ Your Stake Position: </span>
+                  <span className="position-details">{pos.price.toFixed(1)}¢ ({pos.shares} shares)</span>
+                  <button className="sell-button" onClick={() => onSellPosition(pos)}>Sell</button>
+                </>
               ) : (
-                <button
-                  className="close-button"
-                  onClick={() => onSellPosition(pos)}
-                >
-                  Close
-                </button>
+                <>
+                  <span>📉 Your Short Position: </span>
+                  <span className="position-details">{pos.price.toFixed(1)}¢ ({pos.shares} shares)</span>
+                  <button className="sell-button" onClick={() => onSellPosition(pos)}>Close</button>
+                </>
               )}
             </p>
           ))}

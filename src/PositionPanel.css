@@ -36,7 +36,7 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: background-color 0.2s;
-  margin-left: 1rem;
+  min-width: 60px;
 }
 
 .sell-button {
@@ -49,6 +49,9 @@
 
 .close-button {
   background-color: #dc3545;
+  font-weight: bold;
+  border: 2px solid #c82333;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .close-button:hover {
