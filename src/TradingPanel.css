@@ -545,6 +545,125 @@
   font-size: 0.8rem;
 }
 
+/* Enhanced Connection Status Footer */
+.connection-status-footer {
+  margin-top: 1rem;
+  text-align: center;
+  padding: 0.8rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  font-size: 0.9rem;
+}
+
+.connecting-mode,
+.reconnecting-mode,
+.auto-refresh-mode,
+.websocket-mode {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.reconnecting-mode {
+  color: #856404;
+}
+
+.connecting-mode {
+  color: #0c5460;
+}
+
+.auto-refresh-mode {
+  color: #0c5460;
+  flex-wrap: wrap;
+}
+
+/* Status indicators */
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.connecting-mode .status-indicator {
+  background-color: #17a2b8;
+}
+
+.reconnecting-mode .status-indicator {
+  background-color: #ffc107;
+}
+
+.auto-refresh-mode .status-indicator {
+  background-color: #6c757d;
+}
+
+.websocket-mode .status-indicator {
+  background-color: #28a745;
+}
+
+.websocket-mode {
+  color: #155724;
+}
+
+/* Pulse animations at different speeds */
+.pulse-fast {
+  animation: pulse 1s infinite;
+}
+
+.pulse-medium {
+  animation: pulse 1.5s infinite;
+}
+
+.pulse-slow {
+  animation: pulse 2.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reconnect button */
+.retry-connection-button {
+  margin-left: 8px;
+  padding: 4px 8px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retry-connection-button:hover {
+  background-color: #0069d9;
+}
+
+@media (max-width: 768px) {
+  .auto-refresh-mode {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .retry-connection-button {
+    margin-top: 8px;
+    margin-left: 0;
+  }
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .stats-grid {
