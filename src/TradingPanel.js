@@ -37,12 +37,6 @@ const TradingPanel = ({ newsId }) => {
     short_shares: 0,
     current_price: 0
   });
-  // Add a debug state to track position updates
-  const [positionsDebugInfo, setPositionsDebugInfo] = useState({
-    lastUpdate: null,
-    source: null,
-    data: null
-  });
   const [issuanceTiers, setIssuanceTiers] = useState([
     { price: 6, description: "Next Issuance Tier @ 6¢" },
     { price: 7, description: "Issuance Tier @ 7¢" }
@@ -57,92 +51,31 @@ const TradingPanel = ({ newsId }) => {
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3000; // 3 seconds
   
-  // Debug helper function to collect token balance information
-  const collectPositionDebugInfo = (userData, newsId, source = "manual check") => {
-    if (!userData) {
-      console.log('DEBUG: userData is null or undefined');
-      setPositionsDebugInfo({
-        lastUpdate: new Date().toISOString(),
-        source,
-        data: {
-          error: 'No user data available',
-          userData: null
-        }
-      });
-      return;
+  // Helper function to check token balances for user positions
+  const checkUserTokenBalances = (userData, newsId) => {
+    if (!userData || !userData.token_balances) {
+      return 0;
     }
     
-    console.log(`DEBUG [${source}]: Analyzing user data for positions`);
-    console.log('DEBUG: newsId =', newsId);
-    console.log('DEBUG: Public key =', publicKey);
-    console.log('DEBUG: User authenticated =', !!userData);
-    
-    // Format token balances for debugging
-    let tokenInfo = { raw: userData.token_balances };
     let shares = 0;
-
-    // Check if token_balances exists
-    if (!userData.token_balances) {
-      console.log('DEBUG: token_balances is missing in userData');
-      tokenInfo.error = 'token_balances missing';
+    
+    // Handle object format with newsId keys
+    if (typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances)) {
+      shares = userData.token_balances[newsId] || 0;
     } 
-    // Check object format
-    else if (typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances)) {
-      console.log('DEBUG: token_balances is an object', userData.token_balances);
-      tokenInfo.format = 'object';
-      tokenInfo.keys = Object.keys(userData.token_balances);
-      tokenInfo.hasNewsId = userData.token_balances.hasOwnProperty(newsId);
-      
-      if (tokenInfo.hasNewsId) {
-        shares = userData.token_balances[newsId];
-        tokenInfo.shares = shares;
-      }
-    } 
-    // Check array format
+    // Handle array format with objects
     else if (Array.isArray(userData.token_balances)) {
-      console.log('DEBUG: token_balances is an array', userData.token_balances);
-      tokenInfo.format = 'array';
-      tokenInfo.length = userData.token_balances.length;
+      const matchingToken = userData.token_balances.find(token => 
+        token.news_id === newsId || 
+        token.market_id === newsId ||
+        token.id === newsId);
       
-      if (userData.token_balances.length > 0) {
-        tokenInfo.firstItem = userData.token_balances[0];
-        
-        const matchingToken = userData.token_balances.find(token => 
-          token.news_id === newsId || 
-          token.market_id === newsId ||
-          token.id === newsId);
-        
-        tokenInfo.matchingToken = matchingToken;
-        
-        if (matchingToken) {
-          shares = matchingToken.balance || matchingToken.amount || matchingToken.shares || 0;
-          tokenInfo.shares = shares;
-        }
+      if (matchingToken) {
+        shares = matchingToken.balance || matchingToken.amount || matchingToken.shares || 0;
       }
-    } else {
-      console.log('DEBUG: Unexpected token_balances format', typeof userData.token_balances);
-      tokenInfo.format = typeof userData.token_balances;
     }
     
-    // Update the debug info state
-    setPositionsDebugInfo({
-      lastUpdate: new Date().toISOString(),
-      source,
-      data: {
-        newsId,
-        shares,
-        userData: {
-          hasPublicKey: !!userData.public_key,
-          hasBalance: !!userData.balance,
-          balance: userData.balance,
-          hasTokenBalances: !!userData.token_balances
-        },
-        tokenInfo
-      }
-    });
-    
-    console.log('DEBUG: Shares found =', shares);
-    console.log('DEBUG: Full token info =', tokenInfo);
+    return shares;
   };
 
   // Handle WebSocket market updates
@@ -243,21 +176,6 @@ const TradingPanel = ({ newsId }) => {
           if (Array.isArray(data.data)) {
             setUserPositions(data.data);
             
-            // Record debug info about the WebSocket positions update
-            setPositionsDebugInfo({
-              lastUpdate: new Date().toISOString(),
-              source: 'WebSocket positions_update (array format)',
-              data: {
-                positionsData: data.data,
-                count: data.data.length,
-                format: 'WebSocket array message',
-                positions: data.data.map(p => ({
-                  type: p.type,
-                  shares: p.shares,
-                  price: p.price
-                }))
-              }
-            });
           } else if (typeof data.data === 'object') {
             // Handle object format with long_shares and short_shares
             const posData = data.data;
@@ -288,40 +206,15 @@ const TradingPanel = ({ newsId }) => {
             }
             setUserPositions(posArray);
             
-            // Record debug info about the WebSocket positions update
-            setPositionsDebugInfo({
-              lastUpdate: new Date().toISOString(),
-              source: 'WebSocket positions_update (object format)',
-              data: {
-                positionsData: posData,
-                format: 'WebSocket object message',
-                convertedArray: posArray
-              }
-            });
           } else {
             console.log('DEBUG: WebSocket positions update with invalid data:', data.data);
             
-            // Record debug info about the invalid WebSocket update
-            setPositionsDebugInfo({
-              lastUpdate: new Date().toISOString(),
-              source: 'WebSocket positions_update',
-              data: {
-                error: 'Invalid WebSocket positions data',
-                rawData: data.data
-              }
-            });
+            console.warn('Invalid WebSocket positions data format', data.data);
           }
         } else {
           console.log('DEBUG: WebSocket positions update with empty data');
           
-          // Record debug info about the invalid WebSocket update
-          setPositionsDebugInfo({
-            lastUpdate: new Date().toISOString(),
-            source: 'WebSocket positions_update',
-            data: {
-              error: 'Empty WebSocket positions data'
-            }
-          });
+          console.warn('Empty WebSocket positions data received');
         }
         break;
       
@@ -980,8 +873,8 @@ const TradingPanel = ({ newsId }) => {
             console.log('DEBUG: User token balances:', userData.token_balances);
             console.log('DEBUG: Current newsId:', newsId);
             
-            // First, call our debug collector to capture user token balance information
-            collectPositionDebugInfo(userData, newsId, 'Initial data load');
+            // Check user token balances
+            const userShares = checkUserTokenBalances(userData, newsId);
             
             // Try multiple endpoint formats for positions to ensure compatibility
             let positionsResponse;
@@ -1028,21 +921,6 @@ const TradingPanel = ({ newsId }) => {
                 console.log('DEBUG: Setting positions from API array response:', positionsData);
                 setUserPositions(positionsData);
                 
-                // Update debug info
-                setPositionsDebugInfo({
-                  lastUpdate: new Date().toISOString(),
-                  source: 'API positions endpoint (array format)',
-                  data: {
-                    positionsData,
-                    count: positionsData.length,
-                    format: 'API array response',
-                    positions: positionsData.map(p => ({
-                      type: p.type,
-                      shares: p.shares,
-                      price: p.price
-                    }))
-                  }
-                });
               } else if (positionsData && typeof positionsData === 'object') {
                 // Handle object format with long_shares and short_shares
                 console.log('DEBUG: Setting positions from API object response:', positionsData);
@@ -1073,51 +951,15 @@ const TradingPanel = ({ newsId }) => {
                 }
                 setUserPositions(posArray);
                 
-                // Update debug info
-                setPositionsDebugInfo({
-                  lastUpdate: new Date().toISOString(),
-                  source: 'API positions endpoint (object format)',
-                  data: {
-                    positionsData,
-                    format: 'API object response',
-                    convertedArray: posArray
-                  }
-                });
               } else {
-                // Update debug info for empty or invalid positions data
-                setPositionsDebugInfo({
-                  lastUpdate: new Date().toISOString(),
-                  source: 'API positions endpoint',
-                  data: {
-                    error: 'API returned empty or invalid positions data',
-                    rawData: positionsData
-                  }
-                });
+                console.warn('API returned empty or invalid positions data:', positionsData);
               }
             } else {
               console.log(`DEBUG: Positions API request failed with status ${positionsResponse.status}`);
               
-              // Collect detailed debug info for token balances
-              collectPositionDebugInfo(userData, newsId, 'API positions fallback');
-              
-              // Get response text for debugging
-              let responseText = '';
-              try {
-                responseText = await positionsResponse.text();
-                console.log('DEBUG: Failed API response text:', responseText);
-              } catch (e) {
-                console.log('DEBUG: Could not read response text:', e);
-              }
-              
-              // Update debug info
-              setPositionsDebugInfo(prev => ({
-                ...prev,
-                apiError: {
-                  status: positionsResponse.status,
-                  statusText: positionsResponse.statusText,
-                  responseText
-                }
-              }));
+              // Fallback to token balance check
+              const shares = checkUserTokenBalances(userData, newsId);
+              console.log(`API positions request failed, found ${shares} shares in token balances`);
               
               // In fallback mode, we'll just leave positions empty for now
               // to better see what's going on in the real API
@@ -1126,19 +968,14 @@ const TradingPanel = ({ newsId }) => {
           } catch (e) {
             console.error('DEBUG: Error fetching positions:', e);
             
-            // Record debug info about the error
-            setPositionsDebugInfo({
-              lastUpdate: new Date().toISOString(),
-              source: 'Fetch positions error',
-              data: {
-                error: e.message,
-                errorName: e.name,
-                errorStack: e.stack
-              }
+            // Log error info
+            console.error('Error details:', {
+              message: e.message,
+              name: e.name
             });
             
-            // Collect user data debug info
-            collectPositionDebugInfo(userData, newsId, 'Positions API error handler');
+            // Check token balances as a fallback
+            checkUserTokenBalances(userData, newsId);
           }
         } else {
           console.error('Failed to get user data:', userResponse.status);
@@ -1720,16 +1557,17 @@ const TradingPanel = ({ newsId }) => {
                 
                 // If we have updated token balances, use them
                 if (updatedUserData && updatedUserData.token_balances) {
-                  collectPositionDebugInfo(updatedUserData, newsId, 'After API positions failure');
+                  console.log('Checking token balances after API positions failure');
+                  checkUserTokenBalances(updatedUserData, newsId);
                 }
               }
             } catch (e) {
               console.error('Error fetching positions after trade:', e);
               
-              // On error, try to collect debug info about token balances
+              // On error, check token balances
               if (updatedUserData && updatedUserData.token_balances) {
-                console.log('Collecting debug info from updated user data after trade');
-                collectPositionDebugInfo(updatedUserData, newsId, 'After position fetch error');
+                console.log('Checking token balances after trade');
+                checkUserTokenBalances(updatedUserData, newsId);
               }
             }
           } else {
@@ -1740,8 +1578,8 @@ const TradingPanel = ({ newsId }) => {
             };
             setUserData(updatedUserData);
             
-            // Collect debug info about token balances
-            collectPositionDebugInfo(updatedUserData, newsId, 'After partial user data update');
+            // Check token balances
+            checkUserTokenBalances(updatedUserData, newsId);
           }
         } catch (e) {
           console.error('Error fetching full user data after trade:', e);
@@ -1752,8 +1590,8 @@ const TradingPanel = ({ newsId }) => {
           };
           setUserData(updatedUserData);
           
-          // Collect debug info about token balances
-          collectPositionDebugInfo(updatedUserData, newsId, 'After error in user data fetch');
+          // Check for token balances
+          checkUserTokenBalances(updatedUserData, newsId);
         }
       }
       
@@ -2291,79 +2129,6 @@ const TradingPanel = ({ newsId }) => {
             </div>
           )}
           {publicKey && <p className="no-positions-message">You don't have any positions yet. Buy or sell to get started!</p>}
-          
-          {/* Debug information for positions */}
-          <div className="positions-debug-info">
-            <div className="debug-header" onClick={() => { 
-              const debugElem = document.querySelector('.debug-details'); 
-              if (debugElem) debugElem.style.display = debugElem.style.display === 'block' ? 'none' : 'block';
-            }}>
-              🔍 Debug Info (click to toggle)
-            </div>
-            <div className="debug-details">
-              <h4>Last Position Update</h4>
-              <p>Source: {positionsDebugInfo.source || 'None'}</p>
-              <p>Time: {positionsDebugInfo.lastUpdate || 'Never'}</p>
-              
-              <h4>User Status</h4>
-              <p>Public Key: {publicKey ? `${publicKey.substring(0, 8)}...` : 'None'}</p>
-              <p>Logged In: {userData ? 'Yes' : 'No'}</p>
-              <p>Has Balance: {userData?.balance ? 'Yes' : 'No'}</p>
-              <p>Balance: ${typeof userData?.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}</p>
-              
-              <h4>Token Balances</h4>
-              <p>Has token_balances: {userData?.token_balances ? 'Yes' : 'No'}</p>
-              {userData?.token_balances && typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances) && (
-                <div>
-                  <p>Format: Object with keys</p>
-                  <p>Keys: {Object.keys(userData.token_balances).join(', ')}</p>
-                  <p>Has shares for this newsId: {userData.token_balances[newsId] ? 'Yes' : 'No'}</p>
-                  {userData.token_balances[newsId] && (
-                    <p>Share count: {userData.token_balances[newsId]}</p>
-                  )}
-                </div>
-              )}
-              {userData?.token_balances && Array.isArray(userData.token_balances) && (
-                <div>
-                  <p>Format: Array</p>
-                  <p>Length: {userData.token_balances.length}</p>
-                  <p>Items: {JSON.stringify(userData.token_balances.map(t => ({ 
-                    id: t.news_id || t.market_id || t.id, 
-                    shares: t.balance || t.amount || t.shares
-                  })))}</p>
-                </div>
-              )}
-              
-              <h4>WebSocket Status</h4>
-              <p>Connected: {connected ? 'Yes' : 'No'}</p>
-              <p>User Socket Connected: {userSocketConnected ? 'Yes' : 'No'}</p>
-              
-              <h4>API Errors</h4>
-              {positionsDebugInfo.apiError && (
-                <div>
-                  <p>Status: {positionsDebugInfo.apiError.status}</p>
-                  <p>Status Text: {positionsDebugInfo.apiError.statusText}</p>
-                  <p>Response: {positionsDebugInfo.apiError.responseText}</p>
-                </div>
-              )}
-              
-              <h4>Debug Data</h4>
-              <pre className="debug-json">{JSON.stringify(positionsDebugInfo.data, null, 2)}</pre>
-              
-              <button 
-                className="debug-refresh-button"
-                onClick={() => {
-                  // Force refresh user data and positions
-                  if (userData && publicKey) {
-                    collectPositionDebugInfo(userData, newsId, 'Manual debug refresh');
-                    updateUserDataAfterTrade(publicKey);
-                  }
-                }}
-              >
-                🔄 Refresh Data
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
