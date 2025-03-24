@@ -155,23 +155,21 @@ const NewsDetail = () => {
       return 0;
     }
 
-    console.log('⭐ CHECKING USER SHARES for market:', uuid);
-    
     try {
-      // First try the positions API
-      console.log('Fetching positions from API:', `${serviceUrl}/me/positions/${uuid}`);
-      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${uuid}`, {
+      // First try the positions API with cache-busting query parameter
+      const timestamp = Date.now();
+      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${uuid}?t=${timestamp}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Public-Key': publicKey
+          'X-Public-Key': publicKey,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
       
-      console.log('Positions API response status:', positionsResponse.status);
-      
       if (positionsResponse.ok) {
         const positionsData = await positionsResponse.json();
-        console.log('⭐ USER POSITIONS for this market:', positionsData);
         
         let longShares = 0;
         
@@ -183,27 +181,24 @@ const NewsDetail = () => {
           longShares = parseInt(positionsData.long_shares) || 0;
         }
         
-        console.log(`Setting user owned shares to ${longShares} from API positions data`);
-        
         // Always use the exact API value for shares - source of truth
         setUserOwnedShares(longShares);
         setUserHasAccess(longShares > 0);
         return longShares;
       } else {
         // Try fetching user data and checking token balances
-        console.log('Positions API failed, trying to get user data instead');
-        const userResponse = await fetch(`${serviceUrl}/me`, {
+        const userResponse = await fetch(`${serviceUrl}/me?t=${timestamp}`, {
           headers: {
             'Content-Type': 'application/json',
-            'X-Public-Key': publicKey
+            'X-Public-Key': publicKey,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         });
         
-        console.log('User API response status:', userResponse.status);
-        
         if (userResponse.ok) {
           const userData = await userResponse.json();
-          console.log('⭐ USER DATA from API:', userData);
           
           let shares = 0;
           
@@ -223,14 +218,10 @@ const NewsDetail = () => {
             }
           }
           
-          console.log(`Setting user owned shares to ${shares} from token balances`);
-          
           // Always use the exact API value for shares - source of truth
           setUserOwnedShares(shares);
           setUserHasAccess(shares > 0);
           return shares;
-        } else {
-          console.log('User API failed with status:', userResponse.status);
         }
       }
     } catch (error) {
@@ -238,7 +229,6 @@ const NewsDetail = () => {
     }
     
     // Default case: no shares found or error occurred
-    console.log('No shares found or error occurred, setting shares to 0');
     setUserOwnedShares(0);
     setUserHasAccess(false);
     return 0;
@@ -247,7 +237,15 @@ const NewsDetail = () => {
   // Function to fetch current market price data
   const fetchMarketData = async () => {
     try {
-      const response = await fetch(`${serviceUrl}/market/${uuid}/stats`);
+      // Use cache-busting query parameter to ensure fresh data
+      const timestamp = Date.now();
+      const response = await fetch(`${serviceUrl}/market/${uuid}/stats?t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       
       if (response.ok) {
         const marketData = await response.json();
@@ -392,12 +390,52 @@ const NewsDetail = () => {
     };
   }, [isMobile]);
   
-  // Periodically check for updated share counts
+  // Add WebSocket for real-time position updates
   useEffect(() => {
     // Only run if the user is logged in
     if (!publicKey) return;
     
-    // Set up a periodic check for share updates
+    // Set up WebSocket for positions updates
+    const wsUrl = `${serviceUrl.replace('http', 'ws')}/ws/positions`;
+    const positionsWs = new WebSocket(wsUrl);
+    
+    positionsWs.onopen = () => {
+      // Subscribe to position updates for this market
+      positionsWs.send(JSON.stringify({
+        type: 'subscribe',
+        newsId: uuid,
+        publicKey: publicKey
+      }));
+    };
+    
+    positionsWs.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // If this is a positions update for our market, update shares
+        if (data.type === 'positions_update' && data.data && data.news_id === uuid) {
+          // Extract long shares from the update
+          let longShares = 0;
+          if (Array.isArray(data.data)) {
+            const longPositions = data.data.filter(pos => pos.type === 'long');
+            longShares = longPositions.reduce((total, pos) => total + pos.shares, 0);
+          } else if (typeof data.data === 'object') {
+            longShares = data.data.long_shares || 0;
+          }
+          
+          setUserOwnedShares(longShares);
+          setUserHasAccess(longShares > 0);
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    };
+    
+    positionsWs.onerror = (error) => {
+      console.error('Positions WebSocket error:', error);
+    };
+    
+    // Also set up a periodic check as a fallback
     const shareUpdateInterval = setInterval(() => {
       if (publicKey && news) {
         // Quietly check for updated shares
@@ -408,6 +446,7 @@ const NewsDetail = () => {
     // Clean up on unmount
     return () => {
       clearInterval(shareUpdateInterval);
+      positionsWs.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicKey, news, uuid]);
@@ -657,13 +696,22 @@ const NewsDetail = () => {
             <TradingPanel 
               newsId={uuid} 
               onTradeComplete={async (actionType, shares, price) => {
-                console.log('Trade completed in trading panel:', { actionType, shares, price });
-                // Wait for API to reflect the changes
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // For buy and sell operations, immediately update the UI to match the TradingPanel state
+                if (actionType === 'buy') {
+                  // Increment shares right away for improved UX
+                  setUserOwnedShares(prevShares => prevShares + parseInt(shares, 10));
+                  setUserHasAccess(true);
+                } else if (actionType === 'sell') {
+                  // Decrement shares right away for improved UX
+                  setUserOwnedShares(prevShares => Math.max(0, prevShares - parseInt(shares, 10)));
+                  // Update access status if we've sold all shares
+                  setUserHasAccess(prevShares => prevShares > shares);
+                }
                 
-                // Force a thorough refresh of all data
+                // The TradingPanel already updated its positions data before calling this callback,
+                // so we can rely on the actionType and shares values to be accurate.
+                // However, we still do a full refresh to ensure consistency with backend:
                 const updatedShares = await checkUserShares();
-                console.log('Updated shares after trade completed:', updatedShares);
                 
                 // Fetch updated market data
                 await fetchMarketData();

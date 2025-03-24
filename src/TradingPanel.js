@@ -15,7 +15,7 @@ const HARDCODED_USERS = [
 ];
 
 // Enhanced version with WebSocket support for real-time updates and mockup design
-const TradingPanel = ({ newsId }) => {
+const TradingPanel = ({ newsId, onTradeComplete }) => {
   const { publicKey, userInfo, fetchUserInfo, userSocketConnected } = useUser();
   const [marketStats, setMarketStats] = useState(null);
   const [previousPrice, setPreviousPrice] = useState(0);
@@ -37,6 +37,7 @@ const TradingPanel = ({ newsId }) => {
     short_shares: 0,
     current_price: 0
   });
+  const [lastPositionRefresh, setLastPositionRefresh] = useState(0);
   const [issuanceTiers, setIssuanceTiers] = useState([
     { price: 6, description: "Next Issuance Tier @ 6¢" },
     { price: 7, description: "Issuance Tier @ 7¢" }
@@ -76,6 +77,67 @@ const TradingPanel = ({ newsId }) => {
     }
     
     return shares;
+  };
+
+  // Function to specifically refresh positions
+  const refreshPositions = async () => {
+    if (!publicKey) return;
+    
+    try {
+      // Use cache busting for fresh data
+      const timestamp = Date.now();
+      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}?t=${timestamp}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': publicKey,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (positionsResponse.ok) {
+        const positionsData = await positionsResponse.json();
+        
+        // Handle both array and object formats
+        if (Array.isArray(positionsData)) {
+          setUserPositions(positionsData);
+        } else if (typeof positionsData === 'object') {
+          // Update the positionData state with direct object
+          setPositionData({
+            news_id: positionsData.news_id || newsId,
+            long_shares: positionsData.long_shares || 0,
+            short_shares: positionsData.short_shares || 0,
+            current_price: positionsData.current_price || marketStats?.current_price || 0
+          });
+          
+          // Convert object format to array format for compatibility with PositionPanel
+          const posArray = [];
+          if (positionsData.long_shares && positionsData.long_shares > 0) {
+            posArray.push({
+              type: 'long',
+              shares: positionsData.long_shares,
+              price: positionsData.current_price || marketStats?.current_price || 0
+            });
+          }
+          if (positionsData.short_shares && positionsData.short_shares > 0) {
+            posArray.push({
+              type: 'short',
+              shares: positionsData.short_shares,
+              price: positionsData.current_price || marketStats?.current_price || 0
+            });
+          }
+          
+          setUserPositions(posArray);
+        }
+        
+        setLastPositionRefresh(Date.now());
+        return true;
+      }
+    } catch (error) {
+      console.error('Error refreshing positions:', error);
+    }
+    return false;
   };
 
   // Handle WebSocket market updates
@@ -710,6 +772,29 @@ const TradingPanel = ({ newsId }) => {
     setConnected(false);
   };
   
+  // Add frequent position refresh for better synchronization
+  useEffect(() => {
+    if (!publicKey) return;
+    
+    // Immediately refresh positions
+    refreshPositions();
+    
+    // Set up position refresh interval - more frequent during first minute after trade
+    const positionsInterval = setInterval(() => {
+      const timeSinceLastRefresh = Date.now() - lastPositionRefresh;
+      if (timeSinceLastRefresh < 60000) {  // Less than a minute since last refresh
+        refreshPositions(); // Refresh every 3 seconds for the first minute
+      } else {
+        // After a minute, slow down to every 10 seconds
+        if (Math.floor(Date.now() / 10000) % 3 === 0) {
+          refreshPositions();
+        }
+      }
+    }, 3000);
+    
+    return () => clearInterval(positionsInterval);
+  }, [publicKey, newsId, lastPositionRefresh]);
+  
   // One-time initialization
   useEffect(() => {
     if (publicKey) {
@@ -1249,8 +1334,19 @@ const TradingPanel = ({ newsId }) => {
           // Success! Update UI with order placed confirmation
           setSuccess(`Successfully placed ${actionType} order for ${shares} shares at $${currentPrice.toFixed(2)} (${(currentPrice * 100).toFixed(1)}¢)`);
           
-          // Update user and position data
+          // Update user and position data first
           await updateUserDataAfterTrade(keyToUse);
+          
+          // Reset position refresh timer to trigger faster polling
+          setLastPositionRefresh(Date.now());
+          
+          // Immediately refresh positions one more time
+          await refreshPositions();
+          
+          // Notify parent component that trading is complete after positions are updated
+          if (onTradeComplete && typeof onTradeComplete === 'function') {
+            onTradeComplete(actionType, shares, currentPrice);
+          }
           
           // Add a mock position if the server doesn't support the positions endpoint
           if (actionType === 'buy' || actionType === 'short') {
@@ -1328,6 +1424,11 @@ const TradingPanel = ({ newsId }) => {
         console.log('Simulating successful trade due to CORS error...');
         const price = marketStats?.current_price || 0.01;
         setSuccess(`Successfully placed ${actionType} order for ${shares} shares at $${price.toFixed(2)} (${(price * 100).toFixed(1)}¢)`);
+        
+        // Notify parent component that trading is complete
+        if (onTradeComplete && typeof onTradeComplete === 'function') {
+          onTradeComplete(actionType, shares, price);
+        }
         
         // For buys or shorts, update the local positions immediately for responsive UI
         if (actionType === 'buy') {
@@ -1483,30 +1584,42 @@ const TradingPanel = ({ newsId }) => {
               // Try multiple endpoints for positions to ensure compatibility
               let positionsResponse;
               try {
-                // Try the primary positions endpoint first
-                positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}`, {
+                // Try the primary positions endpoint first with cache busting
+                const timestamp = Date.now();
+                positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}?t=${timestamp}`, {
                   headers: {
                     'Content-Type': 'application/json',
-                    'X-Public-Key': keyToUse
+                    'X-Public-Key': keyToUse,
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                   }
                 });
                 
                 if (!positionsResponse.ok) {
                   // If first endpoint fails, try alternative endpoint format
                   console.log('DEBUG: First positions endpoint failed after trade, trying alternate');
-                  positionsResponse = await fetch(`${serviceUrl}/positions/${newsId}`, {
+                  positionsResponse = await fetch(`${serviceUrl}/positions/${newsId}?t=${timestamp}`, {
                     headers: {
                       'Content-Type': 'application/json',
-                      'X-Public-Key': keyToUse
+                      'X-Public-Key': keyToUse,
+                      'Cache-Control': 'no-cache, no-store, must-revalidate',
+                      'Pragma': 'no-cache',
+                      'Expires': '0'
                     }
                   });
                 }
               } catch (e) {
                 console.error('DEBUG: Error with primary endpoint, trying fallback:', e);
-                positionsResponse = await fetch(`${serviceUrl}/positions/${newsId}`, {
+                // Generate a new timestamp for cache busting
+                const fallbackTimestamp = Date.now();
+                positionsResponse = await fetch(`${serviceUrl}/positions/${newsId}?t=${fallbackTimestamp}`, {
                   headers: {
                     'Content-Type': 'application/json',
-                    'X-Public-Key': keyToUse
+                    'X-Public-Key': keyToUse,
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                   }
                 });
               }
@@ -1523,7 +1636,7 @@ const TradingPanel = ({ newsId }) => {
                   setUserPositions(positionsData);
                 } else if (positionsData && typeof positionsData === 'object') {
                   // Handle object format with long_shares and short_shares
-                  console.log('DEBUG: Setting positions from post-trade object response:', positionsData);
+                  // Using post-trade API response for positions
                   
                   // Update the positionData state with direct object
                   setPositionData({
@@ -1549,6 +1662,8 @@ const TradingPanel = ({ newsId }) => {
                       price: positionsData.current_price || marketStats?.current_price || 0
                     });
                   }
+                  
+                  // Update positions state - critical for sync with READ button
                   setUserPositions(posArray);
                 }
               } else {
