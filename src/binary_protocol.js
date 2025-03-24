@@ -175,23 +175,38 @@ export const createHeartbeat = () => {
  * @returns {string} The protocol initialization message
  */
 export const createProtocolInit = (newsId, userId) => {
+  // Create a simplified protocol init message to avoid server-side errors
   const message = {
     v: PROTOCOL_VERSION,
     protocol_version: PROTOCOL_VERSION,
-    features: ['json', 'binary', 'compression'],
-    supports_msgpack: hasMessagePack(),
-    ts: new Date().toISOString()
+    // Only include essential features to reduce complexity
+    features: ['json'],
+    // Don't announce msgpack support to avoid potential issues
+    supports_msgpack: false,
+    ts: new Date().toISOString(),
+    client: 'web'
   };
   
-  if (newsId) {
+  // Only include these fields if they're valid non-empty strings
+  if (newsId && typeof newsId === 'string' && newsId.length > 0) {
     message.news_id = newsId;
   }
   
-  if (userId) {
-    message.user_id = userId;
+  if (userId && typeof userId === 'string' && userId.length > 0) {
+    // Use public_key instead of user_id to match server expectations
+    message.public_key = userId;
   }
   
-  return JSON.stringify(message);
+  try {
+    return JSON.stringify(message);
+  } catch (e) {
+    console.error('Error creating protocol init message:', e);
+    // Return a minimal fallback message if JSON stringify fails
+    return JSON.stringify({ 
+      v: PROTOCOL_VERSION,
+      type: 'init'
+    });
+  }
 };
 
 export default {
