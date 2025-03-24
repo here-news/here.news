@@ -1,113 +1,321 @@
 .personal-stats {
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 1.5rem;
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
 }
 
 .personal-stats h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: #333;
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.positions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .position-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin: 0.8rem 0;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  background-color: #f9f9fd;
+  border-radius: 8px;
+  padding: 0.8rem;
+  border: 1px solid #f0f0f5;
+  position: relative;
+  overflow: hidden; /* Ensure nothing breaks out of container */
+}
+
+.position-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.position-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.position-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
+}
+
+.position-title.long {
+  color: #00c853;
+}
+
+.position-title.short {
+  color: #ff5252;
+}
+
+.position-icon {
+  margin-right: 0.5rem;
 }
 
 .position-details {
-  font-weight: 500;
-  color: #333;
-  margin: 0 0.5rem;
-}
-
-.sell-button, .close-button {
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 0.3rem 0.8rem;
+  display: flex;
+  align-items: center;
   font-size: 0.9rem;
+  color: #666;
+}
+
+.position-price {
+  margin-right: 1rem;
+}
+
+.position-shares {
+  display: flex;
+  align-items: center;
+}
+
+.position-roi {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+.position-roi.positive {
+  background-color: rgba(0, 200, 83, 0.1);
+  color: #00c853;
+}
+
+.position-roi.negative {
+  background-color: rgba(255, 82, 82, 0.1);
+  color: #ff5252;
+}
+
+.position-row .position-action-button {
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-  min-width: 60px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: static !important; /* Prevent absolute positioning */
+  float: none !important; /* Prevent floating */
+  margin-left: 0.8rem; /* Add some space between info and button */
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none;
+  z-index: 1;
+  background-image: none;
 }
 
-.sell-button {
-  background-color: #ff6600;
+/* Common styles for both buttons */
+.position-row .position-action-button {
+  min-width: 70px;
+  text-align: center;
+  position: static !important;
+  right: auto !important;
+  top: auto !important;
+  z-index: 1 !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
-.sell-button:hover {
-  background-color: #cc5200;
+/* Sell button specific styles */
+.position-row .sell-button.position-action-button {
+  background-color: white;
+  color: #2962ff;
+  border: 1px solid #2962ff;
 }
 
-.close-button {
-  background-color: #dc3545;
-  font-weight: bold;
-  border: 2px solid #c82333;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.position-row .sell-button.position-action-button:hover {
+  background-color: #f0f5ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(41, 98, 255, 0.15);
 }
 
-.close-button:hover {
-  background-color: #c82333;
+/* Close button specific styles */
+.position-row .position-close-button.position-action-button {
+  background-color: white;
+  color: #ff5252;
+  border: 1px solid #ff5252;
+}
+
+.position-row .position-close-button.position-action-button:hover {
+  background-color: #fff1f1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 82, 82, 0.15);
 }
 
 .note {
   font-size: 0.85rem;
   color: #666;
-  margin: 0.5rem 0 1rem;
+  margin: 0.5rem 0;
   font-style: italic;
+  background-color: #fff8e1;
+  padding: 0.7rem;
+  border-radius: 8px;
+  border-left: 3px solid #ffc107;
 }
 
 .gain-loss {
   font-weight: 500;
   margin-top: 1rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid #eee;
+  padding: 0.7rem;
+  border-radius: 8px;
+  background-color: #f9f9fd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.positive {
-  color: green;
+.gain-loss-label {
+  font-size: 0.9rem;
+  color: #555;
 }
 
-.negative {
-  color: red;
+.gain-loss-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.gain-loss-value.positive {
+  color: #00c853;
+}
+
+.gain-loss-value.negative {
+  color: #ff5252;
+}
+
+.no-positions-panel {
+  color: #666;
+  text-align: center;
+  padding: 2rem 0;
+  background-color: #f9f9fd;
+  border-radius: 8px;
+  border: 1px dashed #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-positions-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .no-positions {
-  color: #666;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.no-positions-subtitle {
+  font-size: 0.9rem;
+  color: #888;
   font-style: italic;
-  text-align: center;
-  padding: 1rem 0;
 }
 
 .success-message, .error-message {
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  animation: fadeOut 5s forwards;
+  padding: 0.7rem;
+  border-radius: 8px;
+  margin-bottom: 0.7rem;
   position: relative;
   overflow: hidden;
+  animation: slideInFadeOut 5s forwards;
 }
 
 .success-message {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-left: 4px solid #2e7d32;
 }
 
 .error-message {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #c62828;
 }
 
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
+.message-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.message-icon {
+  margin-right: 0.5rem;
+}
+
+.message-content {
+  font-size: 0.9rem;
+}
+
+.timer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+  width: 100%;
+  animation: timerShrink 5s linear forwards;
+}
+
+@keyframes timerShrink {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+@keyframes slideInFadeOut {
+  0% { transform: translateY(-20px); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-10px); opacity: 0; }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .position-row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+  
+  .position-info {
+    flex: 1;
+    min-width: 0; /* Allow text to be truncated in flex items */
+  }
+  
+  .position-action-button {
+    flex-shrink: 0; /* Prevent button from shrinking */
+    position: static !important; /* Force static positioning */
+  }
+  
+  .position-close-button.position-action-button {
+    position: static !important; /* Force static positioning */
+    right: auto !important;
+    top: auto !important;
+    margin-left: 8px;
+  }
+  
+  .position-roi {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
 }

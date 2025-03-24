@@ -2150,7 +2150,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={loading}
             className="buy-long-button"
           >
-            <span className="button-direction">⬆️</span> Buy Long (1 share)
+            <span className="button-direction">👍</span> Yup (1)
           </button>
           
           <button 
@@ -2159,7 +2159,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={loading}
             className="sell-short-button"
           >
-            <span className="button-direction">⬇️</span> Sell Short (1 share)
+            <span className="button-direction">👎</span> Nah (1) 
           </button>
         </div>
       </div>

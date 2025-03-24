@@ -1,10 +1,11 @@
 {
   "name": "here-news",
-  "version": "0.5.2",
-  "description": "Here.news Web App",
+  "version": "0.5.3",
+  "description": "Here.news Web App with Nostr Authentication",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@noble/secp256k1": "^2.2.3",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",

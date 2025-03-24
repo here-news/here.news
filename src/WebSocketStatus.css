@@ -1,0 +1,94 @@
+.ws-status-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.ws-indicator {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.ws-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.ws-connected .ws-dot {
+  background-color: #4CAF50; /* Green when connected */
+  box-shadow: 0 0 5px #4CAF50;
+}
+
+.ws-disconnected .ws-dot {
+  background-color: #F44336; /* Red when disconnected */
+  box-shadow: 0 0 5px #F44336;
+}
+
+.ws-tooltip {
+  position: absolute;
+  top: 25px;
+  right: -5px;
+  min-width: 180px;
+  background-color: #333;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ws-tooltip:after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #333;
+}
+
+.ws-tooltip p {
+  margin: 0 0 8px 0;
+}
+
+.ws-retry-button {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.ws-retry-button:hover {
+  background-color: #0b7dda;
+}
+
+/* For mobile screens */
+@media (max-width: 768px) {
+  .ws-tooltip {
+    right: auto;
+    left: 0;
+    min-width: 150px;
+  }
+  
+  .ws-tooltip:after {
+    right: auto;
+    left: 10px;
+  }
+}

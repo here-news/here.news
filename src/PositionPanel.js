@@ -45,6 +45,7 @@ const PositionPanel = ({
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
+
   // Calculate total gain/loss (all values are already in cents here)
   const calculateGainLoss = () => {
     if (!positions || positions.length === 0) return 0;
@@ -61,56 +62,93 @@ const PositionPanel = ({
     }, 0);
   };
   
+  // Calculate ROI for a specific position
+  const calculateROI = (position) => {
+    if (!position) return 0;
+    
+    let roi = 0;
+    if (position.type === 'long') {
+      // For long positions: (current_price - position_price) / position_price * 100
+      roi = ((currentPrice - position.price) / position.price) * 100;
+    } else if (position.type === 'short') {
+      // For short positions: (position_price - current_price) / position_price * 100
+      roi = ((position.price - currentPrice) / position.price) * 100;
+    }
+    
+    return roi;
+  };
+  
   const totalGainLoss = calculateGainLoss();
   const hasShorts = positions.some(pos => pos.type === 'short');
-  
-  // Debug short positions - more detailed
-  console.log('=== DEBUG POSITIONS START ===');
-  console.log('Positions array:', JSON.stringify(positions));
-  positions.forEach((pos, index) => {
-    console.log(`Position ${index}:`, 
-      JSON.stringify(pos), 
-      'type:', typeof pos.type, 
-      'value:', pos.type,
-      'isLong:', pos.type === 'long',
-      'isShort:', pos.type === 'short'
-    );
-  });
-  console.log('Has shorts detected:', hasShorts);
-  console.log('=== DEBUG POSITIONS END ===');
-  
-  // Save to window for debugging from console
-  window.userPositions = positions;
   
   return (
     <div className="personal-stats">
       <h3>Your Positions</h3>
       
       {/* Show messages in position panel with auto-disappear */}
-      {localSuccessMessage && <div className="success-message">{localSuccessMessage}</div>}
-      {localErrorMessage && <div className="error-message">{localErrorMessage}</div>}
+      {localSuccessMessage && (
+        <div className="success-message">
+          <div className="message-title">
+            <span className="message-icon">✅</span>
+            Success
+          </div>
+          <div className="message-content">{localSuccessMessage}</div>
+          <div className="timer-bar"></div>
+        </div>
+      )}
+      
+      {localErrorMessage && (
+        <div className="error-message">
+          <div className="message-title">
+            <span className="message-icon">❌</span>
+            Error
+          </div>
+          <div className="message-content">{localErrorMessage}</div>
+          <div className="timer-bar"></div>
+        </div>
+      )}
       
       {positions.length === 0 ? (
-        <p className="no-positions">You don't have any positions yet. Buy or short to get started!</p>
+        <div className="no-positions-panel">
+          <div className="no-positions-icon">📊</div>
+          <p className="no-positions">Your positions will appear here after you make a trade</p>
+          <p className="no-positions-subtitle">Use the buttons above to buy long or sell short</p>
+        </div>
       ) : (
         <>
-          {positions.map((pos, i) => (
-            <p key={`position-${i}`} className="position-row">
-              {pos.type === 'long' ? (
-                <>
-                  <span>🧍‍♂️ Your Stake Position: </span>
-                  <span className="position-details">{pos.price.toFixed(1)}¢ ({pos.shares} shares)</span>
-                  <button className="sell-button" onClick={() => onSellPosition(pos)}>Sell</button>
-                </>
-              ) : (
-                <>
-                  <span>📉 Your Short Position: </span>
-                  <span className="position-details">{pos.price.toFixed(1)}¢ ({pos.shares} shares)</span>
-                  <button className="sell-button" onClick={() => onSellPosition(pos)}>Close</button>
-                </>
-              )}
-            </p>
-          ))}
+          <div className="positions-container">
+            {positions.map((pos, i) => {
+              const roi = calculateROI(pos);
+              const isPositiveROI = roi >= 0;
+              
+              return (
+                <div key={`position-${i}`} className="position-row">
+                  <div className="position-info">
+                    <div className="position-header">
+                      <div className={`position-title ${pos.type}`}>
+                        <span className="position-icon">
+                          {pos.type === 'long' ? '📈' : '📉'}
+                        </span>
+                        {pos.type === 'long' ? 'Long' : 'Short'} • {pos.shares} shares • {pos.price.toFixed(1)}¢
+                      </div>
+                      <span className={`position-roi ${isPositiveROI ? 'positive' : 'negative'}`}>
+                        {isPositiveROI ? '+' : ''}{roi.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  {pos.type === 'long' ? (
+                    <button className="sell-button position-action-button" onClick={() => onSellPosition(pos)}>
+                      Sell
+                    </button>
+                  ) : (
+                    <button className="position-close-button position-action-button" onClick={() => onSellPosition(pos)}>
+                      Close
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           
           {hasShorts && (
             <p className="note">
@@ -118,12 +156,12 @@ const PositionPanel = ({
             </p>
           )}
           
-          <p className="gain-loss">
-            💰 Current Personal Gain/Loss: 
-            <strong className={totalGainLoss >= 0 ? 'positive' : 'negative'}>
-              {totalGainLoss >= 0 ? ' +' : ' '}{totalGainLoss.toFixed(2)}¢
-            </strong>
-          </p>
+          <div className="gain-loss">
+            <span className="gain-loss-label">💰 Total Gain/Loss:</span>
+            <span className={`gain-loss-value ${totalGainLoss >= 0 ? 'positive' : 'negative'}`}>
+              {totalGainLoss >= 0 ? '+' : ''}{totalGainLoss.toFixed(2)}¢
+            </span>
+          </div>
         </>
       )}
     </div>

@@ -1,95 +1,178 @@
 .market-actions {
-  padding: 1rem;
-  background-color: #f5f5f5;
-  border-radius: 10px;
-  margin-bottom: 1rem;
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+}
+
+.market-actions h3 {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 .action-buttons {
   display: flex;
-  justify-content: space-around;
-  margin-top: 1rem;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 .market-buy-button,
 .market-short-button {
-  padding: 0.6rem 1.5rem;
-  border: none;
-  border-radius: 20px;
-  font-weight: bold;
-  font-size: 0.95rem;
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 120px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
 .market-buy-button {
-  background-color: #e6f7e6;
-  color: #007700;
-  border: 1px solid #007700;
+  background-color: #00c853;
+  color: white;
+  border: none;
 }
 
 .market-buy-button:hover:not(:disabled) {
-  background-color: #c8ecc8;
+  background-color: #00b248;
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .market-short-button {
-  background-color: #fefefe;
-  color: #cc0000;
-  border: 1px solid #ffb0b0;
+  background-color: white;
+  color: #ff5252;
+  border: 1px solid #ff5252;
 }
 
 .market-short-button:hover:not(:disabled) {
-  background-color: #ffdddd;
+  background-color: #fff1f1;
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .market-buy-button:disabled,
 .market-short-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .stats-container {
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
 }
 
-.stats-container p {
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
-  color: #444;
+.stat-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.7rem;
+  border: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-title {
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.stat-icon {
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .info-tooltip {
   cursor: help;
-  font-size: 0.8rem;
+  margin-left: 0.3rem;
   color: #999;
-  margin-left: 0.5rem;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.info-tooltip:hover {
+  color: #666;
+}
+
+.info-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s;
+  z-index: 100;
+  width: max-content;
+  max-width: 200px;
+}
+
+.info-tooltip:hover::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Sentiment bar styles */
 .sentiment-bar-container {
-  margin: 0.5rem 0;
+  margin: 1rem 0;
+  background-color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #eee;
 }
 
 .sentiment-label {
-  font-size: 0.8rem;
-  font-weight: bold;
-  margin-bottom: 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
   color: #555;
+  display: flex;
+  align-items: center;
 }
 
 .sentiment-bar {
   display: flex;
-  height: 14px;
-  border-radius: 7px;
+  height: 12px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  background-color: #f5f5f5;
 }
 
 .sentiment-long {
-  background-color: rgba(76, 175, 80, 0.7);
+  background-color: #00c853;
   color: white;
   font-size: 0.7rem;
   display: flex;
@@ -99,7 +182,7 @@
 }
 
 .sentiment-short {
-  background-color: rgba(244, 67, 54, 0.7);
+  background-color: #ff5252;
   color: white;
   font-size: 0.7rem;
   display: flex;
@@ -109,8 +192,79 @@
 }
 
 .sentiment-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.sentiment-text .long {
+  color: #00c853;
+  font-weight: 500;
+}
+
+.sentiment-text .short {
+  color: #ff5252;
+  font-weight: 500;
+}
+
+/* Quantity selector */
+.quantity-selector {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.quantity-label {
   font-size: 0.85rem;
-  color: #444;
-  margin-top: 0.25rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  overflow: hidden;
+}
+
+.quantity-input {
   text-align: center;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  padding: 0.5rem;
+  width: 60px;
+}
+
+.quantity-button {
+  background-color: transparent;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quantity-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
 }
