@@ -6,14 +6,6 @@ import PriceBar from './PriceBar';
 import PositionPanel from './PositionPanel';
 import MarketActions from './MarketActions';
 
-// Known working test users from AuthDebugger.js
-const HARDCODED_USERS = [
-  { name: "Alice", public_key: "d6aa72f57b05e3916cd8e8d0943270c58a1519733fc6bef0b79e1b6ff45ca4c6" },
-  { name: "Bob", public_key: "b8c6785a3f4ffb1e5621de6e60dbce15c52a8dc9bfc5ff0b69a383102ef96ddd" },
-  { name: "Charlie", public_key: "28d2e1b42ee6baab54b522e1bfbb9e63d94bfc77f6f20e6cd37dff941aea1a91" },
-  { name: "Diana", public_key: "4c834153b2a0c59e6a3fa0d28b298bdeb1b2e4bb5d4e3c2a44bbb2c0e90514f4" }
-];
-
 // Enhanced version with WebSocket support for real-time updates and mockup design
 const TradingPanel = ({ newsId, onTradeComplete }) => {
   const { publicKey, userInfo, fetchUserInfo, userSocketConnected } = useUser();
@@ -49,8 +41,9 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
   const heartbeatIntervalRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const MAX_RECONNECT_ATTEMPTS = 5;
-  const RECONNECT_DELAY = 3000; // 3 seconds
+  const MAX_RECONNECT_ATTEMPTS = 8; // Increased to give more chances for reconnection
+  const RECONNECT_DELAY_BASE = 1000; // Start with 1 second
+  const RECONNECT_DELAY_MAX = 30000; // Cap at 30 seconds for maximum delay
   
   // Helper function to check token balances for user positions
   const checkUserTokenBalances = (userData, newsId) => {
@@ -79,59 +72,97 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     return shares;
   };
 
-  // Function to specifically refresh positions
+  // Last request timestamp to prevent duplicate requests
+  const lastPositionRequestRef = React.useRef(0);
+  
+  // Function to specifically refresh positions with rate limiting
   const refreshPositions = async () => {
     if (!publicKey) return;
     
+    // Prevent duplicate requests within 2 seconds
+    const now = Date.now();
+    if (now - lastPositionRequestRef.current < 2000) {
+      return false;
+    }
+    
+    lastPositionRequestRef.current = now;
+    
     try {
       // Use cache busting for fresh data
-      const timestamp = Date.now();
-      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}?t=${timestamp}`, {
+      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}?t=${now}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Public-Key': publicKey,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       });
       
       if (positionsResponse.ok) {
         const positionsData = await positionsResponse.json();
         
-        // Handle both array and object formats
+        // Check if positions actually changed to prevent unnecessary re-renders
+        let hasChanged = false;
+        
+        // For array format
         if (Array.isArray(positionsData)) {
-          setUserPositions(positionsData);
-        } else if (typeof positionsData === 'object') {
-          // Update the positionData state with direct object
-          setPositionData({
-            news_id: positionsData.news_id || newsId,
-            long_shares: positionsData.long_shares || 0,
-            short_shares: positionsData.short_shares || 0,
-            current_price: positionsData.current_price || marketStats?.current_price || 0
-          });
-          
-          // Convert object format to array format for compatibility with PositionPanel
-          const posArray = [];
-          if (positionsData.long_shares && positionsData.long_shares > 0) {
-            posArray.push({
-              type: 'long',
-              shares: positionsData.long_shares,
-              price: positionsData.current_price || marketStats?.current_price || 0
-            });
-          }
-          if (positionsData.short_shares && positionsData.short_shares > 0) {
-            posArray.push({
-              type: 'short',
-              shares: positionsData.short_shares,
-              price: positionsData.current_price || marketStats?.current_price || 0
+          if (userPositions.length !== positionsData.length) {
+            hasChanged = true;
+          } else {
+            // Compare each position
+            hasChanged = positionsData.some((newPos, index) => {
+              const oldPos = userPositions[index];
+              return !oldPos || 
+                     oldPos.type !== newPos.type || 
+                     oldPos.shares !== newPos.shares;
             });
           }
           
-          setUserPositions(posArray);
+          if (hasChanged) {
+            setUserPositions(positionsData);
+          }
+        } 
+        // For object format
+        else if (typeof positionsData === 'object') {
+          const newLongShares = positionsData.long_shares || 0;
+          const newShortShares = positionsData.short_shares || 0;
+          
+          hasChanged = positionData.long_shares !== newLongShares || 
+                       positionData.short_shares !== newShortShares;
+                       
+          if (hasChanged) {
+            // Update the positionData state with direct object
+            setPositionData({
+              news_id: positionsData.news_id || newsId,
+              long_shares: newLongShares,
+              short_shares: newShortShares,
+              current_price: positionsData.current_price || marketStats?.current_price || 0
+            });
+            
+            // Convert object format to array format for compatibility with PositionPanel
+            const posArray = [];
+            if (newLongShares > 0) {
+              posArray.push({
+                type: 'long',
+                shares: newLongShares,
+                price: positionsData.current_price || marketStats?.current_price || 0
+              });
+            }
+            if (newShortShares > 0) {
+              posArray.push({
+                type: 'short',
+                shares: newShortShares,
+                price: positionsData.current_price || marketStats?.current_price || 0
+              });
+            }
+            
+            setUserPositions(posArray);
+          }
         }
         
-        setLastPositionRefresh(Date.now());
+        // Only update timestamp if data actually changed
+        if (hasChanged) {
+          setLastPositionRefresh(now);
+        }
         return true;
       }
     } catch (error) {
@@ -494,9 +525,13 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
                   clearTimeout(reconnectTimeoutRef.current);
                 }
                 
-                // Apply exponential backoff for reconnection attempts
-                const delay = RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts);
-                console.log(`Will reconnect in ${delay}ms`);
+                // Apply improved exponential backoff with jitter for reconnection attempts
+                // Calculate base delay with full exponential backoff
+                let delay = RECONNECT_DELAY_BASE * Math.pow(2, reconnectAttempts);
+                // Add random jitter (±20%) to prevent thundering herd
+                const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+                delay = Math.min(RECONNECT_DELAY_MAX, delay + jitter);
+                console.log(`Will reconnect in ${Math.round(delay)}ms (attempt ${reconnectAttempts + 1})`);
                 
                 // Schedule the next reconnection attempt
                 reconnectTimeoutRef.current = setTimeout(() => {
@@ -772,28 +807,40 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     setConnected(false);
   };
   
-  // Add frequent position refresh for better synchronization
+  // Add position refresh only when websocket is not connected
+  // or after a trade for better synchronization
   useEffect(() => {
     if (!publicKey) return;
     
-    // Immediately refresh positions
-    refreshPositions();
+    // Only immediately refresh positions if not connected via WebSocket
+    // or if we recently made a trade
+    const justMadeTrade = Date.now() - lastPositionRefresh < 3000;
+    if (!connected || justMadeTrade) {
+      refreshPositions();
+    }
     
-    // Set up position refresh interval - more frequent during first minute after trade
+    // Set up position refresh interval - but only when WebSocket is not connected
+    // or during the first minute after a trade
     const positionsInterval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastPositionRefresh;
-      if (timeSinceLastRefresh < 60000) {  // Less than a minute since last refresh
-        refreshPositions(); // Refresh every 3 seconds for the first minute
-      } else {
-        // After a minute, slow down to every 10 seconds
-        if (Math.floor(Date.now() / 10000) % 3 === 0) {
+      const recentTrade = timeSinceLastRefresh < 60000;
+      
+      // Only poll if WebSocket is not connected OR we recently made a trade
+      if (!connected || recentTrade) {
+        // If no WebSocket, refresh regularly
+        if (!connected) {
+          refreshPositions();
+        } 
+        // If WebSocket connected but recent trade, do a couple extra checks
+        // to ensure position data is consistent
+        else if (recentTrade && timeSinceLastRefresh > 5000 && timeSinceLastRefresh < 20000) {
           refreshPositions();
         }
       }
-    }, 3000);
+    }, 10000); // Reduced from 3000ms to 10000ms
     
     return () => clearInterval(positionsInterval);
-  }, [publicKey, newsId, lastPositionRefresh]);
+  }, [publicKey, newsId, lastPositionRefresh, connected]);
   
   // One-time initialization
   useEffect(() => {
@@ -1195,10 +1242,8 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           return;
         }
       } else if (actionType === 'short') {
-        // For shorting, we should check if the user has any shares to borrow
-        // In this mock implementation, we'll just check if we can short/borrow
-        // A real implementation would check borrow availability
-        const canShort = marketStats?.current_price > 0.01; // Simple mock check
+        // For shorting, check if the market price is valid for shorting
+        const canShort = marketStats?.current_price > 0.01;
         
         if (!canShort) {
           setError('Cannot short this market at this time. Please try again later.');
@@ -1348,46 +1393,9 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             onTradeComplete(actionType, shares, currentPrice);
           }
           
-          // Add a mock position if the server doesn't support the positions endpoint
-          if (actionType === 'buy' || actionType === 'short') {
-            // Check if we need to add a new position record
-            setUserPositions(prev => {
-              const mockPosition = {
-                price: currentPrice,
-                shares: shares,
-                type: actionType === 'buy' ? 'long' : 'short'
-              };
-              
-              return [...prev, mockPosition];
-            });
-          } else if (actionType === 'sell') {
-            // Remove or reduce the position being sold
-            setUserPositions(prev => {
-              // Find positions of type 'long'
-              const longPositions = prev.filter(p => p.type === 'long');
-              let remainingShares = shares;
-              
-              // Reduce positions starting from the oldest
-              const updatedPositions = prev.map(pos => {
-                if (pos.type !== 'long' || remainingShares <= 0) {
-                  return pos;
-                }
-                
-                if (pos.shares <= remainingShares) {
-                  // Remove this position completely
-                  remainingShares -= pos.shares;
-                  return null;
-                } else {
-                  // Reduce this position
-                  const newPos = { ...pos, shares: pos.shares - remainingShares };
-                  remainingShares = 0;
-                  return newPos;
-                }
-              }).filter(Boolean); // Remove null positions
-              
-              return updatedPositions;
-            });
-          }
+          // In real environment, we don't need to create any mock positions
+          // The server will send us the updated position data through the WebSocket
+          // or we'll get it in the next refresh cycle
         } else {
           // Handle error
           let errorMessage;
@@ -1420,131 +1428,38 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
       
       // Handle CORS error specifically
       if (err.message && err.message.includes('Failed to fetch')) {
-        // Still update the UI to simulate success without showing test mode message
-        console.log('Simulating successful trade due to CORS error...');
-        const price = marketStats?.current_price || 0.01;
-        setSuccess(`Successfully placed ${actionType} order for ${shares} shares at $${price.toFixed(2)} (${(price * 100).toFixed(1)}¢)`);
+        console.log('Encountered CORS error when trying to execute trade');
+        setError('Network error occurred. Please verify your connection and try again.');
         
-        // Notify parent component that trading is complete
-        if (onTradeComplete && typeof onTradeComplete === 'function') {
-          onTradeComplete(actionType, shares, price);
+        // Try to update user and position data from the server 
+        try {
+          // Update user data 
+          await updateUserDataAfterTrade(publicKey);
+          
+          // Reset position refresh timer to trigger faster polling
+          setLastPositionRefresh(Date.now());
+          
+          // Try to refresh positions from server
+          const refreshSucceeded = await refreshPositions();
+          
+          if (refreshSucceeded) {
+            console.log('Successfully refreshed positions from server despite CORS error on trade');
+          }
+        } catch (refreshError) {
+          console.warn('Failed to refresh positions after CORS error:', refreshError);
         }
         
-        // For buys or shorts, update the local positions immediately for responsive UI
-        if (actionType === 'buy') {
-          // Get existing long position or create new one
-          const existingLongIndex = userPositions.findIndex(pos => pos.type === 'long');
-          
-          if (existingLongIndex >= 0) {
-            // Update existing long position
-            const updatedPositions = [...userPositions];
-            updatedPositions[existingLongIndex] = {
-              ...updatedPositions[existingLongIndex],
-              shares: updatedPositions[existingLongIndex].shares + shares
-            };
-            setUserPositions(updatedPositions);
-          } else {
-            // Create new long position
-            const newPosition = {
-              price: marketStats?.current_price || 0.05, /* Use dollars to match server */
-              shares: shares,
-              type: 'long'
-            };
-            setUserPositions(prev => [...prev, newPosition]);
-          }
-          
-          // Also update the user data to reflect new token balance
-          if (userData && userData.token_balances) {
-            const updatedUserData = { ...userData };
-            
-            // Handle different token_balances formats
-            if (typeof updatedUserData.token_balances[newsId] === 'number') {
-              updatedUserData.token_balances[newsId] = (updatedUserData.token_balances[newsId] || 0) + shares;
-            } else if (Array.isArray(updatedUserData.token_balances)) {
-              const tokenIndex = updatedUserData.token_balances.findIndex(token => 
-                token.news_id === newsId || token.market_id === newsId);
-              
-              if (tokenIndex >= 0) {
-                const balanceField = 'balance' in updatedUserData.token_balances[tokenIndex] ? 'balance' : 
-                                    'amount' in updatedUserData.token_balances[tokenIndex] ? 'amount' : 'shares';
-                updatedUserData.token_balances[tokenIndex][balanceField] += shares;
-              } else {
-                updatedUserData.token_balances.push({
-                  news_id: newsId,
-                  balance: shares
-                });
-              }
-            } else {
-              // Initialize token_balances if it doesn't exist in the expected format
-              updatedUserData.token_balances = {
-                [newsId]: shares
-              };
-            }
-            
-            // Update balance (deduct cost)
-            if (updatedUserData.balance) {
-              updatedUserData.balance -= shares * price;
-            }
-            
-            setUserData(updatedUserData);
-          }
-        } else if (actionType === 'short') {
-          // Add a new short position
-          const newPosition = {
-            price: marketStats?.current_price || 0.05, /* Use dollars to match server */
-            shares: shares,
-            type: 'short'
-          };
-          setUserPositions(prev => [...prev, newPosition]);
-        } else if (actionType === 'sell' || actionType === 'short_close') {
-          // Remove or reduce positions
-          const posType = actionType === 'sell' ? 'long' : 'short';
-          const updatedPositions = userPositions.map(pos => {
-            if (pos.type !== posType) return pos;
-            
-            // Reduce this position
-            if (pos.shares <= shares) {
-              return null; // Remove the position completely
-            } else {
-              return { ...pos, shares: pos.shares - shares };
-            }
-          }).filter(Boolean); // Remove null positions
-          
-          setUserPositions(updatedPositions);
-          
-          // Update token balance for sells
-          if (actionType === 'sell' && userData && userData.token_balances) {
-            const updatedUserData = { ...userData };
-            
-            // Handle different token_balances formats
-            if (typeof updatedUserData.token_balances[newsId] === 'number') {
-              updatedUserData.token_balances[newsId] = Math.max(0, (updatedUserData.token_balances[newsId] || 0) - shares);
-            } else if (Array.isArray(updatedUserData.token_balances)) {
-              const tokenIndex = updatedUserData.token_balances.findIndex(token => 
-                token.news_id === newsId || token.market_id === newsId);
-              
-              if (tokenIndex >= 0) {
-                const balanceField = 'balance' in updatedUserData.token_balances[tokenIndex] ? 'balance' : 
-                                    'amount' in updatedUserData.token_balances[tokenIndex] ? 'amount' : 'shares';
-                updatedUserData.token_balances[tokenIndex][balanceField] = 
-                  Math.max(0, updatedUserData.token_balances[tokenIndex][balanceField] - shares);
-              }
-            }
-            
-            // Update balance (add proceeds)
-            if (updatedUserData.balance) {
-              updatedUserData.balance += shares * price;
-            }
-            
-            setUserData(updatedUserData);
-          }
-        }
-        
-        // Refresh market data
-        loadMarketData();
-      } else {
-        setError(`Error: ${err.message}`);
+        // Don't continue with position updates as we want to show an error
+        // and not simulate success in the real environment
+        return;
       }
+      
+      // For other error cases
+      setError(`Error placing order: ${err.message || 'Unknown error'}`);
+      setLoading(false);
+      
+      // Refresh market data
+      loadMarketData();
     } finally {
       setLoading(false);
     }
@@ -1949,23 +1864,9 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         } catch (statsError) {
           console.error('Error fetching market stats:', statsError);
           
-          // Generate fallback data if we don't have any market stats yet
+          // We won't generate fallback data - in real environment, we'll wait for server data
           if (!marketStats) {
-            console.log('Generating fallback market data due to fetch error');
-            const mockStats = {
-              current_price: 0.05, // 5 cents
-              volume: 100.00,
-              user_count: 5,
-              market_cap: 500.00,
-              total_shares: 10000,
-              stats: {
-                sentiment: {
-                  long: 65,
-                  short: 35
-                }
-              }
-            };
-            setMarketStats(mockStats);
+            console.log('No market stats available from server');
           }
           
           // Set success.stats to true so we don't keep retrying and can still show UI
@@ -1994,20 +1895,9 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           } catch (bookError) {
             console.error('Error fetching order book:', bookError);
             
-            // If we have no order book yet, create a mock one
+            // In real environment, we won't create mock order books
             if (!orderBook || orderBook.bids.length === 0 || orderBook.asks.length === 0) {
-              console.log('Generating fallback order book data due to fetch error');
-              const mockOrderBook = {
-                bids: [
-                  { price: 0.04, volume: 10 },
-                  { price: 0.03, volume: 15 }
-                ],
-                asks: [
-                  { price: 0.06, volume: 10 },
-                  { price: 0.07, volume: 15 }
-                ]
-              };
-              setOrderBook(mockOrderBook);
+              console.log('No order book available from server');
             }
             
             // Mark as success anyway so we don't keep retrying
@@ -2032,38 +1922,13 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         if (!success.stats && !success.orderbook && retryCount >= MAX_RETRIES) {
           console.error('All market data requests failed after max retries');
           
-          // Generate mock data so UI doesn't break
+          // In real environment, we won't generate mock data
           if (!marketStats) {
-            console.log('Generating emergency fallback market data after all retries failed');
-            const mockStats = {
-              current_price: 0.05,
-              volume: 100.00,
-              user_count: 5,
-              market_cap: 500.00,
-              total_shares: 10000,
-              stats: {
-                sentiment: {
-                  long: 65,
-                  short: 35
-                }
-              }
-            };
-            setMarketStats(mockStats);
+            console.log('No market data available from server after all retries');
           }
           
           if (!orderBook || orderBook.bids.length === 0 || orderBook.asks.length === 0) {
-            console.log('Generating emergency fallback order book after all retries failed');
-            const mockOrderBook = {
-              bids: [
-                { price: 0.04, volume: 10 },
-                { price: 0.03, volume: 15 }
-              ],
-              asks: [
-                { price: 0.06, volume: 10 },
-                { price: 0.07, volume: 15 }
-              ]
-            };
-            setOrderBook(mockOrderBook);
+            console.log('No order book available from server after all retries');
           }
           
           if (showLoading) {
@@ -2141,29 +2006,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         </div>
       )}
       
-      {/* Prominent Trading Buttons with arrow emojis */}
-      <div className="prominent-trading-actions">
-        <div className="quantity-selector">
-          <button 
-            type="button"
-            onClick={() => executeTrade('buy', 1)}
-            disabled={loading}
-            className="buy-long-button"
-          >
-            <span className="button-direction">👍</span> Yup (1)
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => executeTrade('short', 1)}
-            disabled={loading}
-            className="sell-short-button"
-          >
-            <span className="button-direction">👎</span> Nah (1) 
-          </button>
-        </div>
-      </div>
-      
       {/* Stats Section - only key stats */}
       <div className="condensed-stats">
         <div className="stat-pair">
@@ -2177,6 +2019,29 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           </div>
         </div>
       </div>
+      {/* Prominent Trading Buttons with arrow emojis */}
+      <div className="prominent-trading-actions">
+        <div className="quantity-selector">
+          <button 
+            type="button"
+            onClick={() => executeTrade('buy', 1)}
+            disabled={loading}
+            className="buy-long-button"
+          >
+            <span className="button-direction">👍</span> Yup
+          </button>
+          
+          <button 
+            type="button"
+            onClick={() => executeTrade('short', 1)}
+            disabled={loading}
+            className="sell-short-button"
+          >
+            <span className="button-direction">👎</span> Nah
+          </button>
+        </div>
+      </div>
+      
       
       {/* User Positions - only show when user is logged in and has positions */}
       {publicKey && userPositions && userPositions.length > 0 ? (
@@ -2190,6 +2055,10 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           onSellPosition={sellPosition}
           successMessage={success}
           errorMessage={error && !error.includes("Authentication") ? error : null}
+          marketWsRef={marketWsRef}
+          userWsRef={userWsRef}
+          newsId={newsId}
+          connected={connected}
         />
       ) : (
         // Show success/error messages even when there are no positions

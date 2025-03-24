@@ -8,13 +8,21 @@ import './PositionPanel.css';
  * @param {Array} props.positions User positions as [{price, shares, type}]
  * @param {number} props.currentPrice Current market price
  * @param {Function} props.onSellPosition Callback for selling a position
+ * @param {Object} props.marketWsRef Reference to the market WebSocket
+ * @param {Object} props.userWsRef Reference to the user WebSocket
+ * @param {string} props.newsId News ID for this market
+ * @param {boolean} props.connected WebSocket connection status
  */
 const PositionPanel = ({ 
   positions = [], 
   currentPrice = 0,
   onSellPosition,
   successMessage,
-  errorMessage
+  errorMessage,
+  marketWsRef,
+  userWsRef,
+  newsId,
+  connected
 }) => {
   // State to track auto-disappearing messages
   const [localSuccessMessage, setLocalSuccessMessage] = useState(successMessage);
@@ -45,6 +53,58 @@ const PositionPanel = ({
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
+  
+  // Set up effect to listen to WebSocket position updates directly
+  // This enables the PositionPanel to stay in sync with the TradingPanel's position data
+  useEffect(() => {
+    if (!connected || !marketWsRef?.current) return;
+    
+    // Use a message event listener to handle position updates
+    const handleWebSocketMessage = (event) => {
+      try {
+        // Parse the WebSocket message
+        let data;
+        try {
+          if (typeof event.data === 'string') {
+            // Check for simple heartbeat responses
+            if (event.data === 'pong') return;
+            
+            // Parse JSON data
+            data = JSON.parse(event.data);
+          } else {
+            // This is likely a binary message - handled by TradingPanel directly
+            return;
+          }
+        } catch (e) {
+          // If parsing fails, it might be binary data or invalid format
+          return;
+        }
+        
+        // Only process position updates for the current market
+        if (data && data.type === 'positions_update' && 
+            data.news_id === newsId) {
+          console.log('Position WebSocket update received in PositionPanel:', data);
+          // The parent component (TradingPanel) will update positions
+          // and they will naturally flow down as props
+        }
+      } catch (e) {
+        console.error('Error processing WebSocket message in PositionPanel:', e);
+      }
+    };
+    
+    // If the WebSocket is available and open, add our listener
+    if (marketWsRef.current && 
+        marketWsRef.current.readyState === WebSocket.OPEN) {
+      marketWsRef.current.addEventListener('message', handleWebSocketMessage);
+    }
+    
+    // Clean up on unmount
+    return () => {
+      if (marketWsRef.current) {
+        marketWsRef.current.removeEventListener('message', handleWebSocketMessage);
+      }
+    };
+  }, [connected, marketWsRef, newsId]);
 
   // Calculate total gain/loss (all values are already in cents here)
   const calculateGainLoss = () => {
