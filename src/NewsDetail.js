@@ -107,22 +107,13 @@ const NewsDetail = () => {
   const handleWebSocketMessage = (message) => {
     // If this is a positions update for our market, update shares
     if (message?.type === 'positions_update' && message?.data && message?.news_id === uuid) {
-      // Extract long shares from the update
-      let longShares = 0;
-      if (Array.isArray(message.data)) {
-        const longPositions = message.data.filter(pos => pos.type === 'long');
-        longShares = longPositions.reduce((total, pos) => total + (parseInt(pos.shares) || 0), 0);
-      } else if (typeof message.data === 'object') {
-        longShares = parseInt(message.data.long_shares) || 0;
-      }
-      
-      // Update position information
+      // Just call checkUserShares to update UI - no need to manually calculate shares
       checkUserShares();
     }
   };
   
-  // Initialize WebSocket connection
-  const { isConnected } = useWebSocketConnection({
+  // Initialize WebSocket connection using the shared WebSocketManager
+  useWebSocketConnection({
     endpoint: '/ws/positions',
     newsId: uuid,
     publicKey,

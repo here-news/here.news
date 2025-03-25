@@ -115,8 +115,8 @@ const useMarketData = (newsId) => {
   // Throttled version to use in websocket handlers
   const throttledFetchMarketData = useCallback(() => {
     const now = Date.now();
-    // Only proceed if at least 5 seconds have passed since last fetch
-    if (now - lastFetchRef.current > 5000) {
+    // Only proceed if at least 15 seconds have passed since last fetch (increased threshold)
+    if (now - lastFetchRef.current > 15000) {
       lastFetchRef.current = now;
       fetchMarketData();
     } else {
@@ -131,11 +131,11 @@ const useMarketData = (newsId) => {
       fetchMarketData();
       lastFetchRef.current = Date.now(); // Mark the fetch time
       
-      // Set up interval to periodically refresh market data - longer interval to reduce API load
+      // Set up interval to periodically refresh market data - much longer interval to reduce API load
       const refreshInterval = setInterval(() => {
         fetchMarketData();
         lastFetchRef.current = Date.now(); // Mark the fetch time
-      }, 20000); // Refresh every 60 seconds (increased from 30s)
+      }, 60000); // Refresh every 60 seconds (further increased to reduce server load)
       
       return () => clearInterval(refreshInterval);
     }

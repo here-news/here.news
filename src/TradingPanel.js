@@ -100,8 +100,8 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     [publicKey, updateUserData]
   );
   
-  // Handle WebSocket market updates
-  const handleMarketWebSocketMessage = (message) => {
+  // Handle WebSocket market updates with memoization to prevent rerenders
+  const handleMarketWebSocketMessage = useCallback((message) => {
     if (!message || typeof message !== 'object') return;
     
     switch(message.type) {
@@ -144,10 +144,10 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         }
         break;
     }
-  };
+  }, [marketStats, throttledFetchMarketData, throttledCheckShares]);
   
-  // Handle user WebSocket updates 
-  const handleUserWebSocketMessage = (message) => {
+  // Handle user WebSocket updates with memoization to prevent rerenders
+  const handleUserWebSocketMessage = useCallback((message) => {
     if (!message || typeof message !== 'object') return;
     
     switch(message.type) {
@@ -173,7 +173,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         }
         break;
     }
-  };
+  }, [publicKey, debouncedUpdateUserData, throttledCheckShares]);
   
   // Setup WebSocket connections
   const marketWebSocket = useWebSocketConnection({

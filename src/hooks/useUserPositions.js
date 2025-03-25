@@ -276,8 +276,8 @@ const useUserPositions = (newsId) => {
   // Throttled version to use in websocket handlers
   const throttledCheckShares = useCallback(() => {
     const now = Date.now();
-    // Only proceed if at least 5 seconds have passed since last check
-    if (now - lastCheckRef.current > 5000) {
+    // Only proceed if at least 15 seconds have passed since last check (increased threshold)
+    if (now - lastCheckRef.current > 15000) {
       lastCheckRef.current = now;
       checkUserShares();
     } else {
@@ -294,14 +294,14 @@ const useUserPositions = (newsId) => {
       lastCheckRef.current = Date.now(); // Mark the check time
       
       // Set up interval to periodically refresh shares data as a fallback
-      // But use a longer interval to reduce API load
+      // But use a much longer interval to reduce API load
       const shareUpdateInterval = setInterval(() => {
         if (publicKey && newsId) {
           // Quietly check for updated shares
           checkUserShares();
           lastCheckRef.current = Date.now(); // Mark the check time
         }
-      }, 30000); 
+      }, 90000); // Increased to 90 seconds to reduce server load 
       
       return () => clearInterval(shareUpdateInterval);
     } else {

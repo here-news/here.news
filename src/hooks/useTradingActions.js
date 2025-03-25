@@ -330,6 +330,7 @@ const useTradingActions = ({
             const userShorts = await userShortsResponse.json();
             if (userShorts && Array.isArray(userShorts) && userShorts.length > 0) {
               // Find open shorts for this news ID
+              console.log('User shorts:', userShorts);
               const openShorts = userShorts.filter(s => 
                 s.status === 'OPEN' && 
                 (s.news_id === newsId || s.market_id === newsId)
