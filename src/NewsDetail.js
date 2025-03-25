@@ -6,6 +6,7 @@ import Footer from './Footer';
 import getFaviconUrl from "./util";
 import TradingPanel from './TradingPanel';
 import { useUser } from './UserContext';
+import { useMarketData, useUserPositions, useWebSocketConnection } from './hooks';
 import './NewsDetail.css';
 
 // Mini price chart component to match the NewsColossal implementation
@@ -76,23 +77,57 @@ const NewsDetailChart = ({ percentChange, width = 100, height = 40 }) => {
 
 const NewsDetail = () => {
   const { uuid } = useParams();
-  const { publicKey, userInfo } = useUser();
+  const { publicKey } = useUser();
   const [news, setNews] = useState(null);
   const [showIframe, setShowIframe] = useState(false);
-  // We no longer need referencedStories state
   const [relatedNews, setRelatedNews] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [readingPurchaseStatus, setReadingPurchaseStatus] = useState(null); // 'processing', 'success', 'failed', 'not_needed'
-  const [userOwnedShares, setUserOwnedShares] = useState(0);
-  const [userHasAccess, setUserHasAccess] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+
+  // Use custom hooks for data fetching and state management
+  const { 
+    marketStats, 
+    trending, 
+    newsValue, 
+    tradersCount, 
+    tradeVolume, 
+    fetchMarketData
+  } = useMarketData(uuid);
   
-  // Trading panel state
-  const [newsValue, setNewsValue] = useState(null);
-  const [trending, setTrending] = useState('stable');
-  const [tradersCount, setTradersCount] = useState(0);
-  const [tradeVolume, setTradeVolume] = useState(0);
-  const [marketStats, setMarketStats] = useState(null);
+  const {
+    userOwnedShares,
+    userHasAccess,
+    readingPurchaseStatus,
+    checkUserShares,
+    buyAccessShare,
+    setReadingPurchaseStatus
+  } = useUserPositions(uuid);
+  
+  // Handle WebSocket positions updates
+  const handleWebSocketMessage = (message) => {
+    // If this is a positions update for our market, update shares
+    if (message?.type === 'positions_update' && message?.data && message?.news_id === uuid) {
+      // Extract long shares from the update
+      let longShares = 0;
+      if (Array.isArray(message.data)) {
+        const longPositions = message.data.filter(pos => pos.type === 'long');
+        longShares = longPositions.reduce((total, pos) => total + (parseInt(pos.shares) || 0), 0);
+      } else if (typeof message.data === 'object') {
+        longShares = parseInt(message.data.long_shares) || 0;
+      }
+      
+      // Update position information
+      checkUserShares();
+    }
+  };
+  
+  // Initialize WebSocket connection
+  const { isConnected } = useWebSocketConnection({
+    endpoint: '/ws/positions',
+    newsId: uuid,
+    publicKey,
+    onMessage: handleWebSocketMessage
+  });
 
   let genre_emoji_mapping = { 
     "News": "📰", 
@@ -108,35 +143,6 @@ const NewsDetail = () => {
     "Miscellaneous": "🪁" 
   };
   
-  // Handle trading actions
-  const handleLongPosition = (e) => {
-    e.preventDefault();
-    console.log('Long position on news', uuid);
-    // Add haptic feedback for mobile
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
-    // Mock increase in value
-    setNewsValue(prev => (parseFloat(prev) * 1.05).toFixed(2));
-    setTrending('up');
-    setTradersCount(prev => prev + 1);
-    setTradeVolume(prev => prev + parseFloat(newsValue || 0));
-  };
-  
-  const handleShortPosition = (e) => {
-    e.preventDefault();
-    console.log('Short position on news', uuid);
-    // Add haptic feedback for mobile
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
-    // Mock decrease in value
-    setNewsValue(prev => (parseFloat(prev) * 0.95).toFixed(2));
-    setTrending('down');
-    setTradersCount(prev => prev + 1);
-    setTradeVolume(prev => prev + parseFloat(newsValue || 0));
-  };
-  
   // Handle window resize for responsive design
   useEffect(() => {
     const handleResize = () => {
@@ -147,161 +153,26 @@ const NewsDetail = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Check if the user has any shares of this market
-  const checkUserShares = async () => {
-    if (!publicKey) {
-      console.log('⚠️ No public key available, cannot check shares');
-      setUserHasAccess(false);
-      return 0;
-    }
-
-    try {
-      // First try the positions API with cache-busting query parameter
-      const timestamp = Date.now();
-      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${uuid}?t=${timestamp}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Public-Key': publicKey,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      if (positionsResponse.ok) {
-        const positionsData = await positionsResponse.json();
-        
-        let longShares = 0;
-        
-        // Handle both array and object formats
-        if (Array.isArray(positionsData)) {
-          const longPositions = positionsData.filter(pos => pos.type === 'long');
-          longShares = longPositions.reduce((total, pos) => total + (parseInt(pos.shares) || 0), 0);
-        } else if (typeof positionsData === 'object') {
-          longShares = parseInt(positionsData.long_shares) || 0;
-        }
-        
-        // Always use the exact API value for shares - source of truth
-        setUserOwnedShares(longShares);
-        setUserHasAccess(longShares > 0);
-        return longShares;
-      } else {
-        // Try fetching user data and checking token balances
-        const userResponse = await fetch(`${serviceUrl}/me?t=${timestamp}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Public-Key': publicKey,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          
-          let shares = 0;
-          
-          // Check token balances to see if user owns any shares
-          if (userData.token_balances) {
-            if (typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances)) {
-              shares = parseInt(userData.token_balances[uuid]) || 0;
-            } else if (Array.isArray(userData.token_balances)) {
-              const matchingToken = userData.token_balances.find(token => 
-                token.news_id === uuid || token.market_id === uuid || token.id === uuid);
-                
-              if (matchingToken) {
-                shares = parseInt(matchingToken.balance) || 
-                         parseInt(matchingToken.amount) || 
-                         parseInt(matchingToken.shares) || 0;
-              }
-            }
-          }
-          
-          // Always use the exact API value for shares - source of truth
-          setUserOwnedShares(shares);
-          setUserHasAccess(shares > 0);
-          return shares;
-        }
-      }
-    } catch (error) {
-      console.error('⚠️ Error checking user shares:', error);
+  // Add a class to body when on mobile to enable fixed trading panel
+  useEffect(() => {
+    if (isMobile) {
+      document.body.classList.add('has-fixed-trading');
+    } else {
+      document.body.classList.remove('has-fixed-trading');
     }
     
-    // Default case: no shares found or error occurred
-    setUserOwnedShares(0);
-    setUserHasAccess(false);
-    return 0;
-  };
-  
-  // Function to fetch current market price data
-  const fetchMarketData = async () => {
-    try {
-      // Use cache-busting query parameter to ensure fresh data
-      const timestamp = Date.now();
-      const response = await fetch(`${serviceUrl}/market/${uuid}/stats?t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      if (response.ok) {
-        const marketData = await response.json();
-        console.log('Fetched market data:', marketData);
-        
-        // Update market stats with real data
-        setMarketStats(marketData);
-        
-        // Set trend based on actual market data
-        if (marketData.percent_change) {
-          if (parseFloat(marketData.percent_change) > 0) {
-            setTrending('up');
-          } else if (parseFloat(marketData.percent_change) < 0) {
-            setTrending('down');
-          } else {
-            setTrending('stable');
-          }
-        }
-        
-        // Set other values from real market data if available
-        if (marketData.volume) setTradeVolume(marketData.volume);
-        if (marketData.user_count) setTradersCount(marketData.user_count);
-        if (marketData.current_price) setNewsValue(marketData.current_price);
-        
-        return marketData;
-      } else {
-        console.error('Failed to fetch market data:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error fetching market data:', error);
-      return null;
-    }
-  };
+    return () => {
+      document.body.classList.remove('has-fixed-trading');
+    };
+  }, [isMobile]);
 
+  // Fetch main news data and related news
   useEffect(() => {
     // Fetch main news data
     fetch(`${serviceUrl}/news/${uuid}`)
       .then(response => response.json())
       .then(data => {
         setNews(data);
-        
-        // Fetch real market data instead of using random values
-        fetchMarketData().catch(error => {
-          console.error('Error in fetchMarketData:', error);
-          
-          // Fallback to random data if we can't get real market data
-          const initialValue = (Math.random() * 9 + 1).toFixed(2);
-          setNewsValue(initialValue);
-          
-          const trendOptions = ['up', 'down', 'stable'];
-          setTrending(trendOptions[Math.floor(Math.random() * trendOptions.length)]);
-          
-          setTradersCount(Math.floor(Math.random() * 450) + 50);
-          setTradeVolume((Math.random() * 4500 + 500).toFixed(2));
-        });
         
         // Fetch related news using the new endpoint
         fetch(`${serviceUrl}/news/${uuid}/related`)
@@ -366,198 +237,17 @@ const NewsDetail = () => {
       .catch(error => console.error('Error fetching news:', error));
   }, [uuid]);
   
-  // Check if user has shares whenever relevant state changes
+  // Check user shares when necessary state changes
   useEffect(() => {
     if (publicKey && news) {
       console.log('Checking user shares due to state change');
-      // This will update userOwnedShares with the actual value from the server
       checkUserShares();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey, news, uuid, showIframe, lastRefreshTime]);
-  
-
-  // Add a class to body when on mobile to enable fixed trading panel
-  useEffect(() => {
-    if (isMobile) {
-      document.body.classList.add('has-fixed-trading');
-    } else {
-      document.body.classList.remove('has-fixed-trading');
-    }
-    
-    return () => {
-      document.body.classList.remove('has-fixed-trading');
-    };
-  }, [isMobile]);
-  
-  // Add WebSocket for real-time position updates
-  useEffect(() => {
-    // Only run if the user is logged in
-    if (!publicKey) return;
-    
-    // Set up WebSocket for positions updates
-    const wsUrl = `${serviceUrl.replace('http', 'ws')}/ws/positions`;
-    const positionsWs = new WebSocket(wsUrl);
-    
-    positionsWs.onopen = () => {
-      // Subscribe to position updates for this market
-      positionsWs.send(JSON.stringify({
-        type: 'subscribe',
-        newsId: uuid,
-        publicKey: publicKey
-      }));
-    };
-    
-    positionsWs.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // If this is a positions update for our market, update shares
-        if (data.type === 'positions_update' && data.data && data.news_id === uuid) {
-          // Extract long shares from the update
-          let longShares = 0;
-          if (Array.isArray(data.data)) {
-            const longPositions = data.data.filter(pos => pos.type === 'long');
-            longShares = longPositions.reduce((total, pos) => total + pos.shares, 0);
-          } else if (typeof data.data === 'object') {
-            longShares = data.data.long_shares || 0;
-          }
-          
-          setUserOwnedShares(longShares);
-          setUserHasAccess(longShares > 0);
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    };
-    
-    positionsWs.onerror = (error) => {
-      console.error('Positions WebSocket error:', error);
-    };
-    
-    // Also set up a periodic check as a fallback
-    const shareUpdateInterval = setInterval(() => {
-      if (publicKey && news) {
-        // Quietly check for updated shares
-        checkUserShares();
-      }
-    }, 10000); // Check every 10 seconds
-    
-    // Clean up on unmount
-    return () => {
-      clearInterval(shareUpdateInterval);
-      positionsWs.close();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey, news, uuid]);
+  }, [publicKey, news, uuid, showIframe, lastRefreshTime, checkUserShares]);
 
   if (!news) {
     return <div>Loading...</div>;
   }
-  
-  // Buy one share to get access to the full article - uses the exact same process as buying from trading panel
-  const buyAccessShare = async () => {
-    if (!publicKey) {
-      alert('Please log in to read the full article');
-      return;
-    }
-    
-    setReadingPurchaseStatus('processing');
-    
-    try {
-      // Get current price from market stats
-      const currentPrice = marketStats?.current_price || 0.02; // Default to 2 cents if no price available
-      
-      // Use the same order payload format as the trading panel
-      const orderPayload = {
-        type: 'MARKET', 
-        side: 'buy',
-        quantity: 1, // Just one share for access
-        price: currentPrice,
-        news_id: uuid,
-        position_effect: 'open'
-      };
-      
-      // Use the same endpoint as the trading panel
-      const endpoint = `${serviceUrl}/market/${uuid}/orders`;
-      
-      console.log('Processing payment for article access:', orderPayload);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Public-Key': publicKey
-        },
-        body: JSON.stringify(orderPayload)
-      });
-      
-      console.log('Trade response status:', response.status);
-      
-      // Parse the response
-      let responseData;
-      try {
-        const responseText = await response.text();
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Error parsing response:', e);
-        responseData = { success: false, message: 'Could not parse response' };
-      }
-      
-      console.log('Trade response:', responseData);
-      
-      if (response.ok && responseData.success) {
-        // Success! Immediately show success
-        setReadingPurchaseStatus('success');
-        setUserOwnedShares(prev => prev + 1);
-        setUserHasAccess(true);
-        
-        // Since the share purchase was successful, immediately show the article
-        // just like the "buy long" button in trading panel
-        showArticle();
-        
-        // Also update position data in the background
-        checkUserShares();
-      } else {
-        // Handle error
-        let errorMessage;
-        if (responseData && responseData.message) {
-          errorMessage = responseData.message;
-        } else if (responseData && responseData.detail) {
-          // Handle array of validation errors (common API format)
-          if (Array.isArray(responseData.detail)) {
-            const errors = responseData.detail.map(err => {
-              if (err.msg) return err.msg;
-              return JSON.stringify(err);
-            });
-            errorMessage = errors.join(', ');
-          } else {
-            errorMessage = typeof responseData.detail === 'object'
-              ? JSON.stringify(responseData.detail)
-              : responseData.detail;
-          }
-        } else {
-          errorMessage = `Payment failed: ${response.status} ${response.statusText}`;
-        }
-        
-        setReadingPurchaseStatus('failed');
-        console.error('Payment failed:', errorMessage);
-        
-        // Show specific error messages based on the error type
-        if (errorMessage.includes('balance') || errorMessage.includes('fund')) {
-          alert('Insufficient funds to purchase access. Please add funds to your account.');
-        } else if (response.status === 401 || response.status === 403) {
-          alert('Authentication required. Please log in to purchase access.');
-        } else {
-          alert(`Failed to process payment: ${errorMessage}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error executing trade:', error);
-      setReadingPurchaseStatus('failed');
-      alert('Network error occurred while processing payment. Please try again later.');
-    }
-  };
 
   const handleUrlClick = async (event) => {
     if (event) event.preventDefault();
@@ -580,7 +270,22 @@ const NewsDetail = () => {
         showArticle();
       } else {
         // User definitely doesn't have access, initiate purchase
-        buyAccessShare();
+        const currentPrice = marketStats?.current_price || 0.02;
+        const result = await buyAccessShare(currentPrice);
+        
+        if (result.success) {
+          // Since the share purchase was successful, immediately show the article
+          showArticle();
+        } else {
+          // Show specific error messages based on the error type
+          if (result.message.includes('balance') || result.message.includes('fund')) {
+            alert('Insufficient funds to purchase access. Please add funds to your account.');
+          } else if (result.message.includes('401') || result.message.includes('403')) {
+            alert('Authentication required. Please log in to purchase access.');
+          } else {
+            alert(`Failed to process payment: ${result.message}`);
+          }
+        }
       }
     }
   };
@@ -591,8 +296,7 @@ const NewsDetail = () => {
     // Force refresh of all data when iframe is closed
     try {
       // Fetch latest share count from server
-      const currentShares = await checkUserShares();
-      console.log('Updated shares after closing iframe:', currentShares);
+      await checkUserShares();
       
       // Fetch latest market data
       await fetchMarketData();
@@ -686,7 +390,6 @@ const NewsDetail = () => {
                         : 'Purchase one share to access the full article. You can also use the trading panel to buy more shares.'}
                   </p>
                 </div>
-                
               </div>
             </div>
           </div>
@@ -698,20 +401,12 @@ const NewsDetail = () => {
               onTradeComplete={async (actionType, shares, price) => {
                 // For buy and sell operations, immediately update the UI to match the TradingPanel state
                 if (actionType === 'buy') {
-                  // Increment shares right away for improved UX
-                  setUserOwnedShares(prevShares => prevShares + parseInt(shares, 10));
-                  setUserHasAccess(true);
+                  // Just force a refresh of positions data to ensure consistency
+                  await checkUserShares();
                 } else if (actionType === 'sell') {
-                  // Decrement shares right away for improved UX
-                  setUserOwnedShares(prevShares => Math.max(0, prevShares - parseInt(shares, 10)));
-                  // Update access status if we've sold all shares
-                  setUserHasAccess(prevShares => prevShares > shares);
+                  // Just force a refresh of positions data to ensure consistency
+                  await checkUserShares();
                 }
-                
-                // The TradingPanel already updated its positions data before calling this callback,
-                // so we can rely on the actionType and shares values to be accurate.
-                // However, we still do a full refresh to ensure consistency with backend:
-                const updatedShares = await checkUserShares();
                 
                 // Fetch updated market data
                 await fetchMarketData();
@@ -724,34 +419,28 @@ const NewsDetail = () => {
             {/* Related News Section */}
             <div className="related-news-sidebar">
               <h3>Similar News</h3>
-              {console.log('Current relatedNews state:', relatedNews)}
               {relatedNews && relatedNews.length > 0 ? (
                 <ul className="related-news-list">
-                  {relatedNews.map(related => {
-                    console.log('Rendering related news item:', related);
-                    return (
-                      <li key={related.uuid} className="related-news-item">
-                        <div className="related-news-source">
-                          <img src={getFaviconUrl(related.canonical || "#", 16)} alt={related.source} className="related-news-favicon" />
-                          <span className="related-news-source-name">{related.source}</span>
-                          <span className="related-news-date">{new Date(related.pub_time).toLocaleDateString()}</span>
-                        </div>
-                        <a href={`/news/${related.uuid}`} className="related-news-title">
-                          {related.title}
-                        </a>
-                      </li>
-                    );
-                  })}
+                  {relatedNews.map(related => (
+                    <li key={related.uuid} className="related-news-item">
+                      <div className="related-news-source">
+                        <img src={getFaviconUrl(related.canonical || "#", 16)} alt={related.source} className="related-news-favicon" />
+                        <span className="related-news-source-name">{related.source}</span>
+                        <span className="related-news-date">{new Date(related.pub_time).toLocaleDateString()}</span>
+                      </div>
+                      <a href={`/news/${related.uuid}`} className="related-news-title">
+                        {related.title}
+                      </a>
+                    </li>
+                  ))}
                 </ul>
               ) : (
-                <p>No similar news available. {JSON.stringify(relatedNews)}</p>
+                <p>No similar news available.</p>
               )}
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Our TradingPanel is already responsive, so we don't need a separate mobile version */}
       
       {showIframe && (
         <div className="iframe-popup">

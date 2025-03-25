@@ -3,43 +3,33 @@ import './MarketActions.css';
 
 /**
  * Enhanced MarketActions component with modern styling and improved UX
+ * Updated with Yup/Nah buttons per recent design
  */
-class MarketActions extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      amount: 1
-    };
-  }
+const MarketActions = ({ onAction, marketStats, loading, connected }) => {
+  const [amount, setAmount] = useState(1);
   
-  handleBuyClick = () => {
-    this.props.onExecuteTrade('buy', this.state.amount);
-  };
-  
-  handleShortClick = () => {
-    this.props.onExecuteTrade('short', this.state.amount);
-  };
-  
-  handleAmountChange = (event) => {
+  const handleAmountChange = (event) => {
     const value = parseInt(event.target.value, 10);
     if (!isNaN(value) && value > 0) {
-      this.setState({ amount: value });
+      setAmount(value);
     }
   };
   
-  incrementAmount = () => {
-    this.setState(prevState => ({ amount: prevState.amount + 1 }));
+  const incrementAmount = () => {
+    setAmount(prevAmount => prevAmount + 1);
   };
   
-  decrementAmount = () => {
-    if (this.state.amount > 1) {
-      this.setState(prevState => ({ amount: prevState.amount - 1 }));
+  const decrementAmount = () => {
+    if (amount > 1) {
+      setAmount(prevAmount => prevAmount - 1);
     }
   };
   
-  renderSentiment = () => {
-    const { marketStats } = this.props;
-    const sentiment = marketStats?.stats?.sentiment || null;
+  const renderSentiment = () => {
+    // Extract sentiment data or use fallback values
+    const sentiment = marketStats?.sentiment || 
+                     marketStats?.stats?.sentiment || 
+                     { long: 50, short: 50 };
     
     if (!sentiment || (sentiment.long === undefined && sentiment.short === undefined)) {
       return null;
@@ -79,94 +69,99 @@ class MarketActions extends React.PureComponent {
     );
   };
   
-  render() {
-    const { marketStats, loading } = this.props;
-    const { amount } = this.state;
-    
-    // Safe access to properties
-    const volume = marketStats?.volume || 0;
-    const userCount = marketStats?.user_count || 0;
-    const marketCap = marketStats?.market_cap || 0;
-    const totalShares = marketStats?.total_shares || 0;
-    
-    return (
-      <div className="market-actions">
-        <h3>Market Trading Actions</h3>
-        
-        <div className="stats-container">
-          <div className="stat-card">
-            <div className="stat-title">
-              <span className="stat-icon">📊</span> Market Cap
-            </div>
-            <div className="stat-value">${marketCap.toFixed(2)}</div>
+  // Safe access to market properties
+  const volume = marketStats?.volume || 0;
+  const userCount = marketStats?.user_count || 0;
+  const marketCap = marketStats?.market_cap || 0;
+  const totalShares = marketStats?.total_shares || 0;
+  
+  return (
+    <div className="market-actions">
+      <h3>Market Trading Actions</h3>
+      
+      <div className="stats-container">
+        <div className="stat-card">
+          <div className="stat-title">
+            <span className="stat-icon">📊</span> Market Cap
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-title">
-              <span className="stat-icon">📈</span> Volume
-            </div>
-            <div className="stat-value">${volume.toFixed(2)}</div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-title">
-              <span className="stat-icon">👥</span> Traders
-            </div>
-            <div className="stat-value">{userCount}</div>
-          </div>
-          
-          <div className="stat-card">
-            <div className="stat-title">
-              <span className="stat-icon">🔢</span> Shares
-              <span className="info-tooltip" data-tooltip="Issuance increases as price crosses tiers (doubling shares per tier)">ⓘ</span>
-            </div>
-            <div className="stat-value">{totalShares.toLocaleString()}</div>
-          </div>
+          <div className="stat-value">${marketCap.toFixed(2)}</div>
         </div>
         
-        {this.renderSentiment()}
-        
-        <div className="quantity-selector">
-          <div className="quantity-label">Trade Quantity</div>
-          <div className="quantity-controls">
-            <button 
-              className="quantity-button" 
-              onClick={this.decrementAmount}
-              disabled={amount <= 1}
-            >–</button>
-            <input
-              type="number"
-              className="quantity-input"
-              value={amount}
-              onChange={this.handleAmountChange}
-              min="1"
-            />
-            <button 
-              className="quantity-button" 
-              onClick={this.incrementAmount}
-            >+</button>
+        <div className="stat-card">
+          <div className="stat-title">
+            <span className="stat-icon">📈</span> Volume
           </div>
+          <div className="stat-value">${volume.toFixed(2)}</div>
         </div>
         
-        <div className="action-buttons">
-          <button 
-            onClick={this.handleBuyClick}
-            disabled={loading}
-            className="market-buy-button"
-          >
-            ▲ Buy Long ({amount} shares)
-          </button>
-          <button 
-            onClick={this.handleShortClick}
-            disabled={loading}
-            className="market-short-button"
-          >
-            ▼ Sell Short ({amount} shares)
-          </button>
+        <div className="stat-card">
+          <div className="stat-title">
+            <span className="stat-icon">👥</span> Traders
+          </div>
+          <div className="stat-value">{userCount}</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-title">
+            <span className="stat-icon">🔢</span> Shares
+            <span className="info-tooltip" data-tooltip="Issuance increases as price crosses tiers (doubling shares per tier)">ⓘ</span>
+          </div>
+          <div className="stat-value">{totalShares.toLocaleString()}</div>
         </div>
       </div>
-    );
-  }
-}
+      
+      {renderSentiment()}
+      
+      <div className="quantity-selector">
+        <div className="quantity-label">Trade Quantity</div>
+        <div className="quantity-controls">
+          <button 
+            className="quantity-button" 
+            onClick={decrementAmount}
+            disabled={amount <= 1 || loading}
+          >–</button>
+          <input
+            type="number"
+            className="quantity-input"
+            value={amount}
+            onChange={handleAmountChange}
+            min="1"
+            disabled={loading}
+          />
+          <button 
+            className="quantity-button" 
+            onClick={incrementAmount}
+            disabled={loading}
+          >+</button>
+        </div>
+      </div>
+      
+      <div className="action-buttons">
+        <button 
+          onClick={() => onAction('buy', amount)}
+          disabled={loading}
+          className="buy-long-button"
+        >
+          <span className="button-direction">👍</span> Yup ({amount})
+        </button>
+        
+        <button 
+          onClick={() => onAction('short', amount)}
+          disabled={loading}
+          className="sell-short-button"
+        >
+          <span className="button-direction">👎</span> Nah ({amount}) 
+        </button>
+      </div>
+      
+      {!connected && (
+        <div className="connection-status">
+          <span className="status-indicator offline"></span>
+          Using manual refresh mode
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default MarketActions;

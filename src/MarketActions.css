@@ -22,8 +22,9 @@
   margin-top: 1.5rem;
 }
 
-.market-buy-button,
-.market-short-button {
+/* Buttons with Yup/Nah styling */
+.buy-long-button,
+.sell-short-button {
   flex: 1;
   padding: 0.8rem 1.2rem;
   border-radius: 8px;
@@ -38,36 +39,42 @@
   gap: 8px;
 }
 
-.market-buy-button {
+.buy-long-button {
   background-color: #00c853;
   color: white;
   border: none;
 }
 
-.market-buy-button:hover:not(:disabled) {
+.buy-long-button:hover:not(:disabled) {
   background-color: #00b248;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.market-short-button {
+.sell-short-button {
   background-color: white;
   color: #ff5252;
   border: 1px solid #ff5252;
 }
 
-.market-short-button:hover:not(:disabled) {
+.sell-short-button:hover:not(:disabled) {
   background-color: #fff1f1;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.market-buy-button:disabled,
-.market-short-button:disabled {
+.buy-long-button:disabled,
+.sell-short-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.button-direction {
+  font-size: 1.2rem;
+  display: inline-block;
+  margin-right: 3px;
 }
 
 .stats-container {
@@ -253,9 +260,41 @@
   transition: all 0.2s;
 }
 
-.quantity-button:hover {
+.quantity-button:hover:not(:disabled) {
   background-color: rgba(0, 0, 0, 0.05);
   color: #333;
+}
+
+.quantity-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Connection status indicator */
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.8rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-indicator.online {
+  background-color: #00c853;
+  box-shadow: 0 0 5px rgba(0, 200, 83, 0.5);
+}
+
+.status-indicator.offline {
+  background-color: #ff5252;
+  box-shadow: 0 0 5px rgba(255, 82, 82, 0.5);
 }
 
 /* Mobile responsive */

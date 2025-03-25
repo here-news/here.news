@@ -6,44 +6,36 @@ import './PriceBar.css';
  * Modern PriceBar Component that shows a price indicator and market data
  * 
  * @param {Object} props Component props
- * @param {number} props.currentPrice Current market price in cents (e.g. 5.2 for 5.2¢)
- * @param {number} props.previousPrice Previous market price in cents for comparison
- * @param {Array} props.positions User positions with price in cents (e.g. [{price: 4.5, shares: 10, type: 'long'}])
+ * @param {number} props.price Current market price in cents (e.g. 5.2 for 5.2¢)
+ * @param {number} props.volume Trading volume amount
+ * @param {string} props.percentChange Percentage change as string (e.g. "5.2")
+ * @param {number} props.userCount Number of traders
  * @param {Array} props.issuanceTiers Price thresholds where new shares are issued
  */
 const PriceBar = ({ 
-  currentPrice = 5, 
-  previousPrice = 5,
-  positions = [],
-  issuanceTiers = [],
-  connected = false
+  price = 5, 
+  volume = 0,
+  percentChange = "0.0",
+  userCount = 0,
+  issuanceTiers = []
 }) => {
   const { userSocketConnected } = useUser();
   // Use a ref to keep track of the chart container for sizing
   const chartRef = useRef(null);
-  
-  // Chart generation will go here for MiniPriceChart integration
-  useEffect(() => {
-    if (chartRef.current) {
-      // In the future, this is where we would initialize or update a chart library
-      // For now, we'll just use a placeholder
-    }
-  }, [currentPrice]);
   
   // For pricing, we consider a range from 0 to 15 cents
   const minPrice = 0;
   const maxPrice = 15;
   
   // Calculate the percentage position for the current price
-  const pricePosition = Math.min(Math.max((currentPrice - minPrice) / (maxPrice - minPrice) * 100, 0), 100);
+  const pricePosition = Math.min(Math.max((price - minPrice) / (maxPrice - minPrice) * 100, 0), 100);
   
   // Determine price change direction and formatting
-  const priceChange = currentPrice - previousPrice;
-  const priceChangePercent = previousPrice ? (priceChange / previousPrice) * 100 : 0;
-  const isPriceUp = priceChange >= 0;
+  const parsedChange = parseFloat(percentChange);
+  const isPriceUp = parsedChange >= 0;
   
-  // Calculate change indicator width based on the price difference
-  const changeWidth = Math.min(Math.abs(priceChange) / (maxPrice - minPrice) * 100, pricePosition);
+  // Calculate change indicator width based on relative percentage change (for visualization)
+  const changeWidth = Math.min(Math.abs(parsedChange / 10), 25); // Cap at 25% of the bar width
   const changeStartPosition = isPriceUp ? pricePosition - changeWidth : pricePosition;
   
   // Create legend markers at 0, 5, 10, 15 cents
@@ -55,31 +47,29 @@ const PriceBar = ({
       <div className="price-header">
         <div className="current-price-container">
           <span className="current-price">
-            {currentPrice.toFixed(1)}¢
+            {price.toFixed(1)}¢
             {/* Small connection indicator dot */}
-            <span className={`connection-dot ${connected || userSocketConnected ? 'connected pulse-fast' : 'disconnected pulse-slow'}`} 
-                  title={connected || userSocketConnected ? 'Real-time data' : 'Auto-refresh data'}>
+            <span className={`connection-dot ${userSocketConnected ? 'connected pulse-fast' : 'disconnected pulse-slow'}`} 
+                  title={userSocketConnected ? 'Real-time data' : 'Auto-refresh data'}>
             </span>
           </span>
           <div className={`price-change ${isPriceUp ? 'price-up' : 'price-down'}`}>
             <span className="price-icon">{isPriceUp ? '▲' : '▼'}</span>
-            <span>{Math.abs(priceChange).toFixed(1)}¢ ({Math.abs(priceChangePercent).toFixed(1)}%)</span>
+            <span>{isPriceUp ? '+' : ''}{percentChange}%</span>
           </div>
         </div>
         
-        {/* Market Sentiment */}
-        <div className="sentiment-container">
-          <div className="sentiment-label">Market Sentiment</div>
-          <div className="sentiment-bar">
-            <div className="sentiment-long" style={{ width: '65%' }}></div>
-            <div className="sentiment-short" style={{ width: '35%' }}></div>
+        {/* Volume & traders */}
+        <div className="market-metrics">
+          <div className="metric">
+            <span className="metric-label">Volume:</span>
+            <span className="metric-value">${volume.toFixed(2)}</span>
+          </div>
+          <div className="metric">
+            <span className="metric-label">Traders:</span>
+            <span className="metric-value">{userCount}</span>
           </div>
         </div>
-      </div>
-      
-      {/* Mini Chart (Placeholder) */}
-      <div className="chart-container" ref={chartRef}>
-        <div className="mini-chart"></div>
       </div>
       
       {/* Price Range Bar */}
@@ -131,41 +121,6 @@ const PriceBar = ({
                 style={{ left: `${markerPosition}%` }}
               >
                 <div className="tooltip">{tier.description}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      
-      {/* Position markers */}
-      {positions && positions.length > 0 && (
-        <div className="position-markers">
-          {positions.map((position, index) => {
-            const markerPosition = ((position.price - minPrice) / (maxPrice - minPrice)) * 100;
-            const roi = currentPrice - position.price;
-            const roiPercent = position.price ? (roi / position.price) * 100 : 0;
-            
-            // For short positions, the ROI is inverted
-            const adjustedRoi = position.type === 'short' ? -roi : roi;
-            const adjustedRoiPercent = position.type === 'short' ? -roiPercent : roiPercent;
-            const isPositive = adjustedRoi >= 0;
-            
-            return (
-              <div 
-                key={`position-${index}`} 
-                className={`position-marker ${position.type}`}
-                style={{ left: `${markerPosition}%` }}
-              >
-                {position.type === 'long' ? '▲' : '▼'}
-                <div className="tooltip">
-                  {position.type === 'long' ? 'Long' : 'Short'} @ {position.price.toFixed(1)}¢
-                  <br />
-                  {position.shares} shares
-                  <br />
-                  ROI: <span className={isPositive ? 'positive' : 'negative'}>
-                    {isPositive ? '+' : ''}{adjustedRoiPercent.toFixed(1)}%
-                  </span>
-                </div>
               </div>
             );
           })}

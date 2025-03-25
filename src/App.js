@@ -11,15 +11,12 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { UserProvider } from './UserContext';
-import Story from './Story'; // Ensure the correct path to your Story component
 import News from './News';
 import NewsDetail from './NewsDetail'; // New separate component for news details
 import Profile from './Profile';
 import Home from './Home';
 
-import Test from './Test';
-
-// Custom component to handle body class based on route
+                                                                                                                                                                                                                                                                                                                                  // Custom component to handle body class based on route
 const RouteBasedBodyClass = () => {
   const location = useLocation();
   
@@ -47,12 +44,10 @@ const App = () => {
       <Router>
         <RouteBasedBodyClass />
         <Routes>
-          <Route path="/story/:storyId" element={<Story />} />
           <Route path="/profile/:section" element={<Profile />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/news/:uuid" element={<NewsDetail />} />
           <Route path="/" element={<Home />} />
-          <Route path="/test" element={<Test/>} />
           {/* Add other routes as needed */}
         </Routes>
       </Router>
