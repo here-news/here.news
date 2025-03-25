@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="169.33337mm"
+   height="67.733246mm"
+   viewBox="0 0 169.33337 67.733246"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb, 2024-10-09)"
+   sodipodi:docname="hn2_logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.7349537"
+     inkscape:cx="318.3874"
+     inkscape:cy="127.2189"
+     inkscape:window-width="1854"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g1"
+     showgrid="false" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-20.373,-114.56468)">
+    <!-- Left Ear -->
+    <!-- Right Ear -->
+    <!-- Left Ear -->
+    <!-- Right Ear -->
+    <!-- Left Ear -->
+    <!-- Right Ear -->
+    <g
+       id="g1"
+       transform="matrix(12.8,0,0,12.8,-1239.467,-1751.4887)"
+       style="stroke-width:0.078125">
+      <path
+         d="m 99.747917,151.07708 -1.322917,-5.29166 6.61458,2.64583 z"
+         fill="#2a2a2a"
+         id="path1"
+         style="stroke-width:0.0206705;fill:#2b2b2b;fill-opacity:1" />
+      <path
+         d="m 110.33125,151.07708 1.32292,-5.29166 -6.61459,2.64583 z"
+         fill="#2a2a2a"
+         id="path2"
+         style="stroke-width:0.0206705;fill:#2b2b2b;fill-opacity:1" />
+    </g>
+  </g>
+</svg>

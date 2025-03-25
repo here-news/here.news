@@ -135,25 +135,25 @@
 }
 
 .buy-long-button {
-  background-color: #338833;
+  background-color: #33aa33;
   color: white;
   border: none;
 }
 
 .buy-long-button:hover:not(:disabled) {
-  background-color: #00bb33;
+  background-color: #33dd33;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   text-decoration: none;
 }
 
 .sell-short-button {
-  background-color: #883333;
+  background-color: #aa3333;
   color: white;
   border: none;
 }
 
 .sell-short-button:hover:not(:disabled) {
-  background-color: #e64a4a;
+  background-color: #dd3333;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   text-decoration: none;
 }
