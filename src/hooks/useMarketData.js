@@ -1,5 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import serviceUrl from '../config';
+
+// Simple debounce function
+function debounce(func, wait) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 /**
  * Custom hook for fetching and managing market data
@@ -89,13 +98,44 @@ const useMarketData = (newsId) => {
     setTradeVolume((Math.random() * 4500 + 500).toFixed(2));
   }, []);
   
+  // Tracking last check time to avoid excessive calls
+  const lastFetchRef = useRef(0);
+  
+  // Create a debounced version of fetchMarketData
+  const debouncedFetchMarketData = useCallback(
+    debounce(() => {
+      if (newsId) {
+        console.log('Debounced market data fetch');
+        fetchMarketData();
+      }
+    }, 1000), // 1 second debounce
+    [newsId, fetchMarketData]
+  );
+  
+  // Throttled version to use in websocket handlers
+  const throttledFetchMarketData = useCallback(() => {
+    const now = Date.now();
+    // Only proceed if at least 5 seconds have passed since last fetch
+    if (now - lastFetchRef.current > 5000) {
+      lastFetchRef.current = now;
+      fetchMarketData();
+    } else {
+      // Otherwise use the debounced version
+      debouncedFetchMarketData();
+    }
+  }, [fetchMarketData, debouncedFetchMarketData]);
+  
   // Initial fetch when component mounts or newsId changes
   useEffect(() => {
     if (newsId) {
       fetchMarketData();
+      lastFetchRef.current = Date.now(); // Mark the fetch time
       
-      // Set up interval to periodically refresh market data
-      const refreshInterval = setInterval(fetchMarketData, 30000); // Refresh every 30 seconds
+      // Set up interval to periodically refresh market data - longer interval to reduce API load
+      const refreshInterval = setInterval(() => {
+        fetchMarketData();
+        lastFetchRef.current = Date.now(); // Mark the fetch time
+      }, 20000); // Refresh every 60 seconds (increased from 30s)
       
       return () => clearInterval(refreshInterval);
     }
@@ -111,6 +151,7 @@ const useMarketData = (newsId) => {
     error,
     lastUpdated,
     fetchMarketData,
+    throttledFetchMarketData, // Throttled version for event handlers
     setTrending, // Exposed for direct manipulation if needed
     setNewsValue // Exposed for direct manipulation if needed
   };

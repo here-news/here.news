@@ -22,8 +22,8 @@ const useTradingActions = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Execute a trade (buy, sell, short, short_close)
-  const executeTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions, positionData) => {
+  // Common validation logic used by both trade types
+  const validateTradeParams = useCallback((shares, currentPrice) => {
     if (!publicKey || !newsId) {
       setError('Authentication required. Please log in to trade.');
       return false;
@@ -36,6 +36,88 @@ const useTradingActions = ({
 
     if (!currentPrice || isNaN(parseFloat(currentPrice)) || parseFloat(currentPrice) <= 0) {
       setError('Invalid price information. Please try again later.');
+      return false;
+    }
+
+    return true;
+  }, [publicKey, newsId]);
+
+  // Handle API request and response
+  const processTradeRequest = useCallback(async (orderPayload, actionType, sharesInt) => {
+    try {
+      const endpoint = `${serviceUrl}/market/${newsId}/orders`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': publicKey
+        },
+        body: JSON.stringify(orderPayload)
+      });
+      
+      let responseData;
+      try {
+        const responseText = await response.text();
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error parsing trade response:', e);
+        responseData = { success: false, message: 'Could not parse server response' };
+      }
+      
+      if (response.ok && responseData.success) {
+        setSuccess(`Successfully ${actionType === 'buy' ? 'bought' : 
+                                actionType === 'sell' ? 'sold' : 
+                                actionType === 'short' ? 'shorted' : 
+                                'closed short position for'} ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
+        
+        // Refresh positions after successful trade                      
+        if (refreshPositions) {
+          await refreshPositions();
+        }
+        
+        // Refresh market data 
+        if (refreshMarketData) {
+          await refreshMarketData();
+        }
+        
+        // Call the onTradeComplete callback if provided
+        if (onTradeComplete) {
+          onTradeComplete(actionType, sharesInt, parseFloat(orderPayload.price));
+        }
+        
+        setLoading(false);
+        return true;
+      } else {
+        // Handle error
+        let errorMessage;
+        if (responseData && responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData && responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+          } else {
+            errorMessage = responseData.detail;
+          }
+        } else {
+          errorMessage = `Trade failed: ${response.status} ${response.statusText}`;
+        }
+        
+        setError(errorMessage);
+        setLoading(false);
+        return false;
+      }
+    } catch (err) {
+      console.error('Error executing trade:', err);
+      setError(`Error: ${err.message}`);
+      setLoading(false);
+      return false;
+    }
+  }, [publicKey, newsId, onTradeComplete, refreshPositions, refreshMarketData]);
+
+  // Execute a regular trade (buy/sell)
+  const executeRegularTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions, positionData) => {
+    if (!validateTradeParams(shares, currentPrice)) {
       return false;
     }
 
@@ -65,7 +147,7 @@ const useTradingActions = ({
         }
       }
       
-      // Check if user has enough balance for buy or enough shares for short/sell
+      // Check if user has enough balance for buy or enough shares for sell
       if (actionType === 'buy') {
         const totalCost = sharesInt * priceFloat;
         if (userData.balance < totalCost) {
@@ -98,7 +180,43 @@ const useTradingActions = ({
           setLoading(false);
           return false;
         }
-      } else if (actionType === 'short') {
+      }
+      
+      // Map to API expected format for regular trades
+      const orderPayload = {
+        type: 'MARKET', 
+        side: actionType, // 'buy' or 'sell'
+        quantity: sharesInt,
+        price: priceFloat,
+        news_id: newsId,
+        position_effect: actionType === 'buy' ? 'open' : 'close'
+      };
+      
+      return await processTradeRequest(orderPayload, actionType, sharesInt);
+    } catch (err) {
+      console.error('Error executing regular trade:', err);
+      setError(`Error: ${err.message}`);
+      setLoading(false);
+      return false;
+    }
+  }, [newsId, validateTradeParams, processTradeRequest]);
+
+  // Execute a short trade (short/short_close)
+  const executeShortTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions) => {
+    if (!validateTradeParams(shares, currentPrice)) {
+      return false;
+    }
+
+    // Convert to numbers to ensure we're using correct types
+    const sharesInt = parseInt(shares, 10);
+    const priceFloat = parseFloat(currentPrice);
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      if (actionType === 'short') {
         // For shorting, check if market price is valid for shorting
         if (priceFloat <= 0.01) {
           setError('Cannot short this market at this time. Please try again later.');
@@ -113,6 +231,79 @@ const useTradingActions = ({
           setLoading(false);
           return false;
         }
+        
+        // Use the dedicated short position endpoint for shorting
+        const shortRequest = {
+          shares: sharesInt,
+          price: priceFloat
+        };
+        
+        try {
+          const endpoint = `${serviceUrl}/market/${newsId}/short`;
+          
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Public-Key': publicKey
+            },
+            body: JSON.stringify(shortRequest)
+          });
+          
+          let responseData;
+          try {
+            const responseText = await response.text();
+            responseData = JSON.parse(responseText);
+          } catch (e) {
+            console.error('Error parsing short response:', e);
+            responseData = { success: false, message: 'Could not parse server response' };
+          }
+          
+          if (response.ok && (responseData.success || responseData.id)) {
+            setSuccess(`Successfully shorted ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
+            
+            // Refresh positions after successful trade                      
+            if (refreshPositions) {
+              await refreshPositions();
+            }
+            
+            // Refresh market data 
+            if (refreshMarketData) {
+              await refreshMarketData();
+            }
+            
+            // Call the onTradeComplete callback if provided
+            if (onTradeComplete) {
+              onTradeComplete(actionType, sharesInt, priceFloat);
+            }
+            
+            setLoading(false);
+            return true;
+          } else {
+            // Handle error
+            let errorMessage;
+            if (responseData && responseData.message) {
+              errorMessage = responseData.message;
+            } else if (responseData && responseData.detail) {
+              if (Array.isArray(responseData.detail)) {
+                errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+              } else {
+                errorMessage = responseData.detail;
+              }
+            } else {
+              errorMessage = `Short trade failed: ${response.status} ${response.statusText}`;
+            }
+            
+            setError(errorMessage);
+            setLoading(false);
+            return false;
+          }
+        } catch (err) {
+          console.error('Error executing short position:', err);
+          setError(`Error: ${err.message}`);
+          setLoading(false);
+          return false;
+        }
       } else if (actionType === 'short_close') {
         // Check if user has any short positions to close
         const hasShortPositions = userPositions.some(pos => pos.type === 'short');
@@ -121,119 +312,140 @@ const useTradingActions = ({
           setLoading(false);
           return false;
         }
-      }
-      
-      // Map action type to order type
-      const orderTypeMap = {
-        'buy': 'MARKET',
-        'sell': 'MARKET',
-        'short': 'MARKET',
-        'short_close': 'MARKET'
-      };
-      
-      // Map action type to API 'side' parameter
-      const sideMap = {
-        'buy': 'buy',
-        'sell': 'sell',
-        'short': 'sell', // API uses 'sell' for both regular selling and shorting
-        'short_close': 'buy' // API uses 'buy' for closing short positions
-      };
-      
-      // Map action type to position effect
-      const positionEffectMap = {
-        'buy': 'open',
-        'sell': 'close',
-        'short': 'open',
-        'short_close': 'close'
-      };
-      
-      // Map to API expected format
-      const orderPayload = {
-        type: orderTypeMap[actionType], 
-        side: sideMap[actionType],
-        quantity: sharesInt,
-        price: priceFloat,
-        news_id: newsId,
-        position_effect: positionEffectMap[actionType]
-      };
-      
-      // Add short_order flag for shorting
-      if (actionType === 'short') {
-        orderPayload.short_order = true;
-      }
-      
-      const endpoint = `${serviceUrl}/market/${newsId}/orders`;
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Public-Key': publicKey
-        },
-        body: JSON.stringify(orderPayload)
-      });
-      
-      let responseData;
-      try {
-        const responseText = await response.text();
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Error parsing trade response:', e);
-        responseData = { success: false, message: 'Could not parse server response' };
-      }
-      
-      if (response.ok && responseData.success) {
-        setSuccess(`Successfully ${actionType === 'buy' ? 'bought' : 
-                                  actionType === 'sell' ? 'sold' : 
-                                  actionType === 'short' ? 'shorted' : 
-                                  'closed short position for'} ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
         
-        // Refresh positions after successful trade                      
-        if (refreshPositions) {
-          await refreshPositions();
-        }
+        // Find the short position ID
+        let shortPositionId = null;
         
-        // Refresh market data 
-        if (refreshMarketData) {
-          await refreshMarketData();
-        }
-        
-        // Call the onTradeComplete callback if provided
-        if (onTradeComplete) {
-          onTradeComplete(actionType, sharesInt, priceFloat);
-        }
-        
-        setLoading(false);
-        return true;
-      } else {
-        // Handle error
-        let errorMessage;
-        if (responseData && responseData.message) {
-          errorMessage = responseData.message;
-        } else if (responseData && responseData.detail) {
-          if (Array.isArray(responseData.detail)) {
-            errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-          } else {
-            errorMessage = responseData.detail;
+        try {
+          // Try to get user's shorts to find the right one to close
+          const userShortsEndpoint = `${serviceUrl}/me/shorts`;
+          const userShortsResponse = await fetch(userShortsEndpoint, {
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Public-Key': publicKey
+            }
+          });
+          
+          if (userShortsResponse.ok) {
+            const userShorts = await userShortsResponse.json();
+            if (userShorts && Array.isArray(userShorts) && userShorts.length > 0) {
+              // Find open shorts for this news ID
+              const openShorts = userShorts.filter(s => 
+                s.status === 'OPEN' && 
+                (s.news_id === newsId || s.market_id === newsId)
+              );
+              
+              if (openShorts.length > 0) {
+                shortPositionId = openShorts[0].id;
+              }
+            }
           }
-        } else {
-          errorMessage = `Trade failed: ${response.status} ${response.statusText}`;
+        } catch (error) {
+          console.error("Error fetching user shorts:", error);
         }
         
-        setError(errorMessage);
-        setLoading(false);
-        return false;
+        if (!shortPositionId) {
+          setError('No open short positions found for this market.');
+          setLoading(false);
+          return false;
+        }
+        
+        // Close the short position
+        const closeRequest = {
+          price: priceFloat,
+          shares: sharesInt
+        };
+        
+        try {
+          const endpoint = `${serviceUrl}/shorts/${shortPositionId}/close`;
+          
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Public-Key': publicKey
+            },
+            body: JSON.stringify(closeRequest)
+          });
+          
+          let responseData;
+          try {
+            const responseText = await response.text();
+            responseData = JSON.parse(responseText);
+          } catch (e) {
+            console.error('Error parsing short close response:', e);
+            responseData = { success: false, message: 'Could not parse server response' };
+          }
+          
+          if (response.ok && (responseData.success || responseData.id)) {
+            setSuccess(`Successfully closed short position for ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
+            
+            // Refresh positions after successful trade                      
+            if (refreshPositions) {
+              await refreshPositions();
+            }
+            
+            // Refresh market data 
+            if (refreshMarketData) {
+              await refreshMarketData();
+            }
+            
+            // Call the onTradeComplete callback if provided
+            if (onTradeComplete) {
+              onTradeComplete(actionType, sharesInt, priceFloat);
+            }
+            
+            setLoading(false);
+            return true;
+          } else {
+            // Handle error
+            let errorMessage;
+            if (responseData && responseData.message) {
+              errorMessage = responseData.message;
+            } else if (responseData && responseData.detail) {
+              if (Array.isArray(responseData.detail)) {
+                errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+              } else {
+                errorMessage = responseData.detail;
+              }
+            } else {
+              errorMessage = `Short close failed: ${response.status} ${response.statusText}`;
+            }
+            
+            setError(errorMessage);
+            setLoading(false);
+            return false;
+          }
+        } catch (err) {
+          console.error('Error closing short position:', err);
+          setError(`Error: ${err.message}`);
+          setLoading(false);
+          return false;
+        }
       }
+      
+      return false;
     } catch (err) {
-      console.error('Error executing trade:', err);
+      console.error('Error executing short trade:', err);
       setError(`Error: ${err.message}`);
       setLoading(false);
       return false;
     }
-  }, [publicKey, newsId, onTradeComplete, refreshPositions, refreshMarketData]);
+  }, [newsId, publicKey, validateTradeParams, refreshPositions, refreshMarketData, onTradeComplete]);
+
+  // Legacy method to maintain backward compatibility
+  const executeTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions, positionData) => {
+    if (actionType === 'short' || actionType === 'short_close') {
+      return executeShortTrade(actionType, shares, currentPrice, userData, userPositions);
+    } else {
+      return executeRegularTrade(actionType, shares, currentPrice, userData, userPositions, positionData);
+    }
+  }, [executeRegularTrade, executeShortTrade]);
 
   return {
     executeTrade,
+    executeRegularTrade, // New method for buy/sell
+    executeShortTrade,   // New method for short/short_close
     loading,
     error,
     success,

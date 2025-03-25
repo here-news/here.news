@@ -135,27 +135,27 @@
 }
 
 .buy-long-button {
-  background-color: #00c853;
+  background-color: #338833;
   color: white;
   border: none;
 }
 
 .buy-long-button:hover:not(:disabled) {
-  background-color: #00b248;
-  transform: translateY(-2px);
+  background-color: #00bb33;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  text-decoration: none;
 }
 
 .sell-short-button {
-  background-color: white;
-  color: #ff5252;
-  border: 1px solid #ff5252;
+  background-color: #883333;
+  color: white;
+  border: none;
 }
 
 .sell-short-button:hover:not(:disabled) {
-  background-color: #fff1f1;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #e64a4a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  text-decoration: none;
 }
 
 .button-direction {

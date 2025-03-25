@@ -1,6 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '../UserContext';
 import serviceUrl from '../config';
+
+// Simple debounce function
+function debounce(func, wait) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 /**
  * Custom hook for managing user position data and share ownership
@@ -250,19 +259,49 @@ const useUserPositions = (newsId) => {
     setLastUpdated(new Date());
   }, []);
 
+  // Create a debounced version of checkUserShares
+  const debouncedCheckShares = useCallback(
+    debounce(() => {
+      if (publicKey && newsId) {
+        console.log('Debounced check for user shares');
+        checkUserShares();
+      }
+    }, 1000), // 1 second debounce
+    [publicKey, newsId, checkUserShares]
+  );
+  
+  // Tracking last check time to avoid excessive calls
+  const lastCheckRef = useRef(0);
+  
+  // Throttled version to use in websocket handlers
+  const throttledCheckShares = useCallback(() => {
+    const now = Date.now();
+    // Only proceed if at least 5 seconds have passed since last check
+    if (now - lastCheckRef.current > 5000) {
+      lastCheckRef.current = now;
+      checkUserShares();
+    } else {
+      // Otherwise use the debounced version
+      debouncedCheckShares();
+    }
+  }, [checkUserShares, debouncedCheckShares]);
+  
   // Check if user has shares whenever relevant state changes
   useEffect(() => {
     if (publicKey && newsId) {
       console.log('Checking user shares due to dependencies change');
       checkUserShares();
+      lastCheckRef.current = Date.now(); // Mark the check time
       
       // Set up interval to periodically refresh shares data as a fallback
+      // But use a longer interval to reduce API load
       const shareUpdateInterval = setInterval(() => {
         if (publicKey && newsId) {
           // Quietly check for updated shares
           checkUserShares();
+          lastCheckRef.current = Date.now(); // Mark the check time
         }
-      }, 30000); // Check every 30 seconds
+      }, 30000); 
       
       return () => clearInterval(shareUpdateInterval);
     } else {
@@ -288,6 +327,7 @@ const useUserPositions = (newsId) => {
     userPositions,
     positionData,
     checkUserShares,
+    throttledCheckShares, // Throttled version for event handlers
     buyAccessShare,
     updatePositions,
     setReadingPurchaseStatus
