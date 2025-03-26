@@ -103,22 +103,30 @@ const NewsDetail = () => {
     setReadingPurchaseStatus
   } = useUserPositions(uuid);
   
-  // Handle WebSocket positions updates
-  const handleWebSocketMessage = (message) => {
-    // If this is a positions update for our market, update shares
-    if (message?.type === 'positions_update' && message?.data && message?.news_id === uuid) {
-      // Just call checkUserShares to update UI - no need to manually calculate shares
-      checkUserShares();
-    }
-  };
-  
   // Initialize WebSocket connection using the shared WebSocketManager
-  useWebSocketConnection({
-    endpoint: '/ws/positions',
+  const websocket = useWebSocketConnection({
+    endpoint: '/ws/user',
     newsId: uuid,
-    publicKey,
-    onMessage: handleWebSocketMessage
+    publicKey
   });
+
+  // Register for specific message types
+  useEffect(() => {
+    if (!websocket.isConnected) return;
+    
+    // Register for positions updates
+    const unregisterPositionUpdates = websocket.registerForMessageType('positions_update', (data) => {
+      if (data && data.news_id === uuid) {
+        // Just call checkUserShares to update UI - no need to manually calculate shares
+        checkUserShares();
+      }
+    });
+    
+    // Cleanup on unmount or reconnect
+    return () => {
+      unregisterPositionUpdates();
+    };
+  }, [websocket.isConnected, websocket.registerForMessageType, uuid, checkUserShares]);
 
   let genre_emoji_mapping = { 
     "News": "📰", 
@@ -168,11 +176,9 @@ const NewsDetail = () => {
         // Fetch related news using the new endpoint
         fetch(`${serviceUrl}/news/${uuid}/related`)
           .then(response => {
-            console.log('Related news response status:', response.status);
             return response.json();
           })
           .then(data => { 
-            console.log('Related news data from new endpoint:', data);
             // Check if data is directly an array or if it's an object with an array property
             if (Array.isArray(data)) {
               setRelatedNews(data);
@@ -181,7 +187,6 @@ const NewsDetail = () => {
               const possibleArrayProps = ['data', 'results', 'items', 'news', 'relatedNews'];
               for (const prop of possibleArrayProps) {
                 if (Array.isArray(data[prop])) {
-                  console.log(`Found related news in "${prop}" property`);
                   setRelatedNews(data[prop]);
                   return;
                 }

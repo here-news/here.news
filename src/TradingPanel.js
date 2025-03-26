@@ -17,7 +17,14 @@ function debounce(func, wait) {
 
 // Enhanced version with custom hooks for better organization and reusability
 const TradingPanel = ({ newsId, onTradeComplete }) => {
-  const { publicKey, userInfo, userSocketConnected } = useUser();
+  // Add updateUserBalance to the destructured values from useUser
+  const { 
+    publicKey, 
+    userInfo, 
+    userSocketConnected,
+    updateUserBalance // Add this line 
+  } = useUser();
+  
   const [previousPrice, setPreviousPrice] = useState(0);
   const [orderBook, setOrderBook] = useState({ bids: [], asks: [] });
   const [recentTrades, setRecentTrades] = useState([]);
@@ -152,43 +159,98 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     
     switch(message.type) {
       case 'user_update':
+      case 'balance':
       case 'balance_update':
-        // Update user data on balance changes - using debounced version
-        debouncedUpdateUserData();
+        console.log("Balance update message detected");
+        if (message.data && typeof message.data.quote_balance !== 'undefined') {
+          console.log("Calling updateUserBalance with:", message.data.quote_balance);
+          updateUserBalance(message.data.quote_balance);
+        } else if (typeof message.quote_balance !== 'undefined') {
+          console.log("Calling updateUserBalance with:", message.quote_balance);
+          updateUserBalance(message.quote_balance);
+        }
         break;
-        
-      case 'position_update':
+       
       case 'positions_update':
-        // Refresh positions through our hook - using throttled version
-        throttledCheckShares();
+        // Refresh positions through our hook
+        checkUserShares();
         break;
         
       default:
         // Check common patterns in different message formats
         if (message.user_id === publicKey || 
             (message.data && message.data.user_id === publicKey)) {
-          // This message is for the current user, update data - using debounced/throttled versions
-          debouncedUpdateUserData();
-          throttledCheckShares();
+          // This message is for the current user, update data
+          updateUserData();
+          checkUserShares();
+          
+          // Also check for balance updates in various formats
+          if (message.data && typeof message.data.quote_balance !== 'undefined') {
+            updateUserBalance(message.data.quote_balance);
+          } else if (typeof message.quote_balance !== 'undefined') {
+            updateUserBalance(message.quote_balance);
+          }
         }
         break;
     }
-  }, [publicKey, debouncedUpdateUserData, throttledCheckShares]);
+  }, [publicKey, updateUserData, checkUserShares, updateUserBalance]);
   
   // Setup WebSocket connections
   const marketWebSocket = useWebSocketConnection({
     endpoint: `/ws/market/${newsId}`,
     newsId,
-    publicKey,
-    onMessage: handleMarketWebSocketMessage
+    publicKey
   });
   
   const userWebSocket = useWebSocketConnection({
     endpoint: `/ws/user/${publicKey || '0'}`,
     newsId,
-    publicKey,
-    onMessage: handleUserWebSocketMessage
+    publicKey
   });
+  
+  // Register for market message types
+  useEffect(() => {
+    if (!marketWebSocket.isConnected) return;
+    
+    // Register for market messages
+    const unregisterMarketWebSocket = marketWebSocket.registerForMessageType('market_update', handleMarketWebSocketMessage);
+    const unregisterMarketInit = marketWebSocket.registerForMessageType('market_init', handleMarketWebSocketMessage);
+    const unregisterMarketStats = marketWebSocket.registerForMessageType('market_stats', handleMarketWebSocketMessage);
+    const unregisterOrderBook = marketWebSocket.registerForMessageType('order_book_update', handleMarketWebSocketMessage);
+    const unregisterOrderBookUpdate = marketWebSocket.registerForMessageType('order_book', handleMarketWebSocketMessage);
+    const unregisterTrade = marketWebSocket.registerForMessageType('trade_executed', handleMarketWebSocketMessage);
+    const unregisterTradeExecuted = marketWebSocket.registerForMessageType('trade', handleMarketWebSocketMessage);
+    
+    return () => {
+      unregisterMarketWebSocket();
+      unregisterMarketInit();
+      unregisterMarketStats();
+      unregisterOrderBook();
+      unregisterOrderBookUpdate();
+      unregisterTrade();
+      unregisterTradeExecuted();
+    };
+  }, [marketWebSocket.isConnected, marketWebSocket.registerForMessageType, handleMarketWebSocketMessage]);
+  
+  // Register for user message types
+  useEffect(() => {
+    if (!userWebSocket.isConnected) return;
+    
+    // Register for user messages
+    const unregisterUserUpdate = userWebSocket.registerForMessageType('user_update', handleUserWebSocketMessage);
+    const unregisterBalance = userWebSocket.registerForMessageType('balance', handleUserWebSocketMessage);
+    const unregisterBalanceUpdate = userWebSocket.registerForMessageType('balance_update', handleUserWebSocketMessage);
+    const unregisterPositionsUpdate = userWebSocket.registerForMessageType('positions_update', handleUserWebSocketMessage);
+    const unregisterBalanceField = userWebSocket.registerForMessageType('field:quote_balance', handleUserWebSocketMessage);
+    
+    return () => {
+      unregisterUserUpdate();
+      unregisterBalance();
+      unregisterBalanceUpdate();
+      unregisterPositionsUpdate();
+      unregisterBalanceField();
+    };
+  }, [userWebSocket.isConnected, userWebSocket.registerForMessageType, handleUserWebSocketMessage]);
 
   // Helper function for position actions
   const handlePositionAction = (position) => {

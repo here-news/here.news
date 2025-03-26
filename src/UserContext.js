@@ -1,183 +1,168 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import serviceUrl from './config';
-import { formatPublicKey } from './nostr';
+import { useWebSocketConnection } from './hooks';
 
-// Create the context
 const UserContext = createContext();
 
-// Custom hook to use the user context
-export const useUser = () => useContext(UserContext);
-
 export const UserProvider = ({ children }) => {
-    // State for user data
-    const [publicKey, setPublicKey] = useState(localStorage.getItem('publicKey') || '');
-    const [privateKey, setPrivateKey] = useState(localStorage.getItem('privateKey') || '');
-    const [userInfo, setUserInfo] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const [publicKey, setPublicKey] = useState(localStorage.getItem('publicKey'));
+  const [userInfo, setUserInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [userPositions, setUserPositions] = useState({});
+
+  // Load user info initially
+  useEffect(() => {
+    if (publicKey) {
+      fetchUserInfo();
+    }
+  }, [publicKey]);
+
+  // Set up WebSocket for user data if logged in
+  const handleBalanceUpdate = useCallback((data) => {
+    // Handle balance update message format
+    const balanceData = data.data || data;
+    if (balanceData && typeof balanceData.quote_balance !== 'undefined') {
+      setUserInfo(prev => ({
+        ...prev,
+        balance: balanceData.quote_balance
+      }));
+    }
+  }, []);
+
+  const handleUserUpdate = useCallback((data) => {
+    // Handle user update message format
+    const userData = data.data || data;
+    setUserInfo(prev => ({
+      ...prev,
+      ...userData
+    }));
+  }, []);
+
+  // Connect to user WebSocket
+  const userWebSocket = useWebSocketConnection({
+    endpoint: `/ws/user/${publicKey || '0'}`,
+    publicKey
+  });
+
+  // Register for specific message types
+  useEffect(() => {
+    if (!userWebSocket.isConnected) return;
     
-    // Modal state with debugging
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // Register handlers for specific message types
+    const unregisterBalance1 = userWebSocket.registerForMessageType('balance', handleBalanceUpdate);
+    const unregisterBalance2 = userWebSocket.registerForMessageType('balance_update', handleBalanceUpdate);
+    const unregisterBalanceField = userWebSocket.registerForMessageType('field:quote_balance', handleBalanceUpdate);
+    const unregisterUserUpdate = userWebSocket.registerForMessageType('user_update', handleUserUpdate);
     
-    // Authentication status
-    const [isAuthenticated, setIsAuthenticated] = useState(Boolean(publicKey));
+    // Cleanup on unmount or reconnect
+    return () => {
+      unregisterBalance1();
+      unregisterBalance2();
+      unregisterBalanceField();
+      unregisterUserUpdate();
+    };
+  }, [userWebSocket.isConnected, userWebSocket.registerForMessageType, handleBalanceUpdate, handleUserUpdate]);
+
+  // Fetch user info from API
+  const fetchUserInfo = async () => {
+    if (!publicKey) return;
     
-    // WebSocket connection for real-time updates
-    const [wsConnection, setWsConnection] = useState(null);
-
-    // Load user data when publicKey changes
-    useEffect(() => {
-        if (publicKey) {
-            fetchUserInfo(publicKey);
-            setIsAuthenticated(true);
-        } else {
-            setUserInfo(null);
-            setIsAuthenticated(false);
+    setIsLoading(true);
+    try {
+      const timestamp = Date.now();
+      const response = await fetch(`${serviceUrl}/me?t=${timestamp}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': publicKey,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
-    }, [publicKey]);
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserInfo(data);
+        setConnected(true);
+      } else {
+        console.error('Failed to fetch user info');
+      }
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // Fetch user info from API
-    const fetchUserInfo = async (key) => {
-        if (!key) return;
-        
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            console.log('Fetching user info for publicKey:', key);
-            const endpoint = `${serviceUrl}/users/${key}`;
-            
-            const response = await fetch(endpoint, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to fetch user data: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('User data received:', data);
-            
-            if (data) {
-                setUserInfo(data);
-            }
-        } catch (error) {
-            console.error('Error fetching user info:', error);
-            setError(error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  // Update user balance directly - can be called from any component
+  const updateUserBalance = useCallback((newBalance) => {
+    console.log("UserContext updating balance:", newBalance);
+    if (typeof newBalance === 'number') {
+      setUserInfo(prev => ({
+        ...prev,
+        balance: newBalance
+      }));
+    }
+  }, []);
 
-    // Login functions with debugging
-    const openModal = () => {
-        console.log('Opening modal from UserContext');
-        setIsModalOpen(true);
-    };
-    
-    const closeModal = () => {
-        console.log('Closing modal from UserContext');
-        setIsModalOpen(false);
-    };
+  // Login functions
+  const login = useCallback((key, userData) => {
+    localStorage.setItem('publicKey', key);
+    setPublicKey(key);
+    if (userData) {
+      setUserInfo(userData);
+    }
+    setIsModalOpen(false);
+  }, []);
 
-    // Logout function
-    const logout = () => {
-        localStorage.removeItem('publicKey');
-        localStorage.removeItem('privateKey');
-        localStorage.removeItem('avatarUrlSmall');
-        
-        setPublicKey('');
-        setPrivateKey('');
-        setUserInfo(null);
-        setIsAuthenticated(false);
-        
-        // Close WebSocket connection if open
-        if (wsConnection) {
-            wsConnection.close();
-            setWsConnection(null);
-        }
-    };
+  const logout = useCallback(() => {
+    localStorage.removeItem('publicKey');
+    setPublicKey(null);
+    setUserInfo(null);
+    setUserPositions({});
+  }, []);
 
-    // Utility to format public keys for display
-    const shortenPublicKey = (key, leftright = 8) => {
-        if (!key) return '';
-        return `${key.slice(0, leftright)}...${key.slice(-leftright)}`;
-    };
+  const openModal = useCallback(() => {
+    setIsModalOpen(true);
+  }, []);
 
-    // Check if user has necessary permissions
-    const hasPermission = (permissionType) => {
-        if (!userInfo || !userInfo.permissions) return false;
-        return userInfo.permissions.includes(permissionType);
-    };
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
-    // Create a signed message for authentication
-    const signMessage = async (message) => {
-        if (!privateKey) {
-            throw new Error('No private key available for signing');
-        }
-        
-        try {
-            // In a real implementation, we would use the Nostr libraries to sign
-            // For now, we'll just return a mock signature
-            return `nostr:sig:${publicKey.substring(0, 10)}`;
-        } catch (error) {
-            console.error('Error signing message:', error);
-            throw error;
-        }
-    };
+  const shortenPublicKey = (key, length = 4) => {
+    if (!key) return '';
+    return `${key.substring(0, length)}...${key.substring(key.length - length)}`;
+  };
 
-    // Generate authentication headers for API requests
-    const getAuthHeaders = async () => {
-        if (!publicKey) return {};
-        
-        const timestamp = Date.now().toString();
-        const message = `auth:${timestamp}`;
-        
-        try {
-            const signature = await signMessage(message);
-            
-            return {
-                'X-Public-Key': publicKey,
-                'X-Auth-Timestamp': timestamp,
-                'X-Auth-Signature': signature
-            };
-        } catch (error) {
-            console.error('Error generating auth headers:', error);
-            return {};
-        }
-    };
+  const updatePositions = useCallback((newsId, positions) => {
+    setUserPositions(prev => ({
+      ...prev,
+      [newsId]: positions
+    }));
+  }, []);
 
-    // Provide context value
-    const contextValue = {
-        publicKey,
-        setPublicKey,
-        privateKey,
-        setPrivateKey,
-        userInfo,
-        setUserInfo,
-        isLoading,
-        error,
-        isAuthenticated,
-        fetchUserInfo,
-        isModalOpen,
-        openModal,
-        closeModal,
-        logout,
-        shortenPublicKey,
-        formatPublicKey,
-        hasPermission,
-        signMessage,
-        getAuthHeaders,
-        wsConnection,
-        setWsConnection
-    };
+  // Expose the context values
+  const value = {
+    publicKey,
+    userInfo,
+    isLoading,
+    login,
+    logout,
+    isModalOpen,
+    openModal,
+    closeModal,
+    shortenPublicKey,
+    connected,
+    setConnected,
+    userPositions,
+    updatePositions,
+    updateUserBalance,
+    fetchUserInfo,
+    userSocketConnected: userWebSocket.isConnected
+  };
 
-    return (
-        <UserContext.Provider value={contextValue}>
-            {children}
-        </UserContext.Provider>
-    );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
+
+export const useUser = () => useContext(UserContext);

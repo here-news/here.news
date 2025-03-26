@@ -5,6 +5,17 @@ All notable changes to the Here.news application will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2025-03-26
+
+### Changed
+- Upgraded WebSocket architecture:
+  - Added generic message type handling system to SimpleWebSocketManager
+  - Implemented registerMessageTypeHandler for type-based and field-based message routing
+  - Modified useWebSocketConnection to use the new message routing system
+  - Updated UserContext, NewsDetail, and TradingPanel to register for specific message types
+  - Ensured backward compatibility with existing balance handler functionality
+  - Reduced duplication of WebSocket message handling logic across components
+
 ## [0.5.2] - 2025-03-23
 
 ### Added

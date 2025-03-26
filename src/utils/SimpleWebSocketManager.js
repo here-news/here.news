@@ -1,9 +1,19 @@
 /**
  * SimpleWebSocketManager - A minimal singleton WebSocket connection manager
+ * with generic message type handling capabilities
  */
 
 // Global registry of active WebSocket connections
 const activeConnections = {};
+
+// Set of balance handlers (for backwards compatibility)
+const balanceHandlers = new Set();
+
+// Global registry for message type handlers
+const messageTypeHandlers = new Map();
+
+// Last heartbeats for connections
+const lastHeartbeats = {};
 
 /**
  * Get an existing WebSocket connection if available
@@ -67,6 +77,7 @@ export const createWebSocketConnection = (endpoint, url, callbacks) => {
   
   ws.onmessage = (event) => {
     if (callbacks.onMessage) callbacks.onMessage(event);
+    processWebSocketMessage(endpoint, event.data);
   };
   
   ws.onerror = (event) => {
@@ -133,3 +144,133 @@ export const closeAllConnections = () => {
     closeWebSocketConnection(endpoint);
   });
 };
+
+/**
+ * Register a handler for a specific message type
+ * @param {string} messageType - The message type to handle (or 'field:fieldName' for field-based detection)
+ * @param {Function} callback - The callback function to handle messages of this type
+ * @returns {Function} - A function to unregister the handler
+ */
+export const registerMessageTypeHandler = (messageType, callback) => {
+  if (!messageTypeHandlers.has(messageType)) {
+    messageTypeHandlers.set(messageType, new Set());
+  }
+  messageTypeHandlers.get(messageType).add(callback);
+  return () => {
+    if (messageTypeHandlers.has(messageType)) {
+      messageTypeHandlers.get(messageType).delete(callback);
+      if (messageTypeHandlers.get(messageType).size === 0) {
+        messageTypeHandlers.delete(messageType);
+      }
+    }
+  };
+};
+
+/**
+ * Add a special handler for balance messages (backward compatibility)
+ * @param {Function} callback - The callback function to handle balance messages
+ * @returns {Function} - A function to unregister the balance handler
+ */
+export const registerBalanceHandler = (callback) => {
+  // Register for explicit balance message types
+  const unregisterType1 = registerMessageTypeHandler('balance', callback);
+  const unregisterType2 = registerMessageTypeHandler('balance_update', callback);
+  
+  // Register for field-based detection (presence of quote_balance field)
+  const unregisterField = registerMessageTypeHandler('field:quote_balance', callback);
+  
+  // Also add to legacy balanceHandlers for backward compatibility
+  balanceHandlers.add(callback);
+  
+  // Return function that unregisters all
+  return () => {
+    unregisterType1();
+    unregisterType2();
+    unregisterField();
+    balanceHandlers.delete(callback);
+  };
+};
+
+/**
+ * Process WebSocket messages
+ * @param {string} connectionKey - The key of the WebSocket connection
+ * @param {any} eventData - The data received from the WebSocket
+ * @returns {any} - The processed message
+ */
+function processWebSocketMessage(connectionKey, eventData) {
+  try {
+    // Parse JSON message
+    let message;
+    if (typeof eventData === 'string') {
+      if (eventData === 'pong' || eventData === 'ping') {
+        lastHeartbeats[connectionKey] = Date.now();
+        return; // Don't process pings/pongs further
+      }
+      
+      try {
+        message = JSON.parse(eventData);
+      } catch (e) {
+        // Not JSON, just return the string
+        return eventData;
+      }
+    } else {
+      message = eventData;
+    }
+    
+    if (!message) return null;
+    
+    // GENERIC MESSAGE HANDLING
+    
+    // 1. Handle explicit message types
+    if (message.type && messageTypeHandlers.has(message.type)) {
+      const handlers = messageTypeHandlers.get(message.type);
+      const messageData = message.data || message;
+      
+      handlers.forEach(handler => {
+        try {
+          handler(messageData);
+        } catch (e) {
+          console.error(`Error in message type handler for "${message.type}":`, e);
+        }
+      });
+    }
+    
+    // 2. Handle field-presence message types
+    messageTypeHandlers.forEach((handlers, typeKey) => {
+      if (typeKey.startsWith('field:')) {
+        const fieldName = typeKey.substring(6); // Remove 'field:' prefix
+        if (message && typeof message[fieldName] !== 'undefined') {
+          const messageData = message.data || message;
+          handlers.forEach(handler => {
+            try {
+              handler(messageData);
+            } catch (e) {
+              console.error(`Error in field-based handler for "${fieldName}":`, e);
+            }
+          });
+        }
+      }
+    });
+    
+    // LEGACY: Handle balance messages specially (for backward compatibility)
+    if (message && (
+      message.type === 'balance' || 
+      message.type === 'balance_update' ||
+      (typeof message.quote_balance !== 'undefined')
+    )) {
+      const balanceData = message.data || message;
+      balanceHandlers.forEach(handler => {
+        try {
+          handler(balanceData);
+        } catch (e) {
+          console.error('Error in balance handler:', e);
+        }
+      });
+    }
+    
+    return message;
+  } catch (error) {
+    console.error('Error processing WebSocket message:', error);
+    return null;
+  }
+}
