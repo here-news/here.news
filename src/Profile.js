@@ -42,8 +42,8 @@ const Profile = () => {
                             <div className="sidebar">
                                 <ul>
                                     <li className={section === 'profile' ? 'active' : ''} onClick={() => handleNavigation('profile')}>Profile</li>
-                                    <li className={section === 'spices' ? 'active' : ''} onClick={() => handleNavigation('spices')}>Spices ✨</li>
-                                    <li className={section === 'stories' ? 'active' : ''} onClick={() => handleNavigation('stories')}>Stories</li>
+                                    <li className={section === 'wallet' ? 'active' : ''} onClick={() => handleNavigation('wallet')}>Wallet & Portfolio ✨</li>
+                                    <li className={section === 'activities' ? 'active' : ''} onClick={() => handleNavigation('activities')}>Activities</li>
                                     <li className={section === 'settings' ? 'active' : ''} onClick={() => handleNavigation('settings')}>Settings</li>
                                 </ul>
                             </div>
@@ -60,11 +60,11 @@ const Profile = () => {
                                         </div>
                                     </div>
                                 )}
-                                {section === 'spices' && (
+                                {section === 'wallet' && (
                                     <div>
-                                        <h2>Spices ✨</h2>
+                                        <h2>Wallet</h2>
                                         <hr></hr>
-                                        <h3>Balance: <b>{userInfo.balance} </b>spices</h3> <span>(* spice is the fuel to locomize all activities in community)</span>
+                                        <h3>Balance: <b>{userInfo.balance} </b>USD</h3> <span>(* spice is the fuel to locomize all activities in community)</span>
                                         <hr></hr><h3>Transaction History</h3>
                                         <ul>
                                             {/* {userInfo.transactions.map((transaction, index) => (
@@ -73,9 +73,9 @@ const Profile = () => {
                                         </ul>
                                     </div>
                                 )}
-                                {section === 'stories' && (
+                                {section === 'activities' && (
                                     <div>
-                                        <h2>Stories</h2>
+                                        <h2>Activities</h2>
                                         {/* Display stories the user has engaged with */}
                                     </div>
                                 )}

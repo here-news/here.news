@@ -156,17 +156,11 @@ const Login = () => {
         }
     };
 
-    // Enhanced debugging
-    console.log('Login component rendered, Modal state:', isModalOpen);
-    console.log('Login component props:', { publicKey, isModalOpen });
-    
     // Create a style for the modal visibility
     const modalStyle = {
         display: isModalOpen ? 'flex' : 'none'
     };
     
-    console.log('Modal style will be:', modalStyle);
-
     // Component to switch between registration and login modes
     // Default to showing login if modal is opened directly
     const [showLogin, setShowLogin] = useState(true);

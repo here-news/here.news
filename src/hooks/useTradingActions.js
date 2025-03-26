@@ -337,7 +337,8 @@ const useTradingActions = ({
               );
               
               if (openShorts.length > 0) {
-                shortPositionId = openShorts[0].id;
+                shortPositionId = openShorts[0].short_id || openShorts[0].id;
+                console.log('Found short position with ID:', shortPositionId);
               }
             }
           }
@@ -345,19 +346,101 @@ const useTradingActions = ({
           console.error("Error fetching user shorts:", error);
         }
         
+        // Try market-based close first if no specific position ID was found
         if (!shortPositionId) {
-          setError('No open short positions found for this market.');
-          setLoading(false);
-          return false;
+          console.log('No specific short ID found, trying market-based close');
+          
+          // Use the new endpoint that can find and close a position by market and shares
+        // Use a price 10% higher than current market price to ensure execution
+        const adjustedPrice = priceFloat * 1.1;
+          
+        const marketCloseRequest = {
+            news_id: newsId,
+            shares: sharesInt,
+            price: adjustedPrice
+          };
+          
+          try {
+            const marketEndpoint = `${serviceUrl}/shorts/close-market-short`;
+            
+            const marketResponse = await fetch(marketEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Public-Key': publicKey
+              },
+              body: JSON.stringify(marketCloseRequest)
+            });
+            
+            let marketResponseData;
+            try {
+              const responseText = await marketResponse.text();
+              marketResponseData = JSON.parse(responseText);
+              console.log('Market close response:', marketResponseData);
+            } catch (e) {
+              console.error('Error parsing market close response:', e);
+              marketResponseData = { success: false, message: 'Could not parse server response' };
+            }
+            
+            if (marketResponse.ok && marketResponseData.success) {
+              setSuccess(`Successfully closed short position for ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
+              
+              // Refresh positions after successful trade                      
+              if (refreshPositions) {
+                await refreshPositions();
+              }
+              
+              // Refresh market data 
+              if (refreshMarketData) {
+                await refreshMarketData();
+              }
+              
+              // Call the onTradeComplete callback if provided
+              if (onTradeComplete) {
+                onTradeComplete(actionType, sharesInt, priceFloat);
+              }
+              
+              setLoading(false);
+              return true;
+            } else {
+              // If market close failed, we'll try the traditional method if we have a shortPositionId
+              // Otherwise, we'll show the error
+              if (!shortPositionId) {
+                let errorMessage;
+                if (marketResponseData && marketResponseData.message) {
+                  errorMessage = marketResponseData.message;
+                } else {
+                  errorMessage = 'No open short positions found for this market.';
+                }
+                
+                setError(errorMessage);
+                setLoading(false);
+                return false;
+              }
+              
+              // Log that we're falling back to the traditional method
+              console.log('Market-based close failed, falling back to ID-based close');
+            }
+          } catch (err) {
+            console.error('Error closing short position with market method:', err);
+            if (!shortPositionId) {
+              setError(`Error: ${err.message}`);
+              setLoading(false);
+              return false;
+            }
+          }
         }
         
-        // Close the short position
+        // Close the short position using the specific short ID
+        // Use a price 10% higher than current market price to ensure execution
+        const adjustedPrice = priceFloat * 1.1;
+          
         const closeRequest = {
-          price: priceFloat,
-          shares: sharesInt
+          price: adjustedPrice
         };
         
         try {
+          console.log(`Closing short position with ID: ${shortPositionId}`);
           const endpoint = `${serviceUrl}/shorts/${shortPositionId}/close`;
           
           const response = await fetch(endpoint, {

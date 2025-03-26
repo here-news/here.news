@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useUser } from './UserContext';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login';
@@ -11,7 +11,8 @@ const ProfileWidget = () => {
         logout, 
         isModalOpen,
         openModal, 
-        shortenPublicKey 
+        shortenPublicKey,
+        userSocketConnected
     } = useUser();
     
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -19,6 +20,26 @@ const ProfileWidget = () => {
     
     // Check if user is authenticated
     const isAuthenticated = Boolean(publicKey);
+
+    // Memoize and format the balance for better performance
+    const displayBalance = useMemo(() => {
+        const balance = userInfo?.balance;
+        if (typeof balance === 'undefined') return '0';
+        
+        // Format the balance with appropriate decimal places
+        return balance >= 100 
+            ? balance.toFixed(0) 
+            : balance >= 10 
+                ? balance.toFixed(1) 
+                : balance.toFixed(2);
+    }, [userInfo?.balance]);
+    
+    // Show connection status visually (optional)
+    const connectionIndicator = useMemo(() => {
+        return userSocketConnected 
+            ? { color: '#4CAF50', title: 'Connected - Live Updates' } 
+            : { color: '#FF9800', title: 'Offline - Updates Paused' };
+    }, [userSocketConnected]);
 
     // Toggle dropdown menu
     const toggleDropdown = () => {
@@ -42,9 +63,6 @@ const ProfileWidget = () => {
     
     // Get display name
     const displayName = userInfo?.name || shortenPublicKey(publicKey, 3);
-    
-    // Format balance for display
-    const displayBalance = userInfo?.balance !== undefined ? userInfo.balance : 0;
     
     // Handle login button click with enhanced logging
     const handleLoginClick = (event) => {
@@ -82,7 +100,8 @@ const ProfileWidget = () => {
                     {/* Spices/Balance display */}
                     <div className="user-balance">
                         <span className="balance-icon">✨</span>
-                        <span className="balance-amount">{displayBalance}</span>
+                        <span className="balance-amount"> ${displayBalance}
+                        </span>
                     </div>
                     
                     {/* User avatar and menu */}
@@ -118,12 +137,12 @@ const ProfileWidget = () => {
                                         <span className="menu-icon">👤</span> Profile
                                     </button>
                                     
-                                    <button onClick={gotoProfile('spices')} className="menu-item">
-                                        <span className="menu-icon">✨</span> Spices
+                                    <button onClick={gotoProfile('wallet')} className="menu-item">
+                                        <span className="menu-icon">✨</span> Wallet & Portfolio
                                     </button>
                                     
-                                    <button onClick={gotoProfile('stories')} className="menu-item">
-                                        <span className="menu-icon">📰</span> Stories
+                                    <button onClick={gotoProfile('activities')} className="menu-item">
+                                        <span className="menu-icon">📰</span> Activities
                                     </button>
                                     
                                     <button onClick={gotoProfile('settings')} className="menu-item">

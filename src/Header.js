@@ -18,7 +18,7 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                     <Link to="/" className="logo">
                         <img src="/static/hn2_logo.svg" alt="Logo" />
                     </Link>
-                    <span className="slogan-text desktop-only">Truth, Gains</span>
+                    <span className="slogan-text desktop-only">Veritas, Lucrum</span>
                 </div>
                 <div className="header-center">
                     <div className="header-search-bar">

@@ -66,14 +66,12 @@ const useUserPositions = (newsId) => {
         
         // Handle both array and object formats
         if (Array.isArray(positionsData)) {
-          console.log('Position data received in array format:', positionsData);
           const longPositions = positionsData.filter(pos => pos.type === 'long');
           longShares = longPositions.reduce((total, pos) => total + (parseInt(pos.shares) || 0), 0);
           
           // Store the full array of positions for the position panel
           setUserPositions(positionsData);
         } else if (typeof positionsData === 'object') {
-          console.log('Position data received in object format:', positionsData);
           longShares = parseInt(positionsData.long_shares) || 0;
           
           // Update the positionData state with direct object
@@ -289,7 +287,6 @@ const useUserPositions = (newsId) => {
   // Check if user has shares whenever relevant state changes
   useEffect(() => {
     if (publicKey && newsId) {
-      console.log('Checking user shares due to dependencies change');
       checkUserShares();
       lastCheckRef.current = Date.now(); // Mark the check time
       

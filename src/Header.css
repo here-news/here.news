@@ -65,10 +65,12 @@
 
 .logo-text {
     font-weight: 800;
-    font-size: 18px;
+    font-size: 32px;
     margin-right: 4px;
     color: #333;
     letter-spacing: 1px;
+    transform: skewX(5deg); /*Negative value slants text to the left */
+    display: inline-block; /* Needed for transform to work properly */
 }
 
 .slogan-text {

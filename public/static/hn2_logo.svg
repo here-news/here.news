@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="169.33337mm"
+   width="137.65338mm"
    height="67.733246mm"
-   viewBox="0 0 169.33337 67.733246"
+   viewBox="0 0 137.65338 67.733246"
    version="1.1"
    id="svg1"
    inkscape:version="1.4 (e7c3feb, 2024-10-09)"
@@ -24,7 +24,7 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="0.7349537"
-     inkscape:cx="318.3874"
+     inkscape:cx="257.83937"
      inkscape:cy="127.2189"
      inkscape:window-width="1854"
      inkscape:window-height="1011"
@@ -39,7 +39,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-20.373,-114.56468)">
+     transform="translate(-36.212987,-114.56468)">
     <!-- Left Ear -->
     <!-- Right Ear -->
     <!-- Left Ear -->
@@ -51,15 +51,15 @@
        transform="matrix(12.8,0,0,12.8,-1239.467,-1751.4887)"
        style="stroke-width:0.078125">
       <path
-         d="m 99.747917,151.07708 -1.322917,-5.29166 6.61458,2.64583 z"
+         d="m 100.73792,151.07708 -1.075421,-5.29166 5.377081,2.64583 z"
          fill="#2a2a2a"
          id="path1"
-         style="stroke-width:0.0206705;fill:#2b2b2b;fill-opacity:1" />
+         style="fill:#2b2b2b;fill-opacity:1;stroke-width:0.0206705" />
       <path
-         d="m 110.33125,151.07708 1.32292,-5.29166 -6.61459,2.64583 z"
+         d="m 109.34125,151.07708 1.07542,-5.29166 -5.37709,2.64583 z"
          fill="#2a2a2a"
          id="path2"
-         style="stroke-width:0.0206705;fill:#2b2b2b;fill-opacity:1" />
+         style="fill:#2b2b2b;fill-opacity:1;stroke-width:0.0206705" />
     </g>
   </g>
 </svg>
