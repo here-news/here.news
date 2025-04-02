@@ -1,71 +1,84 @@
 import React from 'react';
-import './NewsColossal.css';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const MiniPriceChart = ({ priceHistory, percentChange, width = 40, height = 20 }) => {
-  // If no price history is provided, generate mock data based on percent change
-  const generateChart = () => {
-    const mockPrices = [];
-    const numPoints = 10;
-    const parsedChange = parseFloat(percentChange || 0);
-    const direction = parsedChange >= 0 ? 1 : -1;
-    const volatility = Math.abs(parsedChange) / 10;
-    
-    for (let i = 0; i < numPoints; i++) {
-      // Generate a price following the trend but with some randomness
-      const progress = i / (numPoints - 1);
-      const randomness = (Math.random() - 0.5) * volatility;
-      const pointValue = 100 + (direction * progress * Math.abs(parsedChange)) + randomness;
-      mockPrices.push(pointValue);
-    }
-    
-    return mockPrices;
-  };
-  
-  // Use provided price history or generate mock data
-  const prices = priceHistory || generateChart();
-  
-  // Determine min and max for scaling
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const priceRange = maxPrice - minPrice;
-  
-  // Determine color based on percent change
-  const parseChange = parseFloat(percentChange || 0);
-  const chartColor = parseChange >= 0 ? '#00C853' : '#FF5252';
-  
-  // Generate SVG path
-  const generatePath = () => {
-    if (!prices || prices.length === 0) return '';
-    
-    // Map prices to coordinates
-    return prices.map((price, index) => {
-      const x = (index / (prices.length - 1)) * width;
-      const normalizedPrice = priceRange === 0 
-        ? height / 2 
-        : ((price - minPrice) / priceRange);
-      const y = height - (normalizedPrice * height);
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-  };
-  
+/**
+ * MiniPriceChart component for displaying price history in a small chart
+ * @param {Object} props Component props
+ * @param {Array} props.priceHistory Array of price history points with timestamp and price
+ * @param {number} props.currentPrice Current YES price
+ * @param {string} props.lastDirection Last price movement direction ('up', 'down', or '')
+ * @returns {JSX.Element} Mini price chart component
+ */
+const MiniPriceChart = ({ priceHistory = [], currentPrice = 0, lastDirection = '' }) => {
+  // No data to display
+  if (!priceHistory || priceHistory.length === 0) {
+    return (
+      <div className="mini-price-chart empty-chart">
+        <div className="no-data-message">No price history available</div>
+      </div>
+    );
+  }
+
+  // Format data for the chart
+  const chartData = priceHistory.map(item => ({
+    time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    price: parseFloat(item.price) * 100, // Convert to cents
+    rawTime: new Date(item.timestamp)
+  })).sort((a, b) => a.rawTime - b.rawTime); // Sort by time ascending for the chart
+
+  // Calculate min and max prices for the Y axis with some padding
+  const prices = chartData.map(item => item.price);
+  const minPrice = Math.max(0, Math.floor(Math.min(...prices) * 0.95));
+  const maxPrice = Math.ceil(Math.max(...prices) * 1.05);
+
+  // Format the current price in cents with 1 decimal place
+  const formattedCurrentPrice = (currentPrice * 100).toFixed(1);
+
   return (
-    <div className="mini-price-chart" style={{ width: `${width}px`, height: `${height}px` }}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <path 
-          d={generatePath()}
-          stroke={chartColor}
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span 
-        className="percent-change" 
-        style={{ color: parseChange >= 0 ? '#00C853' : '#FF5252' }}
-      >
-        {parseChange >= 0 ? '+' : ''}{parseChange?.toFixed(1) || '0.0'}%
-      </span>
+    <div className="mini-price-chart-container">
+      <div className="chart-price-overlay">
+        <div className={`chart-current-price ${lastDirection}`}>
+          {formattedCurrentPrice}¢
+          {lastDirection === 'up' && <span className="chart-direction-arrow">▲</span>}
+          {lastDirection === 'down' && <span className="chart-direction-arrow">▼</span>}
+        </div>
+      </div>
+      
+      <ResponsiveContainer width="100%" height={120}>
+        <LineChart
+          data={chartData}
+          margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#ddd" vertical={false} />
+          <XAxis 
+            dataKey="time" 
+            tick={{ fontSize: 10, fill: '#666' }}
+            interval="preserveStartEnd"
+            tickCount={5}
+          />
+          <YAxis 
+            domain={[minPrice, maxPrice]} 
+            tick={{ fontSize: 10, fill: '#666' }}
+            tickFormatter={(value) => `${value}¢`}
+            width={30}
+          />
+          <Tooltip 
+            formatter={(value) => [`${value.toFixed(1)}¢`, 'Price']}
+            labelFormatter={(time) => `Time: ${time}`}
+            contentStyle={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
+            itemStyle={{ color: '#333' }}
+            labelStyle={{ color: '#666' }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="price" 
+            stroke="#34c759" 
+            strokeWidth={2}
+            dot={false} 
+            activeDot={{ r: 5, stroke: '#34c759', strokeWidth: 1, fill: '#fff' }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 };

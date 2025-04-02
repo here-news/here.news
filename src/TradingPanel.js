@@ -4,6 +4,7 @@ import serviceUrl from './config';
 import './TradingPanel.css';
 import PriceBar from './PriceBar';
 import PositionPanel from './PositionPanel';
+import MiniPriceChart from './MiniPriceChart';
 import { useMarketData, useUserPositions, useWebSocketConnection, useTradingActions } from './hooks';
 
 // Simple debounce function
@@ -116,6 +117,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
       case 'market_update':
       case 'market_stats':
       case 'market': // New belief market update type
+      case 'price_history': // Handle price history update messages
         // Store previous price for change visualization
         if (marketStats?.yes_price) {
           setPreviousPrice(marketStats.yes_price);
@@ -384,7 +386,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         <div className="error-message">{errorMessage}</div>
       }
       
-      {/* Price indicator and connection status for belief market */}
+      {/* Price indicator, chart, and connection status for belief market */}
       {marketStats && (
         <div className="simplified-price-display">
           <div className="belief-meter">
@@ -394,31 +396,18 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             </div>
           </div>
           
-          <div className="price-pair">
-            <div className={`price-value yes-price ${isPriceUp ? 'price-up' : isPriceDown ? 'price-down' : ''}`}>
-              <div className="price-label">YES Price</div>
-              <span className="current-price">{formattedPrice.toFixed(1)}¢</span>
-              <span className="price-change">
-                {formattedPreviousPrice !== formattedPrice && (
-                  <>
-                    <span className="price-arrow">{isPriceUp ? '▲' : '▼'}</span>
-                    <span className="change-amount">
-                      {priceChangeAmount}¢ ({priceChangePercent}%)
-                    </span>
-                  </>
-                )}
-              </span>
-            </div>
-            
-            <div className="price-value no-price">
-              <div className="price-label">NO Price</div>
-              <span className="current-price">{formattedNoPrice.toFixed(1)}¢</span>
-            </div>
-          </div>
+          {/* Price History Chart */}
+          <MiniPriceChart 
+            priceHistory={marketStats.price_history || []} 
+            currentPrice={currentPrice}
+            lastDirection={isPriceUp ? 'up' : isPriceDown ? 'down' : ''}
+          />
           
-          <span className={`connection-indicator ${isRealTimeConnected ? 'connected' : 'disconnected'}`} 
+
+          
+          {/* <span className={`connection-indicator ${isRealTimeConnected ? 'connected' : 'disconnected'}`} 
                 title={isRealTimeConnected ? 'Real-time data' : 'Auto-refresh data'}>
-          </span>
+          </span> */}
         </div>
       )}
 
@@ -456,7 +445,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={isLoading}
             className="yes-buy-button"
           >
-            Push <span className="button-direction">⇥</span> 
+            Push({formattedPrice.toFixed(1)}¢) <span className="button-direction">↗</span> 
           </button>
           
           <button 
@@ -465,11 +454,10 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={isLoading}
             className="no-buy-button"
           >
-            <span className="button-direction">⇤</span> Pull
+            <span className="button-direction">↘</span> Pull({formattedNoPrice.toFixed(1)}¢)
           </button>
         </div>
       </div>
-      
 
       {/* User Positions - only show when user is logged in and has positions */}
       {publicKey && userPositions && userPositions.length > 0 ? (

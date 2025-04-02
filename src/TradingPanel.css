@@ -344,6 +344,63 @@
   box-shadow: none;
 }
 
+/* Price Chart Styles */
+.mini-price-chart-container {
+  width: 100%;
+  position: relative;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 10px 0 15px;
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+.chart-price-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+.chart-current-price {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-current-price.up {
+  color: #34c759;
+}
+
+.chart-current-price.down {
+  color: #ff3b30;
+}
+
+.chart-direction-arrow {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.mini-price-chart.empty-chart {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.no-data-message {
+  color: #666;
+  font-style: italic;
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .quantity-selector, .belief-action-row {
@@ -353,5 +410,9 @@
   .price-pair {
     flex-direction: column;
     gap: 10px;
+  }
+  
+  .mini-price-chart-container {
+    height: 150px;
   }
 }
