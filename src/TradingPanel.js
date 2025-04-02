@@ -456,7 +456,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={isLoading}
             className="yes-buy-button"
           >
-            <span className="button-direction">👍</span> Buy 1 YES Share
+            Push <span className="button-direction">⇥</span> 
           </button>
           
           <button 
@@ -465,28 +465,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             disabled={isLoading}
             className="no-buy-button"
           >
-            <span className="button-direction">👎</span> Buy 1 NO Share
-          </button>
-        </div>
-        
-        <div className="action-label">SELL</div>
-        <div className="belief-action-row">
-          <button 
-            type="button"
-            onClick={() => executeTrade('yes_sell', 1, currentPrice, userData, userPositions, positionData)}
-            disabled={isLoading || !userPositions.some(p => p.type === 'yes' || p.type === 'long')}
-            className="yes-sell-button"
-          >
-            <span className="button-direction">👍</span> Sell 1 YES Share
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => executeTrade('no_sell', 1, noPrice, userData, userPositions, positionData)}
-            disabled={isLoading || !userPositions.some(p => p.type === 'no' || p.type === 'short')}
-            className="no-sell-button"
-          >
-            <span className="button-direction">👎</span> Sell 1 NO Share
+            <span className="button-direction">⇤</span> Pull
           </button>
         </div>
       </div>
