@@ -148,12 +148,12 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             const isBuy = tradeData.type === 'BUY';
             const isYes = tradeData.side === 'YES';
             
-            // Map to legacy actions for display purposes
+            // Map to belief market actions for display purposes
             let legacyAction;
-            if (isYes && isBuy) legacyAction = 'buy';
-            else if (isYes && !isBuy) legacyAction = 'sell';
-            else if (!isYes && isBuy) legacyAction = 'short';
-            else if (!isYes && !isBuy) legacyAction = 'short_close';
+            if (isYes && isBuy) legacyAction = 'yes_buy';
+            else if (isYes && !isBuy) legacyAction = 'yes_sell';
+            else if (!isYes && isBuy) legacyAction = 'no_buy';
+            else if (!isYes && !isBuy) legacyAction = 'no_sell';
             
             // Add legacy action field for backward compatibility
             tradeData.action = legacyAction;
@@ -312,18 +312,20 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     if (!position) return;
     
     // Ensure integer shares (>=0)
-    const shares = Math.max(0, Math.floor(position.shares));
+    const shares = Math.max(1, Math.floor(position.shares));
     if (shares <= 0) return;
     
     // Handle belief market position types (yes/no) and legacy types (long/short)
     if (position.type === 'yes' || position.type === 'long') {
       // Sell YES position (or legacy long)
       const price = marketStats?.yes_price || marketStats?.current_price || 0;
-      executeTrade('sell', shares, price, userData, userPositions, positionData);
+      // Always sell 1 share when using the sell button
+      executeTrade('yes_sell', 1, price, userData, userPositions, positionData);
     } else if (position.type === 'no' || position.type === 'short') {
       // Sell NO position (or legacy short)
       const price = marketStats?.no_price || (marketStats?.max_price ? marketStats.max_price - (marketStats.yes_price || marketStats.current_price || 0) : 0);
-      executeTrade('short_close', shares, price, userData, userPositions, positionData);
+      // Always sell 1 share when using the sell button
+      executeTrade('no_sell', 1, price, userData, userPositions, positionData);
     }
   };
   
@@ -450,20 +452,20 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         <div className="belief-action-row">
           <button 
             type="button"
-            onClick={() => executeTrade('buy', 1, currentPrice, userData, userPositions, positionData)}
+            onClick={() => executeTrade('buy', 100, currentPrice, userData, userPositions, positionData)}
             disabled={isLoading}
             className="yes-buy-button"
           >
-            <span className="button-direction">👍</span> YES ${(currentPrice).toFixed(2)}
+            <span className="button-direction">👍</span> Buy 1 YES Share
           </button>
           
           <button 
             type="button"
-            onClick={() => executeTrade('short', 1, noPrice, userData, userPositions, positionData)}
+            onClick={() => executeTrade('no_buy', 100, noPrice, userData, userPositions, positionData)}
             disabled={isLoading}
             className="no-buy-button"
           >
-            <span className="button-direction">👎</span> NO ${(noPrice).toFixed(2)}
+            <span className="button-direction">👎</span> Buy 1 NO Share
           </button>
         </div>
         
@@ -471,20 +473,20 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         <div className="belief-action-row">
           <button 
             type="button"
-            onClick={() => executeTrade('sell', 1, currentPrice, userData, userPositions, positionData)}
+            onClick={() => executeTrade('yes_sell', 1, currentPrice, userData, userPositions, positionData)}
             disabled={isLoading || !userPositions.some(p => p.type === 'yes' || p.type === 'long')}
             className="yes-sell-button"
           >
-            <span className="button-direction">👍</span> YES ${(currentPrice).toFixed(2)}
+            <span className="button-direction">👍</span> Sell 1 YES Share
           </button>
           
           <button 
             type="button"
-            onClick={() => executeTrade('short_close', 1, noPrice, userData, userPositions, positionData)}
+            onClick={() => executeTrade('no_sell', 1, noPrice, userData, userPositions, positionData)}
             disabled={isLoading || !userPositions.some(p => p.type === 'no' || p.type === 'short')}
             className="no-sell-button"
           >
-            <span className="button-direction">👎</span> NO ${(noPrice).toFixed(2)}
+            <span className="button-direction">👎</span> Sell 1 NO Share
           </button>
         </div>
       </div>

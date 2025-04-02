@@ -245,10 +245,11 @@ const useUserPositions = (newsId) => {
     
     try {
       // Use the belief market trade endpoint with YES side
+      // Ensure minimum amount of 0.01 for BUY
       const tradePayload = {
         side: 'YES',
         type: 'BUY',
-        amount: marketPrice // Amount in currency for BUY
+        amount: Math.max(0.01, marketPrice) // Amount in currency for BUY (minimum 0.01)
       };
       
       // Use the belief market endpoint

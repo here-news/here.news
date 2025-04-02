@@ -115,7 +115,7 @@ const useTradingActions = ({
     }
   }, [publicKey, newsId, onTradeComplete, refreshPositions, refreshMarketData]);
 
-  // Execute a regular trade (buy/sell)
+  // Execute a YES position trade (buy/sell) - handles buying or selling YES positions
   const executeRegularTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions, positionData) => {
     if (!validateTradeParams(shares, currentPrice)) {
       return false;
@@ -130,14 +130,9 @@ const useTradingActions = ({
     setSuccess('');
 
     try {
-      // Determine the side and type for belief market API
-      // For backward compatibility:
-      // - 'buy' in legacy = 'YES' + 'BUY' in belief market
-      // - 'sell' in legacy = 'YES' + 'SELL' in belief market
-      // - 'short' in legacy = 'NO' + 'BUY' in belief market
-      // - 'short_close' in legacy = 'NO' + 'SELL' in belief market
-      let side = 'YES';
-      let type = actionType === 'buy' ? 'BUY' : 'SELL';
+      // In belief market, we directly specify YES side
+      const side = 'YES';
+      const type = actionType === 'buy' || actionType === 'yes_buy' ? 'BUY' : 'SELL';
       
       // For backward compatibility, check if user has shares
       let totalShares = 0;
@@ -186,16 +181,26 @@ const useTradingActions = ({
       }
       
       // For belief market API:
-      // - BUY: amount is in dollars
-      // - SELL: amount is in shares
-      const amount = actionType === 'buy' ? 
-        priceFloat * sharesInt :  // Amount in dollars for BUY
-        sharesInt;                // Amount in shares for SELL
+      // API now expects "shares" parameter (integer) instead of amount
+      // - BUY: shares is the number of shares to buy (minimum 1)
+      // - SELL: shares is the number of shares to sell (minimum 1)
       
+      // API now expects "shares" parameter for all operations (integer)
+      // For our "Buy 1 Share" button special case (sharesInt=100), we use 1 share
+      let shares;
+      if (sharesInt === 100) {
+        // The button label says "Buy 1 YES Share" so we use 1 share
+        shares = 1;
+      } else {
+        // Otherwise use the provided shares value, ensure minimum of 1
+        shares = Math.max(1, sharesInt);
+      }
+      
+      // Updated payload structure to match new API requirements
       const beliefMarketPayload = {
         side,
         type,
-        amount
+        shares // API now expects shares instead of amount
       };
       
       const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
@@ -223,7 +228,12 @@ const useTradingActions = ({
         const actionDescription = type === 'BUY' ? 'bought' : 'sold';
         const sideDescription = side === 'YES' ? 'YES' : 'NO';
         
-        setSuccess(`Successfully ${actionDescription} ${sharesInt} ${sideDescription} share${sharesInt !== 1 ? 's' : ''}.`);
+        // Always display 1 share when using our "Buy 1 Share" button (sharesInt=100)
+        // This is a special case where we're using a fixed sharesInt value to indicate 
+        // the user wants to buy 1 share at a fixed price
+        const displayShares = (type === 'BUY' && sharesInt === 100) ? 1 : sharesInt;
+        
+        setSuccess(`Successfully ${actionDescription} ${displayShares} ${sideDescription} share${displayShares !== 1 ? 's' : ''}.`);
         
         // Refresh positions after successful trade                      
         if (refreshPositions) {
@@ -269,7 +279,7 @@ const useTradingActions = ({
     }
   }, [newsId, publicKey, validateTradeParams, refreshPositions, refreshMarketData, onTradeComplete]);
 
-  // Execute a short trade (short/short_close) - mapped to NO buy/sell in belief market
+  // Execute a NO position trade (buy/sell) - handles buying or selling NO positions
   const executeShortTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions) => {
     if (!validateTradeParams(shares, currentPrice)) {
       return false;
@@ -284,14 +294,12 @@ const useTradingActions = ({
     setSuccess('');
 
     try {
-      // In belief market, a short is just buying NO shares
-      // - 'short' in legacy = 'NO' + 'BUY' in belief market
-      // - 'short_close' in legacy = 'NO' + 'SELL' in belief market
+      // In belief market, we directly specify NO side
       const side = 'NO';
-      const type = actionType === 'short' ? 'BUY' : 'SELL';
+      const type = actionType === 'buy' ? 'BUY' : 'SELL';
       
-      // For short positions, check if we have enough NO shares if we're selling (short_close)
-      if (actionType === 'short_close') {
+      // For NO positions, check if we have enough shares if we're selling
+      if (type === 'SELL') {
         let totalNoShares = 0;
         
         // Check for NO shares in belief market format
@@ -310,16 +318,26 @@ const useTradingActions = ({
       }
       
       // For belief market API:
-      // - BUY: amount is in dollars
-      // - SELL: amount is in shares
-      const amount = type === 'BUY' ? 
-        priceFloat * sharesInt :  // Amount in dollars for BUY
-        sharesInt;                // Amount in shares for SELL
+      // API now expects "shares" parameter (integer) instead of amount
+      // - BUY: shares is the number of shares to buy (minimum 1)
+      // - SELL: shares is the number of shares to sell (minimum 1)
       
+      // API now expects "shares" parameter for all operations (integer)
+      // For our "Buy 1 Share" button special case (sharesInt=100), we use 1 share
+      let shares;
+      if (sharesInt === 100) {
+        // The button label says "Buy 1 NO Share" so we use 1 share
+        shares = 1;
+      } else {
+        // Otherwise use the provided shares value, ensure minimum of 1
+        shares = Math.max(1, sharesInt);
+      }
+      
+      // Updated payload structure to match new API requirements
       const beliefMarketPayload = {
         side,
         type,
-        amount
+        shares // API now expects shares instead of amount
       };
       
       const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
@@ -346,7 +364,12 @@ const useTradingActions = ({
         // Belief market API success
         const actionDescription = type === 'BUY' ? 'bought' : 'sold';
         
-        setSuccess(`Successfully ${actionDescription} ${sharesInt} NO share${sharesInt !== 1 ? 's' : ''}.`);
+        // Always display 1 share when using our "Buy 1 Share" button (sharesInt=100)
+        // This is a special case where we're using a fixed sharesInt value to indicate 
+        // the user wants to buy 1 share at a fixed price
+        const displayShares = (type === 'BUY' && sharesInt === 100) ? 1 : sharesInt;
+        
+        setSuccess(`Successfully ${actionDescription} ${displayShares} NO share${displayShares !== 1 ? 's' : ''}.`);
         
         // Refresh positions after successful trade                      
         if (refreshPositions) {
@@ -392,11 +415,23 @@ const useTradingActions = ({
     }
   }, [newsId, publicKey, validateTradeParams, refreshPositions, refreshMarketData, onTradeComplete]);
 
-  // Legacy method to maintain backward compatibility
+  // Main trade execution method that dispatches to the appropriate handler
   const executeTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions, positionData) => {
-    if (actionType === 'short' || actionType === 'short_close') {
-      return executeShortTrade(actionType, shares, currentPrice, userData, userPositions);
+    // Map the new action types to the appropriate functions and parameters
+    if (actionType === 'no_buy') {
+      // Buy NO position - pass to executeShortTrade with adjusted action type
+      return executeShortTrade('buy', shares, currentPrice, userData, userPositions);
+    } else if (actionType === 'no_sell') {
+      // Sell NO position - pass to executeShortTrade with adjusted action type
+      return executeShortTrade('sell', shares, currentPrice, userData, userPositions);
+    } else if (actionType === 'yes_sell') {
+      // Sell YES position - pass to executeRegularTrade with adjusted action type
+      return executeRegularTrade('sell', shares, currentPrice, userData, userPositions, positionData);
+    } else if (actionType === 'short' || actionType === 'short_close') {
+      // Legacy action types - maintain for backward compatibility
+      return executeShortTrade(actionType === 'short' ? 'buy' : 'sell', shares, currentPrice, userData, userPositions);
     } else {
+      // Default to regular trade (buy/sell YES)
       return executeRegularTrade(actionType, shares, currentPrice, userData, userPositions, positionData);
     }
   }, [executeRegularTrade, executeShortTrade]);
