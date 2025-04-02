@@ -228,9 +228,130 @@
   }
 }
 
+/* Belief Market UI Components */
+.belief-meter {
+  margin-bottom: 15px;
+}
+
+.belief-label {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.belief-bar {
+  height: 12px;
+  background-color: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.belief-fill {
+  height: 100%;
+  background-color: #34c759;
+  transition: width 0.3s ease-in-out;
+}
+
+.price-pair {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 15px;
+}
+
+.yes-price, .no-price {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.yes-price {
+  background-color: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.no-price {
+  background-color: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.price-label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.belief-market-actions {
+  margin-top: 20px;
+}
+
+.action-label {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 10px 0 8px;
+  color: #666;
+}
+
+.belief-action-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.yes-buy-button, .yes-sell-button {
+  flex: 1;
+  padding: 12px 10px;
+  background-color: #34c759;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.yes-buy-button:hover:not(:disabled), .yes-sell-button:hover:not(:disabled) {
+  background-color: #2eb350;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.no-buy-button, .no-sell-button {
+  flex: 1;
+  padding: 12px 10px;
+  background-color: #ff3b30;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.no-buy-button:hover:not(:disabled), .no-sell-button:hover:not(:disabled) {
+  background-color: #e63529;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.yes-buy-button:disabled, .yes-sell-button:disabled,
+.no-buy-button:disabled, .no-sell-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
-  .quantity-selector {
+  .quantity-selector, .belief-action-row {
     flex-direction: column;
+  }
+  
+  .price-pair {
+    flex-direction: column;
+    gap: 10px;
   }
 }

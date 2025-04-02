@@ -111,11 +111,11 @@ const PositionPanel = ({
     if (!positions || positions.length === 0) return 0;
     
     return positions.reduce((total, pos) => {
-      if (pos.type === 'long') {
-        // For long positions, gain is current price - position price
+      if (pos.type === 'long' || pos.type === 'yes') {
+        // For YES/long positions, gain is current price - position price
         return total + ((currentPrice - pos.price) * pos.shares);
-      } else if (pos.type === 'short') {
-        // For short positions, gain is position price - current price
+      } else if (pos.type === 'short' || pos.type === 'no') {
+        // For NO/short positions, gain is position price - current price
         return total + ((pos.price - currentPrice) * pos.shares);
       }
       return total;
@@ -127,11 +127,11 @@ const PositionPanel = ({
     if (!position) return 0;
     
     let roi = 0;
-    if (position.type === 'long') {
-      // For long positions: (current_price - position_price) / position_price * 100
+    if (position.type === 'long' || position.type === 'yes') {
+      // For YES/long positions: (current_price - position_price) / position_price * 100
       roi = ((currentPrice - position.price) / position.price) * 100;
-    } else if (position.type === 'short') {
-      // For short positions: (position_price - current_price) / position_price * 100
+    } else if (position.type === 'short' || position.type === 'no') {
+      // For NO/short positions: (position_price - current_price) / position_price * 100
       roi = ((position.price - currentPrice) / position.price) * 100;
     }
     
@@ -139,7 +139,7 @@ const PositionPanel = ({
   };
   
   const totalGainLoss = calculateGainLoss();
-  const hasShorts = positions.some(pos => pos.type === 'short');
+  const hasNoPositions = positions.some(pos => pos.type === 'short' || pos.type === 'no');
   
   return (
     <div className="personal-stats">
@@ -172,7 +172,7 @@ const PositionPanel = ({
         <div className="no-positions-panel">
           <div className="no-positions-icon">📊</div>
           <p className="no-positions">Your positions will appear here after you make a trade</p>
-          <p className="no-positions-subtitle">Use the buttons above to buy long or sell short</p>
+          <p className="no-positions-subtitle">Use the buttons above to buy YES or NO shares</p>
         </div>
       ) : (
         <>
@@ -187,32 +187,26 @@ const PositionPanel = ({
                     <div className="position-header">
                       <div className={`position-title ${pos.type}`}>
                         <span className="position-icon">
-                          {pos.type === 'long' ? '📈' : '📉'}
+                          {pos.type === 'long' || pos.type === 'yes' ? '👍' : '👎'}
                         </span>
-                        {pos.type === 'long' ? 'Long' : 'Short'} • {pos.shares} shares • {pos.price.toFixed(1)}¢
+                        {pos.type === 'long' || pos.type === 'yes' ? 'YES' : 'NO'} • {Math.floor(pos.shares)} shares • {pos.price.toFixed(1)}¢
                       </div>
                       <span className={`position-roi ${isPositiveROI ? 'positive' : 'negative'}`}>
                         {isPositiveROI ? '+' : ''}{roi.toFixed(2)}%
                       </span>
                     </div>
                   </div>
-                  {pos.type === 'long' ? (
-                    <button className="sell-button position-action-button" onClick={() => onSellPosition(pos)}>
-                      Sell
-                    </button>
-                  ) : (
-                    <button className="position-close-button position-action-button" onClick={() => onSellPosition(pos)}>
-                      Close
-                    </button>
-                  )}
+                  <button className="sell-button position-action-button" onClick={() => onSellPosition(pos)}>
+                    Sell
+                  </button>
                 </div>
               );
             })}
           </div>
           
-          {hasShorts && (
+          {hasNoPositions && (
             <p className="note">
-              🔁 Shorts will be liquidated if price rises 1.5¢ above short entry.
+              📊 NO positions profit when belief ratio decreases.
             </p>
           )}
           

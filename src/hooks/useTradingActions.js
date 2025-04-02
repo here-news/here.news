@@ -130,46 +130,49 @@ const useTradingActions = ({
     setSuccess('');
 
     try {
-      // Check if user has enough shares or balance
-      let userShares = 0;
+      // Determine the side and type for belief market API
+      // For backward compatibility:
+      // - 'buy' in legacy = 'YES' + 'BUY' in belief market
+      // - 'sell' in legacy = 'YES' + 'SELL' in belief market
+      // - 'short' in legacy = 'NO' + 'BUY' in belief market
+      // - 'short_close' in legacy = 'NO' + 'SELL' in belief market
+      let side = 'YES';
+      let type = actionType === 'buy' ? 'BUY' : 'SELL';
       
-      // Check token balances to see if user owns any shares
-      if (userData && userData.token_balances) {
-        if (typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances)) {
-          userShares = userData.token_balances[newsId] || 0;
-        } else if (Array.isArray(userData.token_balances)) {
-          const matchingToken = userData.token_balances.find(token => 
-            token.news_id === newsId || token.market_id === newsId || token.id === newsId);
-            
-          if (matchingToken) {
-            userShares = matchingToken.balance || matchingToken.amount || matchingToken.shares || 0;
-          }
+      // For backward compatibility, check if user has shares
+      let totalShares = 0;
+      
+      // Check for YES shares in belief market format
+      if (positionData) {
+        if (positionData.yes_shares !== undefined) {
+          totalShares = parseFloat(positionData.yes_shares) || 0;
+        } else if (positionData.long_shares !== undefined) {
+          // Legacy format
+          totalShares = parseFloat(positionData.long_shares) || 0;
         }
       }
       
       // Check if user has enough balance for buy or enough shares for sell
+      const totalCost = sharesInt * priceFloat;
+      
       if (actionType === 'buy') {
-        const totalCost = sharesInt * priceFloat;
-        if (userData.balance < totalCost) {
-          setError(`Not enough balance. Cost: $${totalCost.toFixed(2)}, Available: $${typeof userData.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}`);
+        if (userData.balance < totalCost && userData.quote_balance < totalCost) {
+          const availableBalance = userData.quote_balance !== undefined ? 
+            userData.quote_balance : userData.balance;
+            
+          setError(`Not enough balance. Cost: $${totalCost.toFixed(2)}, Available: $${typeof availableBalance === 'number' ? availableBalance.toFixed(2) : '0.00'}`);
           setLoading(false);
           return false;
         }
       } else if (actionType === 'sell') {
-        // Check if user has shares using multiple detection methods
-        let totalShares = userShares || 0;
-        
-        // Also check positionData which might contain shares
-        if (positionData && positionData.long_shares) {
-          totalShares += positionData.long_shares;
-        }
-        
-        // Also check userPositions array
+        // Also check userPositions array for YES positions
         if (userPositions && userPositions.length > 0) {
-          const longPositions = userPositions.filter(pos => pos.type === 'long');
-          const positionShares = longPositions.reduce((total, pos) => total + pos.shares, 0);
+          const yesPositions = userPositions.filter(pos => 
+            pos.type === 'yes' || pos.type === 'long');
+          const positionShares = yesPositions.reduce((total, pos) => 
+            total + parseFloat(pos.shares), 0);
           
-          // If positions have more shares than we detected from token_balances, use that
+          // If positions have more shares than we detected from positionData, use that
           if (positionShares > totalShares) {
             totalShares = positionShares;
           }
@@ -182,26 +185,91 @@ const useTradingActions = ({
         }
       }
       
-      // Map to API expected format for regular trades
-      const orderPayload = {
-        type: 'MARKET', 
-        side: actionType, // 'buy' or 'sell'
-        quantity: sharesInt,
-        price: priceFloat,
-        news_id: newsId,
-        position_effect: actionType === 'buy' ? 'open' : 'close'
+      // For belief market API:
+      // - BUY: amount is in dollars
+      // - SELL: amount is in shares
+      const amount = actionType === 'buy' ? 
+        priceFloat * sharesInt :  // Amount in dollars for BUY
+        sharesInt;                // Amount in shares for SELL
+      
+      const beliefMarketPayload = {
+        side,
+        type,
+        amount
       };
       
-      return await processTradeRequest(orderPayload, actionType, sharesInt);
+      const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': publicKey
+        },
+        body: JSON.stringify(beliefMarketPayload)
+      });
+      
+      let responseData;
+      try {
+        const responseText = await response.text();
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error parsing trade response:', e);
+        responseData = { success: false, message: 'Could not parse server response' };
+      }
+      
+      if (response.ok && (responseData.success || responseData.trade_id)) {
+        // Belief market API success
+        const actionDescription = type === 'BUY' ? 'bought' : 'sold';
+        const sideDescription = side === 'YES' ? 'YES' : 'NO';
+        
+        setSuccess(`Successfully ${actionDescription} ${sharesInt} ${sideDescription} share${sharesInt !== 1 ? 's' : ''}.`);
+        
+        // Refresh positions after successful trade                      
+        if (refreshPositions) {
+          await refreshPositions();
+        }
+        
+        // Refresh market data 
+        if (refreshMarketData) {
+          await refreshMarketData();
+        }
+        
+        // Call the onTradeComplete callback if provided
+        if (onTradeComplete) {
+          onTradeComplete(actionType, sharesInt, priceFloat);
+        }
+        
+        setLoading(false);
+        return true;
+      } else {
+        // Handle error
+        let errorMessage;
+        if (responseData && responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData && responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+          } else {
+            errorMessage = responseData.detail;
+          }
+        } else {
+          errorMessage = `Trade failed: ${response.status} ${response.statusText}`;
+        }
+        
+        setError(errorMessage);
+        setLoading(false);
+        return false;
+      }
     } catch (err) {
       console.error('Error executing regular trade:', err);
       setError(`Error: ${err.message}`);
       setLoading(false);
       return false;
     }
-  }, [newsId, validateTradeParams, processTradeRequest]);
+  }, [newsId, publicKey, validateTradeParams, refreshPositions, refreshMarketData, onTradeComplete]);
 
-  // Execute a short trade (short/short_close)
+  // Execute a short trade (short/short_close) - mapped to NO buy/sell in belief market
   const executeShortTrade = useCallback(async (actionType, shares, currentPrice, userData, userPositions) => {
     if (!validateTradeParams(shares, currentPrice)) {
       return false;
@@ -216,299 +284,106 @@ const useTradingActions = ({
     setSuccess('');
 
     try {
-      if (actionType === 'short') {
-        // For shorting, check if market price is valid for shorting
-        if (priceFloat <= 0.01) {
-          setError('Cannot short this market at this time. Please try again later.');
-          setLoading(false);
-          return false;
+      // In belief market, a short is just buying NO shares
+      // - 'short' in legacy = 'NO' + 'BUY' in belief market
+      // - 'short_close' in legacy = 'NO' + 'SELL' in belief market
+      const side = 'NO';
+      const type = actionType === 'short' ? 'BUY' : 'SELL';
+      
+      // For short positions, check if we have enough NO shares if we're selling (short_close)
+      if (actionType === 'short_close') {
+        let totalNoShares = 0;
+        
+        // Check for NO shares in belief market format
+        if (userPositions && userPositions.length > 0) {
+          const noPositions = userPositions.filter(pos => 
+            pos.type === 'no' || pos.type === 'short');
+          totalNoShares = noPositions.reduce((total, pos) => 
+            total + parseFloat(pos.shares), 0);
         }
         
-        // Check if user has enough collateral (balance)
-        const requiredCollateral = sharesInt * priceFloat * 1.5; // 150% collateral
-        if (userData.balance < requiredCollateral) {
-          setError(`Insufficient collateral for shorting. Required: $${requiredCollateral.toFixed(2)}, Available: $${typeof userData.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}`);
-          setLoading(false);
-          return false;
-        }
-        
-        // Use the dedicated short position endpoint for shorting
-        const shortRequest = {
-          shares: sharesInt,
-          price: priceFloat
-        };
-        
-        try {
-          const endpoint = `${serviceUrl}/market/${newsId}/short`;
-          
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Public-Key': publicKey
-            },
-            body: JSON.stringify(shortRequest)
-          });
-          
-          let responseData;
-          try {
-            const responseText = await response.text();
-            responseData = JSON.parse(responseText);
-          } catch (e) {
-            console.error('Error parsing short response:', e);
-            responseData = { success: false, message: 'Could not parse server response' };
-          }
-          
-          if (response.ok && (responseData.success || responseData.id)) {
-            setSuccess(`Successfully shorted ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
-            
-            // Refresh positions after successful trade                      
-            if (refreshPositions) {
-              await refreshPositions();
-            }
-            
-            // Refresh market data 
-            if (refreshMarketData) {
-              await refreshMarketData();
-            }
-            
-            // Call the onTradeComplete callback if provided
-            if (onTradeComplete) {
-              onTradeComplete(actionType, sharesInt, priceFloat);
-            }
-            
-            setLoading(false);
-            return true;
-          } else {
-            // Handle error
-            let errorMessage;
-            if (responseData && responseData.message) {
-              errorMessage = responseData.message;
-            } else if (responseData && responseData.detail) {
-              if (Array.isArray(responseData.detail)) {
-                errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-              } else {
-                errorMessage = responseData.detail;
-              }
-            } else {
-              errorMessage = `Short trade failed: ${response.status} ${response.statusText}`;
-            }
-            
-            setError(errorMessage);
-            setLoading(false);
-            return false;
-          }
-        } catch (err) {
-          console.error('Error executing short position:', err);
-          setError(`Error: ${err.message}`);
-          setLoading(false);
-          return false;
-        }
-      } else if (actionType === 'short_close') {
-        // Check if user has any short positions to close
-        const hasShortPositions = userPositions.some(pos => pos.type === 'short');
-        if (!hasShortPositions) {
-          setError('You don\'t have any short positions to close.');
-          setLoading(false);
-          return false;
-        }
-        
-        // Find the short position ID
-        let shortPositionId = null;
-        
-        try {
-          // Try to get user's shorts to find the right one to close
-          const userShortsEndpoint = `${serviceUrl}/me/shorts`;
-          const userShortsResponse = await fetch(userShortsEndpoint, {
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Public-Key': publicKey
-            }
-          });
-          
-          if (userShortsResponse.ok) {
-            const userShorts = await userShortsResponse.json();
-            if (userShorts && Array.isArray(userShorts) && userShorts.length > 0) {
-              // Find open shorts for this news ID
-              console.log('User shorts:', userShorts);
-              const openShorts = userShorts.filter(s => 
-                s.status === 'OPEN' && 
-                (s.news_id === newsId || s.market_id === newsId)
-              );
-              
-              if (openShorts.length > 0) {
-                shortPositionId = openShorts[0].short_id || openShorts[0].id;
-                console.log('Found short position with ID:', shortPositionId);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching user shorts:", error);
-        }
-        
-        // Try market-based close first if no specific position ID was found
-        if (!shortPositionId) {
-          console.log('No specific short ID found, trying market-based close');
-          
-          // Use the new endpoint that can find and close a position by market and shares
-        // Use a price 10% higher than current market price to ensure execution
-        const adjustedPrice = priceFloat * 1.1;
-          
-        const marketCloseRequest = {
-            news_id: newsId,
-            shares: sharesInt,
-            price: adjustedPrice
-          };
-          
-          try {
-            const marketEndpoint = `${serviceUrl}/shorts/close-market-short`;
-            
-            const marketResponse = await fetch(marketEndpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Public-Key': publicKey
-              },
-              body: JSON.stringify(marketCloseRequest)
-            });
-            
-            let marketResponseData;
-            try {
-              const responseText = await marketResponse.text();
-              marketResponseData = JSON.parse(responseText);
-              console.log('Market close response:', marketResponseData);
-            } catch (e) {
-              console.error('Error parsing market close response:', e);
-              marketResponseData = { success: false, message: 'Could not parse server response' };
-            }
-            
-            if (marketResponse.ok && marketResponseData.success) {
-              setSuccess(`Successfully closed short position for ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
-              
-              // Refresh positions after successful trade                      
-              if (refreshPositions) {
-                await refreshPositions();
-              }
-              
-              // Refresh market data 
-              if (refreshMarketData) {
-                await refreshMarketData();
-              }
-              
-              // Call the onTradeComplete callback if provided
-              if (onTradeComplete) {
-                onTradeComplete(actionType, sharesInt, priceFloat);
-              }
-              
-              setLoading(false);
-              return true;
-            } else {
-              // If market close failed, we'll try the traditional method if we have a shortPositionId
-              // Otherwise, we'll show the error
-              if (!shortPositionId) {
-                let errorMessage;
-                if (marketResponseData && marketResponseData.message) {
-                  errorMessage = marketResponseData.message;
-                } else {
-                  errorMessage = 'No open short positions found for this market.';
-                }
-                
-                setError(errorMessage);
-                setLoading(false);
-                return false;
-              }
-              
-              // Log that we're falling back to the traditional method
-              console.log('Market-based close failed, falling back to ID-based close');
-            }
-          } catch (err) {
-            console.error('Error closing short position with market method:', err);
-            if (!shortPositionId) {
-              setError(`Error: ${err.message}`);
-              setLoading(false);
-              return false;
-            }
-          }
-        }
-        
-        // Close the short position using the specific short ID
-        // Use a price 10% higher than current market price to ensure execution
-        const adjustedPrice = priceFloat * 1.1;
-          
-        const closeRequest = {
-          price: adjustedPrice
-        };
-        
-        try {
-          console.log(`Closing short position with ID: ${shortPositionId}`);
-          const endpoint = `${serviceUrl}/shorts/${shortPositionId}/close`;
-          
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Public-Key': publicKey
-            },
-            body: JSON.stringify(closeRequest)
-          });
-          
-          let responseData;
-          try {
-            const responseText = await response.text();
-            responseData = JSON.parse(responseText);
-          } catch (e) {
-            console.error('Error parsing short close response:', e);
-            responseData = { success: false, message: 'Could not parse server response' };
-          }
-          
-          if (response.ok && (responseData.success || responseData.id)) {
-            setSuccess(`Successfully closed short position for ${sharesInt} share${sharesInt !== 1 ? 's' : ''}.`);
-            
-            // Refresh positions after successful trade                      
-            if (refreshPositions) {
-              await refreshPositions();
-            }
-            
-            // Refresh market data 
-            if (refreshMarketData) {
-              await refreshMarketData();
-            }
-            
-            // Call the onTradeComplete callback if provided
-            if (onTradeComplete) {
-              onTradeComplete(actionType, sharesInt, priceFloat);
-            }
-            
-            setLoading(false);
-            return true;
-          } else {
-            // Handle error
-            let errorMessage;
-            if (responseData && responseData.message) {
-              errorMessage = responseData.message;
-            } else if (responseData && responseData.detail) {
-              if (Array.isArray(responseData.detail)) {
-                errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
-              } else {
-                errorMessage = responseData.detail;
-              }
-            } else {
-              errorMessage = `Short close failed: ${response.status} ${response.statusText}`;
-            }
-            
-            setError(errorMessage);
-            setLoading(false);
-            return false;
-          }
-        } catch (err) {
-          console.error('Error closing short position:', err);
-          setError(`Error: ${err.message}`);
+        if (totalNoShares < sharesInt) {
+          setError(`Not enough NO shares to sell. Attempting to sell ${sharesInt} shares, but you only have ${totalNoShares}.`);
           setLoading(false);
           return false;
         }
       }
       
-      return false;
+      // For belief market API:
+      // - BUY: amount is in dollars
+      // - SELL: amount is in shares
+      const amount = type === 'BUY' ? 
+        priceFloat * sharesInt :  // Amount in dollars for BUY
+        sharesInt;                // Amount in shares for SELL
+      
+      const beliefMarketPayload = {
+        side,
+        type,
+        amount
+      };
+      
+      const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Public-Key': publicKey
+        },
+        body: JSON.stringify(beliefMarketPayload)
+      });
+      
+      let responseData;
+      try {
+        const responseText = await response.text();
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error parsing trade response:', e);
+        responseData = { success: false, message: 'Could not parse server response' };
+      }
+      
+      if (response.ok && (responseData.success || responseData.trade_id)) {
+        // Belief market API success
+        const actionDescription = type === 'BUY' ? 'bought' : 'sold';
+        
+        setSuccess(`Successfully ${actionDescription} ${sharesInt} NO share${sharesInt !== 1 ? 's' : ''}.`);
+        
+        // Refresh positions after successful trade                      
+        if (refreshPositions) {
+          await refreshPositions();
+        }
+        
+        // Refresh market data 
+        if (refreshMarketData) {
+          await refreshMarketData();
+        }
+        
+        // Call the onTradeComplete callback if provided
+        if (onTradeComplete) {
+          onTradeComplete(actionType, sharesInt, priceFloat);
+        }
+        
+        setLoading(false);
+        return true;
+      } else {
+        // Handle error
+        let errorMessage;
+        if (responseData && responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData && responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            errorMessage = responseData.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+          } else {
+            errorMessage = responseData.detail;
+          }
+        } else {
+          errorMessage = `Trade failed: ${response.status} ${response.statusText}`;
+        }
+        
+        setError(errorMessage);
+        setLoading(false);
+        return false;
+      }
     } catch (err) {
       console.error('Error executing short trade:', err);
       setError(`Error: ${err.message}`);

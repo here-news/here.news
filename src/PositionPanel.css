@@ -55,11 +55,11 @@
   color: #333;
 }
 
-.position-title.long {
+.position-title.long, .position-title.yes {
   color: #00c853;
 }
 
-.position-title.short {
+.position-title.short, .position-title.no {
   color: #ff5252;
 }
 

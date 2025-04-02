@@ -34,7 +34,8 @@ const useMarketData = (newsId) => {
     try {
       // Use cache-busting query parameter to ensure fresh data
       const timestamp = Date.now();
-      const response = await fetch(`${serviceUrl}/market/${newsId}/stats?t=${timestamp}`, {
+      // Use the belief-market endpoint
+      const response = await fetch(`${serviceUrl}/belief-market/${newsId}/state?t=${timestamp}`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -48,6 +49,8 @@ const useMarketData = (newsId) => {
         setLastUpdated(new Date());
         
         // Set trend based on actual market data
+        // For belief market, use yes_price for trend calculation
+        const currentPrice = marketData.yes_price || marketData.current_price;
         if (marketData.percent_change) {
           const percentChange = parseFloat(marketData.percent_change);
           if (percentChange > 0) {
@@ -60,9 +63,14 @@ const useMarketData = (newsId) => {
         }
         
         // Set other values from real market data if available
-        if (marketData.volume) setTradeVolume(marketData.volume);
+        if (marketData.total_volume) setTradeVolume(marketData.total_volume);
+        else if (marketData.volume) setTradeVolume(marketData.volume);
+        
         if (marketData.user_count) setTradersCount(marketData.user_count);
-        if (marketData.current_price) setNewsValue(marketData.current_price);
+        
+        // For belief market, use yes_price as the current price
+        if (marketData.yes_price) setNewsValue(marketData.yes_price);
+        else if (marketData.current_price) setNewsValue(marketData.current_price);
         
         return marketData;
       } else {

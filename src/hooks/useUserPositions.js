@@ -47,9 +47,9 @@ const useUserPositions = (newsId) => {
     setError(null);
 
     try {
-      // First try the positions API with cache-busting query parameter
+      // Get belief market positions with cache-busting query parameter
       const timestamp = Date.now();
-      const positionsResponse = await fetch(`${serviceUrl}/me/positions/${newsId}?t=${timestamp}`, {
+      const positionsResponse = await fetch(`${serviceUrl}/belief-market/${newsId}/position?t=${timestamp}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Public-Key': publicKey,
@@ -62,17 +62,62 @@ const useUserPositions = (newsId) => {
       if (positionsResponse.ok) {
         const positionsData = await positionsResponse.json();
         
-        let longShares = 0;
+        let totalShares = 0;
+        let yesShares = 0;
+        let noShares = 0;
         
-        // Handle both array and object formats
-        if (Array.isArray(positionsData)) {
+        // Handle belief market format
+        if (positionsData.yes_shares !== undefined || positionsData.no_shares !== undefined) {
+          // This is the new belief market format - ensure all share values are integers (>=0)
+          yesShares = Math.max(0, Math.floor(parseFloat(positionsData.yes_shares) || 0));
+          noShares = Math.max(0, Math.floor(parseFloat(positionsData.no_shares) || 0));
+          const yesAvgPrice = parseFloat(positionsData.yes_avg_price) || 0;
+          const noAvgPrice = parseFloat(positionsData.no_avg_price) || 0;
+          
+          // Total shares is the sum of YES and NO shares
+          totalShares = yesShares;  // For backward compatibility, use YES shares as the main share count
+          
+          // Update the positionData state with belief market data
+          setPositionData({
+            news_id: newsId,
+            yes_shares: yesShares,
+            no_shares: noShares,
+            yes_avg_price: yesAvgPrice,
+            no_avg_price: noAvgPrice
+          });
+          
+          // Convert to array format for compatibility with PositionPanel
+          const posArray = [];
+          if (yesShares > 0) {
+            posArray.push({
+              type: 'yes',  // New type for YES positions
+              shares: yesShares,
+              price: yesAvgPrice,
+              avg_price: yesAvgPrice
+            });
+          }
+          if (noShares > 0) {
+            posArray.push({
+              type: 'no',  // New type for NO positions
+              shares: noShares,
+              price: noAvgPrice,
+              avg_price: noAvgPrice
+            });
+          }
+          
+          setUserPositions(posArray);
+        } 
+        // Handle legacy format
+        else if (Array.isArray(positionsData)) {
           const longPositions = positionsData.filter(pos => pos.type === 'long');
-          longShares = longPositions.reduce((total, pos) => total + (parseInt(pos.shares) || 0), 0);
+          totalShares = longPositions.reduce((total, pos) => total + (parseFloat(pos.shares) || 0), 0);
           
           // Store the full array of positions for the position panel
           setUserPositions(positionsData);
-        } else if (typeof positionsData === 'object') {
-          longShares = parseInt(positionsData.long_shares) || 0;
+        } 
+        // Handle legacy object format
+        else if (typeof positionsData === 'object') {
+          totalShares = parseFloat(positionsData.long_shares) || 0;
           
           // Update the positionData state with direct object
           setPositionData({
@@ -103,10 +148,10 @@ const useUserPositions = (newsId) => {
         }
         
         // Always use the exact API value for shares - source of truth
-        setUserOwnedShares(longShares);
-        setUserHasAccess(longShares > 0);
+        setUserOwnedShares(totalShares);
+        setUserHasAccess(totalShares > 0);
         setLastUpdated(new Date());
-        return longShares;
+        return totalShares;
       } else {
         // Try fetching user data and checking token balances
         const userResponse = await fetch(`${serviceUrl}/me?t=${timestamp}`, {
@@ -124,18 +169,47 @@ const useUserPositions = (newsId) => {
           
           let shares = 0;
           
-          // Check token balances to see if user owns any shares
-          if (userData.token_balances) {
+          // Check positions in the user balance data for belief market format
+          if (userData.positions && userData.positions[newsId]) {
+            const position = userData.positions[newsId];
+            if (position.yes_shares !== undefined) {
+              shares = parseFloat(position.yes_shares) || 0;
+              
+              // Update the positions state with the data we found
+              setUserPositions([
+                {
+                  type: 'yes',
+                  shares: position.yes_shares,
+                  price: position.yes_avg_price || 0,
+                  avg_price: position.yes_avg_price || 0
+                }
+              ]);
+              
+              if (position.no_shares && position.no_shares > 0) {
+                setUserPositions(prev => [
+                  ...prev, 
+                  {
+                    type: 'no',
+                    shares: position.no_shares,
+                    price: position.no_avg_price || 0,
+                    avg_price: position.no_avg_price || 0
+                  }
+                ]);
+              }
+            }
+          }
+          // Check legacy token balances as fallback
+          else if (userData.token_balances) {
             if (typeof userData.token_balances === 'object' && !Array.isArray(userData.token_balances)) {
-              shares = parseInt(userData.token_balances[newsId]) || 0;
+              shares = parseFloat(userData.token_balances[newsId]) || 0;
             } else if (Array.isArray(userData.token_balances)) {
               const matchingToken = userData.token_balances.find(token => 
                 token.news_id === newsId || token.market_id === newsId || token.id === newsId);
                 
               if (matchingToken) {
-                shares = parseInt(matchingToken.balance) || 
-                         parseInt(matchingToken.amount) || 
-                         parseInt(matchingToken.shares) || 0;
+                shares = parseFloat(matchingToken.balance) || 
+                         parseFloat(matchingToken.amount) || 
+                         parseFloat(matchingToken.shares) || 0;
               }
             }
           }
@@ -170,20 +244,17 @@ const useUserPositions = (newsId) => {
     setReadingPurchaseStatus('processing');
     
     try {
-      // Use the same order payload format as the trading panel
-      const orderPayload = {
-        type: 'MARKET', 
-        side: 'buy',
-        quantity: 1, // Just one share for access
-        price: marketPrice,
-        news_id: newsId,
-        position_effect: 'open'
+      // Use the belief market trade endpoint with YES side
+      const tradePayload = {
+        side: 'YES',
+        type: 'BUY',
+        amount: marketPrice // Amount in currency for BUY
       };
       
-      // Use the same endpoint as the trading panel
-      const endpoint = `${serviceUrl}/market/${newsId}/orders`;
+      // Use the belief market endpoint
+      const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
       
-      console.log('Processing payment for article access:', orderPayload);
+      console.log('Processing payment for article access using belief market API:', tradePayload);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -191,7 +262,7 @@ const useUserPositions = (newsId) => {
           'Content-Type': 'application/json',
           'X-Public-Key': publicKey
         },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify(tradePayload)
       });
       
       // Parse the response
@@ -204,10 +275,10 @@ const useUserPositions = (newsId) => {
         responseData = { success: false, message: 'Could not parse response' };
       }
       
-      if (response.ok && responseData.success) {
+      if (response.ok && (responseData.success || responseData.trade_id)) {
         // Success! Update state
         setReadingPurchaseStatus('success');
-        setUserOwnedShares(prev => prev + 1);
+        setUserOwnedShares(prev => prev + 1); // Increment YES shares
         setUserHasAccess(true);
         setLastUpdated(new Date());
         

@@ -114,7 +114,7 @@ const NewsDetail = () => {
   useEffect(() => {
     if (!websocket.isConnected) return;
     
-    // Register for positions updates
+    // Register for positions updates - handle both legacy and belief market formats
     const unregisterPositionUpdates = websocket.registerForMessageType('positions_update', (data) => {
       if (data && data.news_id === uuid) {
         // Just call checkUserShares to update UI - no need to manually calculate shares
@@ -122,9 +122,30 @@ const NewsDetail = () => {
       }
     });
     
+    // Register for belief market position updates
+    const unregisterPositionMessages = websocket.registerForMessageType('position', (data) => {
+      if (data && data.news_id === uuid) {
+        checkUserShares();
+      }
+    });
+    
+    // Register for batched messages
+    const unregisterBatchMessages = websocket.registerForMessageType('batch', (data) => {
+      if (Array.isArray(data)) {
+        data.forEach(message => {
+          if ((message.type === 'position' || message.type === 'positions_update') && 
+              message.news_id === uuid) {
+            checkUserShares();
+          }
+        });
+      }
+    });
+    
     // Cleanup on unmount or reconnect
     return () => {
       unregisterPositionUpdates();
+      unregisterPositionMessages();
+      unregisterBatchMessages();
     };
   }, [websocket.isConnected, websocket.registerForMessageType, uuid, checkUserShares]);
 
