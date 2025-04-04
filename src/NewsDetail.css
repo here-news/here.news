@@ -127,60 +127,17 @@
 }
 
 /* Genre-specific badge styles */
-.genre-badge.genre-news {
-  color: #f4511e;
-  border-color: #f4511e;
-}
-
-.genre-badge.genre-analysis {
-  color: #1976d2;
-  border-color: #1976d2;
-}
-
-.genre-badge.genre-interview {
-  color: #8e24aa;
-  border-color: #8e24aa;
-}
-
-.genre-badge.genre-editorial {
-  color: #2e7d32;
-  border-color: #2e7d32;
-}
-
-.genre-badge.genre-opinion {
-  color: #c2185b;
-  border-color: #c2185b;
-}
-
-.genre-badge.genre-feature {
-  color: #0097a7;
-  border-color: #0097a7;
-}
-
-.genre-badge.genre-investigative {
-  color: #673ab7;
-  border-color: #673ab7;
-}
-
-.genre-badge.genre-entertainment-lifestyle {
-  color: #ff8f00;
-  border-color: #ff8f00;
-}
-
-.genre-badge.genre-sports {
-  color: #0097a7;
-  border-color: #0097a7;
-}
-
-.genre-badge.genre-science-education {
-  color: #673ab7;
-  border-color: #673ab7;
-}
-
-.genre-badge.genre-miscellaneous {
-  color: #607d8b;
-  border-color: #607d8b;
-}
+.genre-badge.genre-news { color: #f4511e; border-color: #f4511e; }
+.genre-badge.genre-analysis { color: #1976d2; border-color: #1976d2; }
+.genre-badge.genre-interview { color: #8e24aa; border-color: #8e24aa; }
+.genre-badge.genre-editorial { color: #2e7d32; border-color: #2e7d32; }
+.genre-badge.genre-opinion { color: #c2185b; border-color: #c2185b; }
+.genre-badge.genre-feature { color: #0097a7; border-color: #0097a7; }
+.genre-badge.genre-investigative { color: #673ab7; border-color: #673ab7; }
+.genre-badge.genre-entertainment-lifestyle { color: #ff8f00; border-color: #ff8f00; }
+.genre-badge.genre-sports { color: #0097a7; border-color: #0097a7; }
+.genre-badge.genre-science-education { color: #673ab7; border-color: #673ab7; }
+.genre-badge.genre-miscellaneous { color: #607d8b; border-color: #607d8b; }
 
 .news-title {
   font-size: 2rem;
@@ -304,6 +261,7 @@
   border: 1px solid #eaeaea;
 }
 
+/* Fix iframe popup styles and interaction */
 .iframe-popup {
   position: fixed;
   top: 0;
@@ -314,7 +272,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1050; /* Ensure high z-index */
 }
 
 .iframe-popup-content {
@@ -328,19 +286,17 @@
   animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
 .iframe-popup-header {
   display: flex;
   justify-content: space-between;
   background: #f0f0f0;
   padding: 10px;
   align-items: center;
+  position: relative;
+  z-index: 1055; /* Higher than the iframe to ensure controls are clickable */
 }
 
+/* Improve button styles for better interaction */
 .iframe-popup-header .iframe-close-button,
 .iframe-popup-header .iframe-open-button {
   border: none;
@@ -351,6 +307,9 @@
   margin-left: 8px;
   font-weight: bold;
   transition: all 0.2s ease;
+  position: relative; /* Ensure positioning context */
+  z-index: 1060; /* Highest z-index for buttons */
+  user-select: none; /* Prevent text selection */
 }
 
 .iframe-popup-header .iframe-close-button {
@@ -369,6 +328,28 @@
 
 .iframe-popup-header .iframe-open-button:hover {
   background: #0069d9;
+}
+
+/* Add focus styles for better accessibility */
+.iframe-popup-header .iframe-close-button:focus,
+.iframe-popup-header .iframe-open-button:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Ensure iframe doesn't overlay the controls */
+.iframe-popup iframe {
+  width: 100%;
+  height: calc(100% - 60px);
+  border: none;
+  display: block;
+  position: relative;
+  z-index: 1045; /* Lower than the header */
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .iframe-title {
@@ -401,11 +382,26 @@
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.iframe-popup iframe {
-  width: 100%;
-  height: calc(100% - 60px);
-  border: none;
+/* Keep the read-article-link styles since they're used in the JS */
+.read-article-link {
   display: block;
+  padding: 12px 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2980b9;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-bottom: 10px;
+}
+
+.read-article-link:hover {
+  color: #1a5276;
+  text-decoration: underline;
+}
+
+.read-article-link.processing {
+  color: #7f8c8d;
+  cursor: wait;
 }
 
 /* Mobile styling for news detail */

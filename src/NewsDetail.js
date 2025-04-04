@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
@@ -83,6 +83,9 @@ const NewsDetail = () => {
   const [relatedNews, setRelatedNews] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  
+  // Add ref for scrolling to trading panel
+  const tradingPanelRef = useRef(null);
 
   // Use custom hooks for data fetching and state management
   const { 
@@ -99,7 +102,6 @@ const NewsDetail = () => {
     userHasAccess,
     readingPurchaseStatus,
     checkUserShares,
-    buyAccessShare,
     setReadingPurchaseStatus
   } = useUserPositions(uuid);
   
@@ -113,14 +115,6 @@ const NewsDetail = () => {
   // Register for specific message types
   useEffect(() => {
     if (!websocket.isConnected) return;
-    
-    // Register for positions updates - handle both legacy and belief market formats
-    const unregisterPositionUpdates = websocket.registerForMessageType('positions_update', (data) => {
-      if (data && data.news_id === uuid) {
-        // Just call checkUserShares to update UI - no need to manually calculate shares
-        checkUserShares();
-      }
-    });
     
     // Register for belief market position updates
     const unregisterPositionMessages = websocket.registerForMessageType('position', (data) => {
@@ -143,7 +137,6 @@ const NewsDetail = () => {
     
     // Cleanup on unmount or reconnect
     return () => {
-      unregisterPositionUpdates();
       unregisterPositionMessages();
       unregisterBatchMessages();
     };
@@ -257,7 +250,6 @@ const NewsDetail = () => {
   // Check user shares when necessary state changes
   useEffect(() => {
     if (publicKey && news) {
-      console.log('Checking user shares due to state change');
       checkUserShares();
     }
   }, [publicKey, news, uuid, showIframe, lastRefreshTime, checkUserShares]);
@@ -267,12 +259,7 @@ const NewsDetail = () => {
   }
 
   const handleUrlClick = async (event) => {
-    if (event) event.preventDefault();
-    
-    // Check if we're already processing a payment
-    if (readingPurchaseStatus === 'processing') {
-      return; // Do nothing if already processing
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (event) event.preventDefault();
     
     // Check if user has access based on shares owned
     if (userHasAccess || userOwnedShares > 0) {
@@ -286,22 +273,9 @@ const NewsDetail = () => {
         // User has shares according to API, show the article
         showArticle();
       } else {
-        // User definitely doesn't have access, initiate purchase
-        const currentPrice = marketStats?.current_price || 0.02;
-        const result = await buyAccessShare(currentPrice);
-        
-        if (result.success) {
-          // Since the share purchase was successful, immediately show the article
-          showArticle();
-        } else {
-          // Show specific error messages based on the error type
-          if (result.message.includes('balance') || result.message.includes('fund')) {
-            alert('Insufficient funds to purchase access. Please add funds to your account.');
-          } else if (result.message.includes('401') || result.message.includes('403')) {
-            alert('Authentication required. Please log in to purchase access.');
-          } else {
-            alert(`Failed to process payment: ${result.message}`);
-          }
+        // Scroll to the trading panel so user can purchase shares
+        if (tradingPanelRef.current) {
+          tradingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
     }
@@ -385,53 +359,50 @@ const NewsDetail = () => {
               
               <div className="news-actions-container">
                 <div className="news-read-original">
-                  <button 
+                  <a 
+                    href="#read-article"
                     onClick={handleUrlClick} 
-                    className={`read-original-btn ${readingPurchaseStatus === 'processing' ? 'processing' : ''}`}
+                    className="read-article-link"
                   >
                     {userHasAccess || userOwnedShares > 0
-                      ? `Read Full Article (You own ${userOwnedShares} share${userOwnedShares !== 1 ? 's' : ''})`
-                      : readingPurchaseStatus === 'processing' 
-                        ? 'Processing Payment...' 
-                        : readingPurchaseStatus === 'failed' 
-                          ? 'Payment Failed - Try Again' 
-                          : `Buy 1 Share (${(marketStats?.current_price ? (marketStats.current_price * 100).toFixed(1) : "2.0")}¢) to Read Article`}
-                  </button>
+                      ? `READ full article with your shares (${userOwnedShares} share${userOwnedShares !== 1 ? 's' : ''})`
+                      : 'READ full article if you purchase a share (either direction) from market'}
+                  </a>
                 </div>
-                <div className="news-action-description">
-                  <p>
-                    {userHasAccess || userOwnedShares > 0
-                      ? 'Click to read the full article in our secure viewer.'
-                      : readingPurchaseStatus === 'failed' 
-                        ? 'There was an error processing your payment. Please try again or buy shares through the trading panel.' 
-                        : 'Purchase one share to access the full article. You can also use the trading panel to buy more shares.'}
-                  </p>
-                </div>
+                {!(userHasAccess || userOwnedShares > 0) && readingPurchaseStatus === 'failed' && (
+                  <div className="news-action-description">
+                    <p>
+                      There was an error accessing the article. Please try again or purchase shares through the trading panel.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <div className="col-md-4" id="news-sidebar">
-            {/* Modern Trading Panel Component with onTradeComplete callback */}
-            <TradingPanel 
-              newsId={uuid} 
-              onTradeComplete={async (actionType, shares, price) => {
-                // For buy and sell operations, immediately update the UI to match the TradingPanel state
-                if (actionType === 'buy') {
-                  // Just force a refresh of positions data to ensure consistency
-                  await checkUserShares();
-                } else if (actionType === 'sell') {
-                  // Just force a refresh of positions data to ensure consistency
-                  await checkUserShares();
-                }
-                
-                // Fetch updated market data
-                await fetchMarketData();
-                
-                // Force component refresh
-                setLastRefreshTime(Date.now());
-              }} 
-            />
+            {/* Modern Trading Panel Component with ref for scrolling */}
+            <div ref={tradingPanelRef}>
+              <TradingPanel 
+                newsId={uuid} 
+                onTradeComplete={async (actionType, shares, price) => {
+                  // For buy and sell operations, immediately update the UI to match the TradingPanel state
+                  if (actionType === 'buy') {
+                    // Just force a refresh of positions data to ensure consistency
+                    await checkUserShares();
+                  } else if (actionType === 'sell') {
+                    // Just force a refresh of positions data to ensure consistency
+                    await checkUserShares();
+                  }
+                  
+                  // Fetch updated market data
+                  await fetchMarketData();
+                  
+                  // Force component refresh
+                  setLastRefreshTime(Date.now());
+                }} 
+              />
+            </div>
             
             {/* Related News Section */}
             <div className="related-news-sidebar">
