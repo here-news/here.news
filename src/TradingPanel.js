@@ -454,7 +454,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="yes-buy-button"
             >
-              Pump ↗ @{formattedPrice.toFixed(1)}¢  
+              Pump ▲  @{formattedPrice.toFixed(1)}¢  
             </button>
             {userPositions?.filter(pos => pos.type === 'yes' || pos.type === 'long').map((position, index) => {
               const currentMarketPrice = formattedPrice / 100; // YES price in dollars
@@ -480,7 +480,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="no-buy-button"
             >
-              Dump ↘ @{formattedNoPrice.toFixed(1)}¢
+              Dump ▼ @{formattedNoPrice.toFixed(1)}¢
             </button>
             {userPositions?.filter(pos => pos.type === 'no' || pos.type === 'short').map((position, index) => {
               const currentMarketPrice = formattedNoPrice / 100; // NO price in dollars

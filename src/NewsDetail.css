@@ -1,9 +1,10 @@
-/* Ensure the news detail page is scrollable */
+/* Ensure the news detail page is scrollable and doesn't get covered by header */
 .news-detail-page {
   min-height: 100%;
   overflow-y: auto;
   background-color: #f8f9fa;
-  padding-top: 20px;
+  padding-top: 70px; /* Increased from 20px to accommodate header height */
+  padding-bottom: 40px;
 }
 
 /* Typography */
@@ -407,7 +408,7 @@
 /* Mobile styling for news detail */
 @media (max-width: 768px) {
   .news-detail-page {
-    padding-top: 10px;
+    padding-top: 40px; /* Slightly less on mobile */
   }
   
   .news-image {
@@ -464,6 +465,7 @@
   
   /* Mobile trading panel */
   .trading-panel {
+    top: 60px; /* Adjust for mobile header */
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 15px;
@@ -573,7 +575,8 @@
   margin-bottom: 20px;
   border: 1px solid #eaeaea;
   position: sticky;
-  top: 20px;
+  top: 70px; /* Increased from 20px to account for header height */
+  z-index: 900; /* Add z-index to ensure proper stacking */
 }
 
 .trading-panel-title {

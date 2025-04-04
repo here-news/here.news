@@ -365,8 +365,8 @@ const NewsDetail = () => {
                     className="read-article-link"
                   >
                     {userHasAccess || userOwnedShares > 0
-                      ? `READ full article with your shares (${userOwnedShares} share${userOwnedShares !== 1 ? 's' : ''})`
-                      : 'READ full article if you purchase a share (either direction) from market'}
+                      ? `Access full article (You own ${userOwnedShares} share${userOwnedShares !== 1 ? 's' : ''})`
+                      : 'READ full article if you purchase at least 1 share (either direction) from market'}
                   </a>
                 </div>
                 {!(userHasAccess || userOwnedShares > 0) && readingPurchaseStatus === 'failed' && (
