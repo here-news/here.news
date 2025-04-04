@@ -402,84 +402,106 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             currentPrice={currentPrice}
             lastDirection={isPriceUp ? 'up' : isPriceDown ? 'down' : ''}
           />
-          
-
-          
-          {/* <span className={`connection-indicator ${isRealTimeConnected ? 'connected' : 'disconnected'}`} 
-                title={isRealTimeConnected ? 'Real-time data' : 'Auto-refresh data'}>
-          </span> */}
         </div>
       )}
 
       {/* Stats Section - only key stats */}
-      <div className="condensed-stats">
-        <div className="stat-pair">
-          <div className="stat-item">
-            <span className="stat-label">Market Cap</span>
-            <span className="stat-value">${marketStats?.market_cap && typeof marketStats.market_cap === 'number' ? marketStats.market_cap.toFixed(2) : '0.00'}</span>
+        <div className="condensed-stats">
+          <div className="stat-pair">
+            <div className="stat-item">
+          <span className="stat-label">Market Cap</span>
+          <span className="stat-value">
+            ${(() => {
+              // Calculate market cap as yes_price*volume_yes + no_price*volume_no
+              if (marketStats?.yes_price && marketStats?.volume_yes && 
+              marketStats?.no_price && marketStats?.volume_no) {
+            const calculatedMarketCap = 
+              marketStats.yes_price * marketStats.volume_yes + 
+              marketStats.no_price * marketStats.volume_no;
+            return calculatedMarketCap.toFixed(2);
+              } else if (marketStats?.market_cap && typeof marketStats.market_cap === 'number') {
+            // Fallback to existing market_cap if calculation isn't possible
+            return marketStats.market_cap.toFixed(2);
+              }
+              return '0.00';
+            })()}
+          </span>
+            </div>
+            <div className="stat-item">
+          <span className="stat-label">Traders</span>
+          <span className="stat-value">{marketStats?.user_count || tradersCount || '0'}</span>
+            </div>
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Traders</span>
-            <span className="stat-value">{marketStats?.user_count || tradersCount || '0'}</span>
+          <div className="stat-pair">
+            <div className="stat-item">
+          <span className="stat-label">YES Volume</span>
+          <span className="stat-value">{marketStats?.volume_yes ? Math.floor(marketStats.volume_yes) : '0'}</span>
+            </div>
+            <div className="stat-item">
+          <span className="stat-label">NO Volume</span>
+          <span className="stat-value">{marketStats?.volume_no ? Math.floor(marketStats.volume_no) : '0'}</span>
+            </div>
           </div>
         </div>
-        <div className="stat-pair">
-          <div className="stat-item">
-            <span className="stat-label">YES Volume</span>
-            <span className="stat-value">{marketStats?.volume_yes ? Math.floor(marketStats.volume_yes) : '0'}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">NO Volume</span>
-            <span className="stat-value">{marketStats?.volume_no ? Math.floor(marketStats.volume_no) : '0'}</span>
-          </div>
-        </div>
-      </div>
-            
-      {/* Belief Market Trading Buttons with YES/NO options */}
-      <div className="belief-market-actions">
-        <div className="action-label">BUY</div>
-        <div className="belief-action-row">
-          <button 
-            type="button"
-            onClick={() => executeTrade('buy', 100, currentPrice, userData, userPositions, positionData)}
-            disabled={isLoading}
-            className="yes-buy-button"
-          >
-            Push({formattedPrice.toFixed(1)}¢) <span className="button-direction">↗</span> 
-          </button>
           
-          <button 
-            type="button"
-            onClick={() => executeTrade('no_buy', 100, noPrice, userData, userPositions, positionData)}
-            disabled={isLoading}
-            className="no-buy-button"
-          >
-            <span className="button-direction">↘</span> Pull({formattedNoPrice.toFixed(1)}¢)
-          </button>
+        {/* Belief Market Trading Buttons with YES/NO options */}
+      <div className="belief-market-actions">
+        <div className="action-column">
+          <div className="action-block">
+            <button 
+              type="button"
+              onClick={() => executeTrade('buy', 100, currentPrice, userData, userPositions, positionData)}
+              disabled={isLoading}
+              className="yes-buy-button"
+            >
+              Pump ↗ @{formattedPrice.toFixed(1)}¢  
+            </button>
+            {userPositions?.filter(pos => pos.type === 'yes' || pos.type === 'long').map((position, index) => {
+              const currentMarketPrice = formattedPrice / 100; // YES price in dollars
+              const profitPerShare = currentMarketPrice - position.avg_price;
+              const totalProfit = profitPerShare * position.shares;
+              const profitIsPositive = totalProfit > 0;
+
+                return (
+                <div key={index} className="position-info">
+                  {position.shares} shares @~{(position.avg_price * 100).toFixed(1)}¢
+                  <span style={{ color: profitIsPositive ? 'green' : 'red' }}>
+                  ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+                );
+            })}
+          </div>
+          <hr />
+          <div className="action-block">
+            <button 
+              type="button"
+              onClick={() => executeTrade('no_buy', 100, noPrice, userData, userPositions, positionData)}
+              disabled={isLoading}
+              className="no-buy-button"
+            >
+              Dump ↘ @{formattedNoPrice.toFixed(1)}¢
+            </button>
+            {userPositions?.filter(pos => pos.type === 'no' || pos.type === 'short').map((position, index) => {
+              const currentMarketPrice = formattedNoPrice / 100; // NO price in dollars
+              const profitPerShare = currentMarketPrice - position.avg_price;
+              const totalProfit = profitPerShare * position.shares;
+              const profitIsPositive = totalProfit > 0;
+
+                return (
+                <div key={index} className="position-info">
+                  {position.shares} shares @~{(position.avg_price * 100).toFixed(1)}¢
+                  <span style={{ color: profitIsPositive ? 'green' : 'red' }}>
+                  ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+                );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* User Positions - only show when user is logged in and has positions */}
-      {publicKey && userPositions && userPositions.length > 0 ? (
-        <PositionPanel
-          key="position-panel"
-          positions={userPositions}
-          currentPrice={formattedPrice} // Already converted to cents
-          onSellPosition={handlePositionAction}
-          successMessage={tradeSuccess}
-          errorMessage={errorMessage && !errorMessage.includes("Authentication") ? errorMessage : null}
-        />
-      ) : (
-        // Show success/error messages even when there are no positions
-        <div className="no-positions-container">
-          {tradeSuccess && <div className="success-message">{tradeSuccess}</div>}
-          {errorMessage && !errorMessage.includes("Authentication") && (
-            <div className="error-message">
-              {errorMessage}
-            </div>
-          )}
-        </div>
-      )}
+
     </div>
   );
 };

@@ -344,6 +344,95 @@
   box-shadow: none;
 }
 
+/* Belief Market Container */
+
+/* Belief Market Section */
+.belief-market-section {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.support-section {
+  background-color: rgba(0, 128, 0, 0.05);
+  border-left: 4px solid green;
+}
+
+.against-section {
+  background-color: rgba(255, 0, 0, 0.05);
+  border-left: 4px solid red;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.support-section .section-title {
+  color: green;
+}
+
+.against-section .section-title {
+  color: red;
+}
+
+.position-summary {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.position-compact {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.profit {
+  font-weight: bold;
+}
+
+.profit.positive {
+  color: green;
+}
+
+.profit.negative {
+  color: red;
+}
+
+.yes-buy-button, .no-buy-button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yes-buy-button {
+  background-color: #e6f7e6;
+  color: #005500;
+}
+
+.no-buy-button {
+  background-color: #ffebeb;
+  color: #550000;
+}
+
+.yes-buy-button:hover {
+  background-color: #d1f1d1;
+}
+
+.no-buy-button:hover {
+  background-color: #ffd6d6;
+}
+
 /* Price Chart Styles */
 .mini-price-chart-container {
   width: 100%;
