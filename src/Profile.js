@@ -160,7 +160,7 @@ const Profile = () => {
         if (!userInfo || !userInfo.public_key) return;
         
         try {
-            const response = await fetch(`${serviceUrl}/me/profile`, {
+            const response = await fetch(`${serviceUrl}/me/balance`, {
                 headers: {
                     'X-Public-Key': userInfo.public_key
                 }
@@ -168,23 +168,12 @@ const Profile = () => {
             
             if (response.ok) {
                 const data = await response.json();
-                debugLog("Profile refresh data:", data);
+                debugLog("Balance refresh data:", data);
                 
-                // Handle nested balance object
-                if (data && data.balance && data.balance.quote_balance !== undefined) {
-                    const numBalance = Number(data.balance.quote_balance);
-                    debugLog("Setting local balance from profile refresh (nested):", numBalance);
-                    setLocalBalance(numBalance);
-                    setHasLocalBalance(true);
-                    
-                    if (updateUserBalance) {
-                        updateUserBalance(numBalance);
-                    }
-                    showNotification("Balance updated successfully.", "success");
-                } else if (data && data.quote_balance !== undefined) {
-                    // Direct quote_balance
+                // Handle the balance response
+                if (data && data.quote_balance !== undefined) {
                     const numBalance = Number(data.quote_balance);
-                    debugLog("Setting local balance from profile refresh (direct):", numBalance);
+                    debugLog("Setting local balance from balance refresh:", numBalance);
                     setLocalBalance(numBalance);
                     setHasLocalBalance(true);
                     
@@ -193,9 +182,12 @@ const Profile = () => {
                     }
                     showNotification("Balance updated successfully.", "success");
                 } else {
-                    console.error("No valid balance found in profile response:", data);
+                    console.error("No valid balance found in balance response:", data);
                     showNotification("Couldn't retrieve your current balance.", "warning");
                 }
+            } else {
+                console.error("Failed to refresh balance:", await response.text());
+                showNotification("Failed to update balance information.", "error");
             }
         } catch (error) {
             console.error("Failed to refresh profile:", error);
