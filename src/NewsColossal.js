@@ -8,28 +8,34 @@ import Footer from './Footer';
 import './NewsColossal.css';
 import { debugLog } from './utils/debugUtils';
 
+// Add fallback for msgpack if needed
+let msgpack = null;
+try {
+  // Use dynamic import instead of CDN
+  import('@msgpack/msgpack').then(module => {
+    msgpack = module;
+    debugLog('MsgPack library loaded successfully');
+  }).catch(err => {
+    debugLog('MsgPack library failed to load:', err);
+  });
+} catch (e) {
+  debugLog('Error loading msgpack library:', e);
+}
+
 // Mini price chart component to show price history
 const MiniPriceChart = ({ priceHistory, percentChange, width = 40, height = 20 }) => {
   // Default empty array if no price history provided
   const data = priceHistory || [];
   
-  // Check if we have price data
-  if (!data || data.length === 0) {
-    return null;
-  }
+  if (!data || data.length === 0) return null;
   
-  // Find min/max for scaling
   const minPrice = Math.min(...data);
   const maxPrice = Math.max(...data);
   const range = maxPrice - minPrice;
-  
-  // Determine color based on percent change
   const chartColor = parseFloat(percentChange) >= 0 ? '#28a745' : '#dc3545';
   
-  // Calculate point coordinates
   const points = data.map((price, index) => {
     const x = (index / (data.length - 1)) * width;
-    // Invert Y axis (SVG 0,0 is top-left)
     const y = height - ((price - minPrice) / (range || 1)) * height;
     return `${x},${y}`;
   }).join(' ');
@@ -54,21 +60,14 @@ const MiniPriceChart = ({ priceHistory, percentChange, width = 40, height = 20 }
 };
 
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, gridPosition, children }, ref) => {
-  // Handle trading actions
   const handleLongPosition = (e) => {
     e.stopPropagation();
-    // Provide haptic feedback
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
   };
   
   const handleShortPosition = (e) => {
     e.stopPropagation();
-    // Provide haptic feedback
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
   };
   
   const handleCardClick = () => {
@@ -76,43 +75,23 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
   };
 
   // Value indicator arrow based on trending direction
-  const trendingArrow = news.trending === 'up' 
-    ? '↑' 
-    : news.trending === 'down' 
-      ? '↓' 
-      : '→';
-  
+  const trendingArrow = news.trending === 'up' ? '↑' : news.trending === 'down' ? '↓' : '→';
   const trendingClass = `trending-${news.trending}`;
   
   // Generate CSS genre class
   const getGenreClass = () => {
-    // Convert genre to lowercase and remove whitespace and special chars for CSS class
     let genre = news.genre ? news.genre.toLowerCase().replace(/\s+|&/g, '-') : 'news';
     return `genre-${genre}`;
   };
   
   // Base classes
   let baseClasses = ['news-card'];
-  
-  // Add position/active classes
-  if (isActive) {
-    baseClasses.push('active');
-  }
-  
-  // Add desktop-specific classes
+  if (isActive) baseClasses.push('active');
   if (!isMobile) {
-    if (isActive) {
-      baseClasses.push('desktop-active');
-    }
-    if (gridPosition) {
-      baseClasses.push(`position-${gridPosition}`);
-    }
+    if (isActive) baseClasses.push('desktop-active');
+    if (gridPosition) baseClasses.push(`position-${gridPosition}`);
   }
-  
-  // Add genre class
   baseClasses.push(getGenreClass());
-  
-  // Join all classes
   const cardClasses = baseClasses.join(' ');
   
   // Standard desktop card
@@ -144,7 +123,6 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
           <p className="card-summary">{news.summary}</p>
         </div>
         
-        {/* Trading section for desktop */}
         <div className="card-trading-section">
           <div className="card-trading-info">
             <div className={`current-value ${trendingClass}`}>
@@ -198,10 +176,8 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
         </div>
         <h2 className="card-title">{news.title}</h2>
         <p className="card-summary">{news.summary}</p>
-        
       </div>
       
-      {/* Trading actions directly on the card */}
       {isMobile && isActive && (
         <div className="card-trading-actions">
           <button className="trading-button long" onClick={handleLongPosition}>
@@ -215,7 +191,6 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
         </div>
       )}
       
-      {/* Add swipe hints or other child elements */}
       {children}
     </div>
   );
@@ -227,7 +202,6 @@ const NewsFullScreen = ({ news, onClose }) => {
   const fullscreenRef = useRef(null);
   
   useEffect(() => {
-    // For mobile, add special scrolling behavior
     if (isMobile && fullscreenRef.current) {
       const handlePull = (e) => {
         if (fullscreenRef.current.scrollTop <= 0) {
@@ -248,37 +222,11 @@ const NewsFullScreen = ({ news, onClose }) => {
   
   if (!news) return null;
 
-  // Value indicator arrow based on trending direction
-  const trendingArrow = news.trending === 'up' 
-    ? '↑' 
-    : news.trending === 'down' 
-      ? '↓' 
-      : '→';
-  
+  const trendingArrow = news.trending === 'up' ? '↑' : news.trending === 'down' ? '↓' : '→';
   const trendingClass = `trending-${news.trending}`;
   
-  // Get category color for header
-  const getCategoryColor = (genre) => {
-    const colorMap = {
-      'Science & Technology': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
-      'Environment': 'linear-gradient(135deg, #1b5e20 0%, #4caf50 100%)',
-      'Economy': 'linear-gradient(135deg, #0d47a1 0%, #2196f3 100%)',
-      'Health & Technology': 'linear-gradient(135deg, #b71c1c 0%, #f44336 100%)',
-      'Archaeology': 'linear-gradient(135deg, #795548 0%, #a1887f 100%)',
-      'Politics': 'linear-gradient(135deg, #880e4f 0%, #e91e63 100%)',
-      'Culture': 'linear-gradient(135deg, #e65100 0%, #ff9800 100%)',
-      'Sports': 'linear-gradient(135deg, #006064 0%, #00bcd4 100%)',
-      'Entertainment': 'linear-gradient(135deg, #4a148c 0%, #9c27b0 100%)'
-    };
-    
-    return colorMap[genre] || 'linear-gradient(135deg, #37474f 0%, #78909c 100%)';
-  };
-  
-  // Provide haptic feedback when user taps Trading buttons
   const handleTradingAction = (action) => {
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
     console.log('Trading action:', action);
   };
 
@@ -289,22 +237,18 @@ const NewsFullScreen = ({ news, onClose }) => {
         className={`news-fullscreen ${isPulling ? 'pulling' : ''}`}
         ref={fullscreenRef}
       >
-      {/* Pull-to-refresh indicator - only shown when pulling */}
       {isMobile && (
         <div className="pull-indicator">
           <span className="ticker-refresh">↻ Pull to refresh market data ↻</span>
         </div>
       )}
       
-      {/* Just add a close button in the top-right corner */}
       <div className="fullscreen-close-button">
         <button onClick={onClose} className="close-btn">×</button>
       </div>
       
       {isMobile ? (
-        // Mobile layout with swipeable sections
         <div className="fullscreen-content">
-          {/* Single section with article content */}
           <section className="fullscreen-section">
             <div className="fullscreen-image">
               <img src={news.preview} alt={news.title} onError={(e) => e.target.src = '/static/3d.webp'} />
@@ -333,9 +277,7 @@ const NewsFullScreen = ({ news, onClose }) => {
             </div>
           </section>
           
-          {/* Trading section */}
           <section className="fullscreen-section trading-only-section">
-            
             <div className="trading-section">
               <h3>Content Trading</h3>
               <div className="trading-stats">
@@ -381,7 +323,6 @@ const NewsFullScreen = ({ news, onClose }) => {
           </section>
         </div>
       ) : (
-        // Desktop layout (unchanged)
         <div className="fullscreen-content">
           <div className="fullscreen-image">
             <img src={news.preview} alt={news.title} onError={(e) => e.target.src = '/static/3d.webp'} />
@@ -453,8 +394,8 @@ const NewsFullScreen = ({ news, onClose }) => {
   );
 };
 
+// Main component
 const NewsColossal = () => {
-  // Initialize navigate function for routing
   const navigate = useNavigate();
   
   const [activeIndex, setActiveIndex] = useState(0);
@@ -469,88 +410,156 @@ const NewsColossal = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef(null);
   
-  // Fetch news from API
-  const fetchTopNews = async () => {
-    setIsLoading(true);
+  // Network status tracking
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [networkError, setNetworkError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
+  
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setNetworkError(null);
+      if (news.length === 0 && !isLoading) fetchTopNews();
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setNetworkError("You're currently offline. Some features may be limited.");
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [news.length, isLoading]);
+
+  // Enhanced fetch with better error handling for service worker integration
+  const fetchWithFallback = async (url, options = {}, timeout = 10000) => {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out')), timeout);
+    });
     
     try {
-      // Use the topnews endpoint with cache buster
-      const cacheBuster = new Date().getTime();
+      const response = await Promise.race([
+        fetch(url, { 
+          ...options,
+          // Add cache control headers to help the service worker
+          headers: {
+            ...options.headers,
+            'Cache-Control': 'public, max-age=300', // 5 minute cache
+          }
+        }),
+        timeoutPromise
+      ]);
       
-      // Simple fetch without credentials or special headers to avoid CORS issues
-      const response = await fetch(`${serviceUrl}/topnews?range=2h&limit=9&_=${cacheBuster}`);
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       
-      if (!response.ok) {
-        throw new Error(`Error fetching news: ${response.status} ${response.statusText}`);
+      if (msgpack && url.includes('msgpack')) {
+        const buffer = await response.arrayBuffer();
+        return msgpack.decode(new Uint8Array(buffer));
       }
       
-      let data = await response.json();
-      debugLog('Raw API response:', data);
+      return await response.json();
+    } catch (error) {
+      debugLog('Fetch error:', error.message);
       
-      // Determine the structure of the response
+      // Check cache
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('news-data');
+          const cachedResponse = await cache.match(url);
+          if (cachedResponse) {
+            debugLog('Using cached data for:', url);
+            return await cachedResponse.json();
+          }
+        } catch (cacheError) {
+          debugLog('Cache error:', cacheError);
+        }
+      }
+      
+      if (retryCount < maxRetries) throw error;
+      
+      // Return fallback data
+      if (url.includes('/topnews')) {
+        return [{
+          uuid: 'fallback-1',
+          title: 'Unable to load news at this time',
+          summary: 'Please check your connection and try again later.',
+          source: 'Offline Mode',
+          canonical: '#',
+          pub_time: new Date().toISOString(),
+          preview: '/static/3d.webp',
+          author: 'System',
+          genre: 'News',
+          current_value: '1.00',
+          trending: 'stable',
+          price_history: [1, 1, 1, 1, 1, 1, 1],
+          percent_change_24h: '0.0'
+        }];
+      }
+      
+      return { error: 'Failed to fetch data', offline: true };
+    }
+  };
+  
+  // Fetch top news
+  const fetchTopNews = async () => {
+    setIsLoading(true);
+    setNetworkError(null);
+    
+    try {
+      const cacheBuster = new Date().getTime();
+      const data = await fetchWithFallback(`${serviceUrl}/topnews?range=2h&limit=9&_=${cacheBuster}`);
+      
+      // Process response data
       let fetchedNews = [];
       
-      // Handle different response formats
       if (Array.isArray(data)) {
-        // Response is already an array
         fetchedNews = data;
       } else if (data && typeof data === 'object') {
-        // Response might be an object with nested data
-        // Try common patterns for API responses
-        if (Array.isArray(data.results)) {
-          fetchedNews = data.results;
-        } else if (Array.isArray(data.data)) {
-          fetchedNews = data.data;
-        } else if (Array.isArray(data.items)) {
-          fetchedNews = data.items;
-        } else if (Array.isArray(data.news)) {
-          fetchedNews = data.news;
-        } else {
-          // If it's a single object, turn it into an array
+        if (Array.isArray(data.results)) fetchedNews = data.results;
+        else if (Array.isArray(data.data)) fetchedNews = data.data;
+        else if (Array.isArray(data.items)) fetchedNews = data.items;
+        else if (Array.isArray(data.news)) fetchedNews = data.news;
+        else {
           const keys = Object.keys(data).filter(key => key !== 'status' && key !== 'message');
           if (keys.length > 0 && data[keys[0]] && typeof data[keys[0]] === 'object') {
-            // It might be a map of objects, try to convert to array
             fetchedNews = Object.values(data);
           } else {
-            // If it's a single news item, wrap it in an array
             fetchedNews = [data];
           }
         }
       }
       
-      debugLog('Processed news array:', fetchedNews);
-      
       if (!Array.isArray(fetchedNews) || fetchedNews.length === 0) {
         throw new Error('Could not extract news array from API response');
       }
       
-      // Add trading-related data where missing
+      // Add trading data where missing
       fetchedNews = fetchedNews.map(item => {
-        // Only generate price history if it doesn't exist
         if (!item.price_history) {
-          // Generate random price history for the chart
           const priceHistory = [];
-          const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
+          const trendBias = Math.random() > 0.5 ? 1 : -1;
           const initialPrice = (Math.random() * 3 + 0.5);
           let lastPrice = initialPrice;
           
-          // Generate price points
           for (let i = 0; i < 24; i++) {
             const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
             lastPrice = Math.max(0.1, lastPrice + change);
             priceHistory.push(lastPrice);
           }
           
-          // Determine trending direction from last prices
           const finalPrice = priceHistory[priceHistory.length - 1];
           const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
           const priceDiff = finalPrice - previousPrice;
           const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-          
-          // Calculate 24hr percent change
           const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
           
-          // Only add fields that don't exist
           return {
             ...item,
             current_value: item.current_value || finalPrice.toFixed(2),
@@ -563,131 +572,111 @@ const NewsColossal = () => {
         return item;
       });
       
-      debugLog('Enhanced news with trading data:', fetchedNews);
+      // Cache the response
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('news-data');
+          const response = new Response(JSON.stringify(fetchedNews), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          await cache.put(`${serviceUrl}/topnews?range=2h&limit=9`, response);
+        } catch (cacheError) {
+          debugLog('Failed to cache news data:', cacheError);
+        }
+      }
+      
+      setRetryCount(0);
       setNews(fetchedNews);
     } catch (error) {
       debugLog('Error fetching news:', error);
-      // In production, handle error gracefully without mock data
-      setNews([]);
+      
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      if (!navigator.onLine) {
+        setNetworkError("You're offline. Please check your connection.");
+      } else if (error.message.includes('timed out')) {
+        setNetworkError("Request timed out. Server might be busy.");
+      } else {
+        setNetworkError("Couldn't load news. Please try again later.");
+      }
+      
+      if (newRetryCount < maxRetries) {
+        const backoffTime = Math.pow(2, newRetryCount) * 1000;
+        setTimeout(() => {
+          fetchTopNews();
+        }, backoffTime);
+      } else {
+        loadFromCacheOrFallback();
+      }
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Fetch news details for a specific article
-  const fetchNewsDetails = async (uuid) => {
-    try {
-      // Add cache buster to prevent caching
-      const cacheBuster = new Date().getTime();
-      const response = await fetch(`${serviceUrl}/news/${uuid}?_=${cacheBuster}`);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      debugLog('Raw news details from API:', data);
-      
-      // Handle different response formats
-      let newsDetails = data;
-      
-      // If the response is nested, extract the actual news details
-      if (data && typeof data === 'object') {
-        if (data.data && typeof data.data === 'object') {
-          newsDetails = data.data;
-        } else if (data.results && typeof data.results === 'object') {
-          newsDetails = data.results;
-        } else if (data.news && typeof data.news === 'object') {
-          newsDetails = data.news;
+  // Load from cache as last resort
+  const loadFromCacheOrFallback = async () => {
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('news-data');
+        const cachedResponse = await cache.match(`${serviceUrl}/topnews?range=2h&limit=9`);
+        
+        if (cachedResponse) {
+          const cachedData = await cachedResponse.json();
+          setNews(cachedData);
+          setNetworkError("Showing previously cached content. Some data may be outdated.");
+          return;
         }
+      } catch (cacheError) {
+        debugLog('Cache error:', cacheError);
       }
-      
-      debugLog('Processed news details:', newsDetails);
-      
-      if (!newsDetails || Object.keys(newsDetails).length === 0) {
-        throw new Error('Empty news details returned');
-      }
-      
-      // Add trading-related data with price history
-      if (!newsDetails.price_history) {
-        // Generate random price history for the chart
-        const priceHistory = [];
-        const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
-        const initialPrice = (Math.random() * 3 + 0.5);
-        let lastPrice = initialPrice;
-        
-        // Generate price points
-        for (let i = 0; i < 24; i++) {
-          const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
-          lastPrice = Math.max(0.1, lastPrice + change);
-          priceHistory.push(lastPrice);
-        }
-        
-        // Determine trending direction from last prices
-        const finalPrice = priceHistory[priceHistory.length - 1];
-        const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
-        const priceDiff = finalPrice - previousPrice;
-        const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-        
-        // Calculate 24hr percent change
-        const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-        
-        return {
-          ...newsDetails,
-          current_value: newsDetails.current_value || finalPrice.toFixed(2),
-          trending: newsDetails.trending || trending,
-          price_history: priceHistory,
-          percent_change_24h: newsDetails.percent_change_24h || percentChange.toFixed(1)
-        };
-      }
-      
-      return newsDetails;
-    } catch (error) {
-      debugLog(`Error fetching details for news ${uuid}:`, error);
-      return null;
     }
+    
+    // Use minimal fallback data
+    setNews([{
+      uuid: 'fallback-1',
+      title: 'Unable to load news at this time',
+      summary: 'Please check your connection and try again later.',
+      source: 'Offline Mode',
+      canonical: '#',
+      pub_time: new Date().toISOString(),
+      preview: '/static/3d.webp',
+      author: 'System',
+      genre: 'News',
+      current_value: '1.00',
+      trending: 'stable',
+      price_history: [1, 1, 1, 1, 1, 1, 1],
+      percent_change_24h: '0.0'
+    }]);
+    setNetworkError("Couldn't load news. Please try again when you're back online.");
   };
   
-  // Track if data has been loaded to prevent multiple fetches
+  // Track if data has been loaded
   const [hasLoadedData, setHasLoadedData] = useState(false);
 
-  // Only fetch data once on initial component mount
+  // Fetch data once on mount
   useEffect(() => {
-    // Only fetch if we haven't loaded data yet
     if (!hasLoadedData && news.length === 0) {
       fetchTopNews()
-        .then(() => {
-          setHasLoadedData(true);
-          debugLog('Data loaded successfully, marking as loaded');
-        })
-        .catch(error => {
-          debugLog('Error in initial data fetch:', error);
-          // Still mark as loaded to prevent constant retries
-          setHasLoadedData(true);
-        });
+        .then(() => setHasLoadedData(true))
+        .catch(() => setHasLoadedData(true));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Separate useEffect for mobile setup to avoid mixing concerns
+  // Mobile setup effect
   useEffect(() => {
-    // Prevent default scrolling on mobile
     if (isMobile && containerRef.current) {
       containerRef.current.style.overscrollBehavior = 'none';
       containerRef.current.style.touchAction = 'none';
     }
     
-    // Apply proper positioning to all cards on initial load
+    // Apply card positioning on mobile
     const positionCards = () => {
-      if (isMobile) {
+      if (isMobile && news.length > 0) {
         const allCards = document.querySelectorAll('.news-card');
-        const activeCard = document.querySelector('.news-card.active');
-        
-        // Ensure all cards have proper fixed positioning
         allCards.forEach((card, index) => {
           const relativePosition = index - activeIndex;
-          
-          // Common styles for all cards
           card.style.position = 'fixed';
           card.style.top = '60px';
           card.style.left = '0';
@@ -695,8 +684,7 @@ const NewsColossal = () => {
           card.style.width = '100%';
           card.style.height = 'calc(100vh - 60px)';
           
-          // Position based on relationship to active card
-          if (card === activeCard) {
+          if (relativePosition === 0) {
             card.style.zIndex = '1600';
             card.style.transform = 'translateY(0)';
             card.style.opacity = '1';
@@ -721,63 +709,30 @@ const NewsColossal = () => {
       }
     };
     
-    // Position cards once news is loaded
     if (news.length > 0) {
       setTimeout(positionCards, 100);
     }
   }, [isMobile, news.length, activeIndex]);
 
-  // Ensure isMobile state is consistently applied and updated
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const mobileView = window.innerWidth <= 768;
       setIsMobile(mobileView);
-      
-      // Force apply correct styles to body for cascade
-      if (mobileView) {
-        document.body.classList.add('mobile-view');
-        document.body.classList.remove('desktop-view');
-        
-        // Check if we're in landscape mode on mobile
-        if (window.matchMedia("(orientation: landscape)").matches) {
-          // Show notification or handle landscape mode
-        }
-      } else {
-        document.body.classList.remove('mobile-view');
-        document.body.classList.add('desktop-view');
-      }
+      document.body.classList.toggle('mobile-view', mobileView);
+      document.body.classList.toggle('desktop-view', !mobileView);
     };
     
-    // Handle orientation change
-    const handleOrientationChange = () => {
-      if (window.innerWidth <= 768) {
-        if (window.matchMedia("(orientation: landscape)").matches) {
-          // We're in landscape on mobile - show notification
-          
-          // Optional: vibrate to notify user
-          if (window.navigator && window.navigator.vibrate) {
-            window.navigator.vibrate(100);
-          }
-        }
-      }
-    };
-    
-    // Initial check
     handleResize();
-    
-    // Listen for changes
     window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleOrientationChange);
     
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      document.body.classList.remove('mobile-view');
-      document.body.classList.remove('desktop-view');
+      document.body.classList.remove('mobile-view', 'desktop-view');
     };
   }, []);
   
-  // Track scroll position for showing bottom search bar and infinite scrolling
+  // Track scroll for infinite loading
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   useEffect(() => {
@@ -785,29 +740,20 @@ const NewsColossal = () => {
       let scrollCount = 0;
       
       const handleScroll = () => {
-        // Get current scroll position
         const currentScrollTop = containerRef.current.scrollTop;
-        const scrollDirection = currentScrollTop > scrollLeft ? 'down' : 'up';
-        
-        if (scrollDirection === 'down') {
+        if (currentScrollTop > scrollLeft) {
           scrollCount++;
           
-          // Show bottom search after 10 scroll events
           if (scrollCount >= 10 && !showBottomSearch) {
             setShowBottomSearch(true);
           }
           
-          // Check if we're near the bottom for infinite scrolling
           const { scrollHeight, scrollTop, clientHeight } = containerRef.current;
-          const scrollBottom = scrollHeight - scrollTop - clientHeight;
-          
-          // If we're within 500px of the bottom, load more (increased threshold for better responsiveness)
-          if (scrollBottom < 500 && !isLoadingMore) {
+          if (scrollHeight - scrollTop - clientHeight < 500 && !isLoadingMore) {
             loadMoreNews();
           }
         }
         
-        // Update scrollLeft for next comparison
         setScrollLeft(currentScrollTop);
       };
       
@@ -821,110 +767,64 @@ const NewsColossal = () => {
     }
   }, [isMobile, scrollLeft, showBottomSearch, isLoadingMore]);
   
-  // Function to load more news on scroll
+  // Load more news
   const loadMoreNews = () => {
     setIsLoadingMore(true);
-    
-    // In a real implementation, we would fetch the next page of news
-    setTimeout(() => {
-      try {
-        // Simply mark as completed without adding mock data
-        setIsLoadingMore(false);
-        
-        // In a production app, we would fetch and add more data here
-      } catch (error) {
-        debugLog('Error loading more news:', error);
-        setIsLoadingMore(false);
-      }
-    }, 1000);
+    setTimeout(() => setIsLoadingMore(false), 1000);
   };
 
-  const handleCardClick = async (uuid) => {
-    // Navigate to the dedicated news detail page with the UUID using React Router
-    navigate(`/news/${uuid}`);
-  };
+  // Card navigation
+  const handleCardClick = (uuid) => navigate(`/news/${uuid}`);
+  const closeFullScreen = () => setFullScreenNews(null);
 
-  const closeFullScreen = () => {
-    setFullScreenNews(null);
-  };
-
-  // Mouse events for grid movement on desktop
+  // Mouse events for desktop
   const handleMouseDown = (e) => {
-    if (isMobile) return;
-    setIsDragging(true);
-    setStartX(e.pageX);
+    if (!isMobile) {
+      setIsDragging(true);
+      setStartX(e.pageX);
+    }
   };
 
   const handleMouseMove = (e) => {
     if (!isDragging || isMobile) return;
-    const x = e.pageX;
-    const threshold = 50; // Distance needed to trigger navigation
     
-    // Detect drag direction and amount
+    const x = e.pageX;
     const distance = x - startX;
     
-    // If dragged far enough, navigate
-    if (Math.abs(distance) > threshold) {
+    if (Math.abs(distance) > 50) {
       if (distance > 0 && activeIndex > 0) {
-        // Dragged right, go to previous
         setActiveIndex(activeIndex - 1);
       } else if (distance < 0 && activeIndex < news.length - 1) {
-        // Dragged left, go to next
         setActiveIndex(activeIndex + 1);
       }
-      
       setIsDragging(false);
     }
   };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // State for quick actions
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const [swipingDirection, setSwipingDirection] = useState(null);
+  const handleMouseUp = () => setIsDragging(false);
   
-  // Function to generate haptic feedback if supported
-  const triggerHapticFeedback = () => {
-    if (window.navigator && window.navigator.vibrate) {
-      // Provide subtle vibration for 50ms
-      window.navigator.vibrate(50);
-    }
-  };
-  
-  // Enhanced touch handling for app-like experience
+  // Touch handling variables
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchEndY, setTouchEndY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [isCardContentScrolling, setIsCardContentScrolling] = useState(false);
   const [isSwiping, setIsSwiping] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState(null);
   const cardRefs = useRef([]);
-  
-  // Scroll to top when active index changes on mobile
-  // Use a ref to track the previous active index
   const prevActiveIndexRef = useRef(activeIndex);
   
-  // Function to provide haptic feedback on card transition
+  // Provide haptic feedback
   const provideHapticFeedback = () => {
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
   };
   
+  // Handle active card changes
   useEffect(() => {
     if (isMobile) {
-      // Find the active card's content area and reset its scroll
       const activeCardContent = document.querySelector('.news-card.active .card-content');
-      if (activeCardContent) {
-        activeCardContent.scrollTop = 0;
-      }
+      if (activeCardContent) activeCardContent.scrollTop = 0;
       
-      // Apply consistent styles to all cards
       const activeCard = document.querySelector('.news-card.active');
       if (activeCard) {
-        // Force the active card to have correct positioning
         activeCard.style.position = 'fixed';
         activeCard.style.top = '60px';
         activeCard.style.left = '0';
@@ -937,7 +837,6 @@ const NewsColossal = () => {
         activeCard.style.visibility = 'visible';
       }
       
-      // Special handling for first card
       if (activeIndex === 0) {
         const firstCard = document.querySelector('.news-card:first-child');
         if (firstCard) {
@@ -947,26 +846,22 @@ const NewsColossal = () => {
         }
       }
       
-      // Provide haptic feedback when changing cards
       if (prevActiveIndexRef.current !== activeIndex) {
         provideHapticFeedback();
       }
       
-      // Update the ref for next render
       prevActiveIndexRef.current = activeIndex;
     }
   }, [activeIndex, isMobile]);
   
-  // Simplified and more reliable touch handling - allow swiping across the entire card
+  // Touch handling
   const handleTouchStart = (e) => {
     if (!isMobile) return;
     
-    // Store initial touch position
     setTouchStartY(e.touches[0].clientY);
     setTouchStartX(e.touches[0].clientX);
     setIsSwiping(false);
     
-    // Prevent swiping on interactive elements
     const target = e.target;
     const isInteractive = 
       target.closest('.global-trading-actions') ||
@@ -974,62 +869,42 @@ const NewsColossal = () => {
       target.closest('a') ||
       target.closest('input');
     
-    // Set flag if we're on an interactive element
     setIsCardContentScrolling(isInteractive);
   };
 
   const handleTouchMove = (e) => {
     if (!isMobile) return;
     
-    // Calculate touch movement
     const touchY = e.touches[0].clientY;
     const touchX = e.touches[0].clientX;
     const deltaY = touchY - touchStartY;
     const deltaX = touchX - touchStartX;
     
-    // Skip if we're on interactive elements like buttons
-    if (isCardContentScrolling) {
-      return;
-    }
+    if (isCardContentScrolling) return;
     
-    // Get the card content element to check if it's scrolled to top/bottom
     const cardContent = document.querySelector('.news-card.active .card-content');
     const isAtTop = !cardContent || cardContent.scrollTop <= 0;
     const isAtBottom = !cardContent || 
       (cardContent.scrollHeight - cardContent.scrollTop <= cardContent.clientHeight + 5);
     
-    // Allow swiping if:
-    // 1. Swiping down while at the top of content
-    // 2. Swiping up while at the bottom of content
-    // 3. Swiping with significant force (large deltaY)
     const canSwipe = 
       (deltaY > 0 && isAtTop) || 
       (deltaY < 0 && isAtBottom) ||
       Math.abs(deltaY) > 40;
     
-    // Only handle vertical swipes when allowed
     if (Math.abs(deltaY) > Math.abs(deltaX) && canSwipe) {
-      // Try to prevent default scrolling behavior, but handle gracefully if we can't
-      // due to passive event listeners in modern browsers
-      try {
-        e.preventDefault();
-      } catch (error) {
-        // This is expected in some browsers with passive listeners - continue anyway
-      }
+      try { e.preventDefault(); } catch (error) { /* expected with passive listeners */ }
       
-      // Track swipe state
       if (!isSwiping) {
         setIsSwiping(true);
         
-        // When starting a swipe, immediately prep neighboring cards
         if (deltaY > 0 && activeIndex > 0) {
-          // Swiping down - show previous card peeking
           const prevCard = document.querySelector(`.news-card:nth-child(${activeIndex})`);
           if (prevCard) {
             prevCard.style.visibility = 'visible';
             prevCard.style.opacity = '0.6';
             prevCard.style.transform = 'translateY(-98%)';
-            prevCard.style.transition = 'none'; // No transition during active drag
+            prevCard.style.transition = 'none';
             prevCard.style.position = 'fixed';
             prevCard.style.top = '60px';
             prevCard.style.left = '0';
@@ -1038,13 +913,12 @@ const NewsColossal = () => {
             prevCard.style.height = 'calc(100vh - 60px)';
           }
         } else if (deltaY < 0 && activeIndex < news.length - 1) {
-          // Swiping up - show next card peeking
           const nextCard = document.querySelector(`.news-card:nth-child(${activeIndex + 2})`);
           if (nextCard) {
             nextCard.style.visibility = 'visible';
             nextCard.style.opacity = '0.6';
             nextCard.style.transform = 'translateY(98%)';
-            nextCard.style.transition = 'none'; // No transition during active drag
+            nextCard.style.transition = 'none';
             nextCard.style.position = 'fixed';
             nextCard.style.top = '60px';
             nextCard.style.left = '0';
@@ -1055,38 +929,26 @@ const NewsColossal = () => {
         }
       }
       
-      // Store direction for more accurate swipe detection
-      if (Math.abs(deltaY) > 10) {
-        setSwipeDirection(deltaY > 0 ? 'down' : 'up');
-      }
-      
-      // Visual feedback - move card with finger
       const activeCard = document.querySelector('.news-card.active');
       if (activeCard) {
-        // Apply transform directly to follow finger (with resistance)
-        const resistance = 0.3; // Lower = more resistance
+        const resistance = 0.3;
         const translateY = deltaY * resistance;
         activeCard.style.transform = `translateY(${translateY}px)`;
-        
-        // Ensure the card stays fixed
         activeCard.style.position = 'fixed';
         activeCard.style.top = '60px';
         
-        // Move the next/prev card along with the swipe for a continuous effect
         if (deltaY > 0 && activeIndex > 0) {
-          // Swiping down - animate previous card
           const prevCard = document.querySelector(`.news-card:nth-child(${activeIndex})`);
           if (prevCard) {
-            const prevTranslateY = -98 + (deltaY * resistance * 0.5); // Half the movement rate
+            const prevTranslateY = -98 + (deltaY * resistance * 0.5);
             prevCard.style.transform = `translateY(${prevTranslateY}%)`;
             prevCard.style.position = 'fixed';
             prevCard.style.top = '60px';
           }
         } else if (deltaY < 0 && activeIndex < news.length - 1) {
-          // Swiping up - animate next card
           const nextCard = document.querySelector(`.news-card:nth-child(${activeIndex + 2})`);
           if (nextCard) {
-            const nextTranslateY = 98 + (deltaY * resistance * 0.5); // Half the movement rate
+            const nextTranslateY = 98 + (deltaY * resistance * 0.5);
             nextCard.style.transform = `translateY(${nextTranslateY}%)`;
             nextCard.style.position = 'fixed';
             nextCard.style.top = '60px';
@@ -1094,7 +956,6 @@ const NewsColossal = () => {
         }
       }
       
-      // Track current position for swipe calculation
       setTouchEndY(touchY);
     }
   };
@@ -1102,127 +963,76 @@ const NewsColossal = () => {
   const handleTouchEnd = () => {
     if (!isMobile) return;
     
-    // Get the active card and reset its transformation
     const activeCard = document.querySelector('.news-card.active');
-    if (activeCard) {
-      // Clear inline transforms (will revert to CSS-defined position)
-      activeCard.style.transform = '';
-    }
+    if (activeCard) activeCard.style.transform = '';
     
-    // Only process swipe if we were actually swiping
     if (isSwiping) {
       const swipeDistance = touchEndY - touchStartY;
-      const minSwipeDistance = 40; // Threshold for activating swipe
+      const minSwipeDistance = 40;
       
-      // If swipe distance is significant enough, change card
       if (Math.abs(swipeDistance) > minSwipeDistance) {
-        // Provide haptic feedback
         provideHapticFeedback();
         
-        // Add a class to all cards to ensure transition is applied consistently
         const allCards = document.querySelectorAll('.news-card');
-        allCards.forEach(card => {
-          card.classList.add('transitioning');
-        });
+        allCards.forEach(card => card.classList.add('transitioning'));
         
         if (swipeDistance > 0 && activeIndex > 0) {
-          // Swiped DOWN = go to PREVIOUS card
           setActiveIndex(activeIndex - 1);
         } else if (swipeDistance < 0 && activeIndex < news.length - 1) {
-          // Swiped UP = go to NEXT card
           setActiveIndex(activeIndex + 1);
-        } else {
-          // At edge of cards, cannot navigate further
-          // Add a bounce-back animation
-          if (activeCard) {
-            activeCard.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            activeCard.style.transform = 'translateY(0)';
-            activeCard.style.position = 'fixed';
-            activeCard.style.top = '60px';
-          }
+        } else if (activeCard) {
+          activeCard.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+          activeCard.style.transform = 'translateY(0)';
+          activeCard.style.position = 'fixed';
+          activeCard.style.top = '60px';
         }
         
-        // Remove the transitioning class after animation completes
         setTimeout(() => {
-          allCards.forEach(card => {
-            card.classList.remove('transitioning');
-          });
-        }, 400); // Slightly longer than the CSS transition duration
+          allCards.forEach(card => card.classList.remove('transitioning'));
+        }, 400);
       }
     }
     
-    // Reset all touch tracking state
     setIsSwiping(false);
     setIsCardContentScrolling(false);
     setTouchStartY(0);
     setTouchEndY(0);
   };
   
-  // Toggle quick actions menu
-  const toggleQuickActions = (e) => {
-    e.stopPropagation();
-    setQuickActionsOpen(!quickActionsOpen);
-  };
-  
-  // Handle quick action selection
-  const handleQuickAction = (action, e) => {
-    e.stopPropagation();
-    
-    // Provide haptic feedback
-    triggerHapticFeedback();
-    
-    // Handle different actions
-    switch(action) {
-      case 'long':
-        console.log('Long position selected');
-        // Logic for long position
-        break;
-      case 'short':
-        console.log('Short position selected');
-        // Logic for short position
-        break;
-      case 'share':
-        console.log('Share selected');
-        // Logic for sharing
-        break;
-      case 'save':
-        console.log('Save selected');
-        // Logic for saving
-        break;
-      default:
-        break;
-    }
-    
-    // Close the quick actions menu
-    setQuickActionsOpen(false);
-  };
-  
-  // Handle global position trading (from the fixed buttons)
+  // Trading position handler
   const handleGlobalPosition = (position) => {
-    // Get the current active card's news item
     const activeNews = news[activeIndex];
-    
     if (!activeNews) return;
     
-    // Provide haptic feedback
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
-    }
-    
-    console.log(`Global ${position} position on:`, activeNews.title);
-    
-    // In a real app, this would call an API to place the trade
-    // For now, just log it
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(50);
     alert(`${position.toUpperCase()} position placed on "${activeNews.title}" at $${activeNews.current_value}`);
   };
 
-  // Progress bar calculation
-  const progressPercentage = isMobile ? (activeIndex / (news.length - 1)) * 100 : 0;
-  
-  // Handle search query changes
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    // In a real implementation, this would trigger search as the user types
+  // Search query handler
+  const handleSearchChange = (e) => setSearchQuery(e.target.value);
+
+  // Genre background helper function for mobile cards
+  const getGenreBackground = (genre) => {
+    const genreMap = {
+      'science': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
+      'technology': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
+      'science-technology': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
+      'environment': 'linear-gradient(135deg, #1b5e20 0%, #4caf50 100%)',
+      'economy': 'linear-gradient(135deg, #0d47a1 0%, #2196f3 100%)',
+      'finance': 'linear-gradient(135deg, #0d47a1 0%, #2196f3 100%)',
+      'health': 'linear-gradient(135deg, #b71c1c 0%, #f44336 100%)',
+      'health-technology': 'linear-gradient(135deg, #b71c1c 0%, #f44336 100%)',
+      'archaeology': 'linear-gradient(135deg, #795548 0%, #a1887f 100%)',
+      'history': 'linear-gradient(135deg, #795548 0%, #a1887f 100%)',
+      'politics': 'linear-gradient(135deg, #880e4f 0%, #e91e63 100%)',
+      'culture': 'linear-gradient(135deg, #e65100 0%, #ff9800 100%)',
+      'sports': 'linear-gradient(135deg, #006064 0%, #00bcd4 100%)',
+      'entertainment': 'linear-gradient(135deg, #4a148c 0%, #9c27b0 100%)',
+      'news': 'linear-gradient(135deg, #bf360c 0%, #ff5722 100%)'
+    };
+    
+    const normalizedGenre = (genre || 'news').toLowerCase().replace(/\s+|&/g, '-');
+    return genreMap[normalizedGenre] || 'linear-gradient(135deg, #37474f 0%, #78909c 100%)';
   };
 
   return (
@@ -1236,23 +1046,33 @@ const NewsColossal = () => {
         </div>
       )}
       
-      {/* Fixed header for mobile only */}
+      {networkError && (
+        <div className="network-error-banner">
+          <div className="error-icon">{isOnline ? '⚠️' : '📶'}</div>
+          <div className="error-message">{networkError}</div>
+          <button 
+            className="retry-button" 
+            onClick={() => {
+              setRetryCount(0);
+              fetchTopNews();
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      
       {isMobile && (
         <div className="news-header-mobile">
           <div className="logo">
             <img src="/static/logo.svg" alt="Here News" height="30" />
           </div>
-          <h1 style={{
-            fontSize: '18px', 
-            margin: '0 auto',
-            fontWeight: 'bold'
-          }}>HERE.NEWS</h1>
+          <h1 style={{fontSize: '18px', margin: '0 auto', fontWeight: 'bold'}}>
+            HERE.NEWS
+          </h1>
           <div style={{width: '30px'}}></div>
         </div>
       )}
-      
-      {/* Desktop search bar */}
-      {/* Search moved to header */}
       
       <div 
         ref={containerRef}
@@ -1264,9 +1084,7 @@ const NewsColossal = () => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        // Add this attribute to make touch events non-passive
-        // This helps with preventDefault() but may affect performance
-        style={{'touchAction': 'none', 'paddingTop': isMobile ? '0' : '0'}} 
+        style={{touchAction: 'none', paddingTop: isMobile ? '0' : '0'}} 
       >
         {news.map((item, index) => {
           // Set up card style and positioning
@@ -1274,23 +1092,20 @@ const NewsColossal = () => {
           let cardStyle = {};
           
           if (isMobile) {
-            // MOBILE LAYOUT - FORCE INLINE STYLES TO OVERRIDE CSS
-            // Position cards based on their relationship to active card
             const relativePosition = index - activeIndex;
             
             if (relativePosition === 0) {
-              // Active card - centered with no top space, fixed position for ALL cards
               cardStyle = {
                 transform: 'translateY(0)',
                 zIndex: 10,
                 opacity: 1,
                 visibility: 'visible',
-                position: 'fixed', // Use fixed position instead of absolute
-                top: '60px', // Position after header
+                position: 'fixed',
+                top: '60px',
                 left: 0,
                 right: 0,
                 width: '100%',
-                height: 'calc(100vh - 60px)', // Full screen minus header
+                height: 'calc(100vh - 60px)',
                 margin: 0,
                 padding: 0,
                 borderRadius: 0,
@@ -1300,15 +1115,14 @@ const NewsColossal = () => {
                 flexDirection: 'column'
               };
             } else if (relativePosition === -1) {
-              // Previous card (above) - position it for swipe down
               cardStyle = {
-                transform: 'translateY(-98%)', // Just above the viewport (visible edge)
+                transform: 'translateY(-98%)',
                 zIndex: 8,
                 opacity: 0.6,
                 visibility: 'visible',
                 pointerEvents: 'none',
-                position: 'fixed', // Use fixed position to match active card
-                top: '60px', // Same positioning as active card
+                position: 'fixed',
+                top: '60px',
                 left: 0,
                 right: 0,
                 width: '100%',
@@ -1319,15 +1133,14 @@ const NewsColossal = () => {
                 background: getGenreBackground(item.genre)
               };
             } else if (relativePosition === 1) {
-              // Next card (below) - nearly invisible (just a tiny hint)
               cardStyle = {
-                transform: 'translateY(98%)', // Just below the viewport (visible edge)
+                transform: 'translateY(98%)',
                 zIndex: 8,
                 opacity: 0.6,
                 visibility: 'visible',
                 pointerEvents: 'none',
-                position: 'fixed', // Use fixed position to match active card
-                top: '60px', // Same positioning as active card
+                position: 'fixed',
+                top: '60px',
                 left: 0,
                 right: 0,
                 width: '100%',
@@ -1338,17 +1151,14 @@ const NewsColossal = () => {
                 background: getGenreBackground(item.genre)
               };
             } else {
-              // Other cards - hidden off-screen but maintain position for transitions
               cardStyle = {
-                transform: relativePosition < 0 
-                  ? 'translateY(-120%)' 
-                  : 'translateY(120%)',
-                zIndex: relativePosition < 0 ? 7 : 5, // Lower z-index for farther cards
+                transform: relativePosition < 0 ? 'translateY(-120%)' : 'translateY(120%)',
+                zIndex: relativePosition < 0 ? 7 : 5,
                 opacity: 0,
                 visibility: 'hidden',
                 pointerEvents: 'none',
-                position: 'fixed', // Use fixed position to match active card
-                top: '60px', // Same positioning as active card
+                position: 'fixed',
+                top: '60px',
                 left: 0,
                 right: 0,
                 width: '100%',
@@ -1359,56 +1169,14 @@ const NewsColossal = () => {
               };
             }
             
-            // Function to get background gradient based on genre
-            function getGenreBackground(genre) {
-              const genreMap = {
-                'science': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
-                'technology': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
-                'science-technology': 'linear-gradient(135deg, #4a148c 0%, #7c43bd 100%)',
-                'environment': 'linear-gradient(135deg, #1b5e20 0%, #4caf50 100%)',
-                'economy': 'linear-gradient(135deg, #0d47a1 0%, #2196f3 100%)',
-                'finance': 'linear-gradient(135deg, #0d47a1 0%, #2196f3 100%)',
-                'health': 'linear-gradient(135deg, #b71c1c 0%, #f44336 100%)',
-                'health-technology': 'linear-gradient(135deg, #b71c1c 0%, #f44336 100%)',
-                'archaeology': 'linear-gradient(135deg, #795548 0%, #a1887f 100%)',
-                'history': 'linear-gradient(135deg, #795548 0%, #a1887f 100%)',
-                'politics': 'linear-gradient(135deg, #880e4f 0%, #e91e63 100%)',
-                'culture': 'linear-gradient(135deg, #e65100 0%, #ff9800 100%)',
-                'sports': 'linear-gradient(135deg, #006064 0%, #00bcd4 100%)',
-                'entertainment': 'linear-gradient(135deg, #4a148c 0%, #9c27b0 100%)',
-                'news': 'linear-gradient(135deg, #bf360c 0%, #ff5722 100%)'
-              };
-              
-              // Default to news if genre is not found
-              const normalizedGenre = (genre || 'news').toLowerCase().replace(/\s+|&/g, '-');
-              return genreMap[normalizedGenre] || 'linear-gradient(135deg, #37474f 0%, #78909c 100%)';
-            }
-            
-            // Add transition for smooth movements (but not during active swipe)
-            if (isSwiping) {
-              // During swipe - no transition for immediate feedback
-              cardStyle.transition = 'none';
-            } else {
-              // After swipe - smooth transition back to position
-              cardStyle.transition = 'transform 0.4s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.4s ease';
-            }
-          } 
-          else {
-            // Simple grid layout for desktop - no special positioning
+            cardStyle.transition = isSwiping ? 'none' : 'transform 0.4s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.4s ease';
+          } else {
             gridPosition = 'grid-item';
-            
-            // Add extra margin to the last item for better scrolling
-            if (index === news.length - 1) {
-              cardStyle.marginBottom = '100px';
-            }
+            if (index === news.length - 1) cardStyle.marginBottom = '100px';
           }
           
           const isActive = index === activeIndex;
-          
-          // Add ref to the card for scrolling
-          const setCardRef = (el) => {
-            cardRefs.current[index] = el;
-          };
+          const setCardRef = (el) => { cardRefs.current[index] = el; };
           
           return (
             <NewsCard 
@@ -1423,16 +1191,8 @@ const NewsColossal = () => {
             >
               {isMobile && index === activeIndex && (
                 <div className="swipe-indicators">
-                  {index > 0 && (
-                    <div className="swipe-indicator swipe-up">
-                      <span>↑</span>
-                    </div>
-                  )}
-                  {index < news.length - 1 && (
-                    <div className="swipe-indicator swipe-down">
-                      <span>↓</span>
-                    </div>
-                  )}
+                  {index > 0 && <div className="swipe-indicator swipe-up"><span>↑</span></div>}
+                  {index < news.length - 1 && <div className="swipe-indicator swipe-down"><span>↓</span></div>}
                 </div>
               )}
             </NewsCard>
@@ -1440,7 +1200,6 @@ const NewsColossal = () => {
         })}
       </div>
       
-      {/* Bottom search bar that appears after scrolling (desktop only) */}
       {!isMobile && (
         <div className={`bottom-search-container ${showBottomSearch ? 'visible' : ''}`}>
           <div className="bottom-search-bar">
@@ -1455,7 +1214,6 @@ const NewsColossal = () => {
         </div>
       )}
       
-      {/* Global trading actions - always visible on mobile, more compact design */}
       {isMobile && news.length > 0 && ReactDOM.createPortal(
         <div className="global-trading-actions">
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1482,20 +1240,17 @@ const NewsColossal = () => {
         document.body
       )}
       
-      {/* Render fullscreen view in a separate container to avoid overlapping */}
       {fullScreenNews && ReactDOM.createPortal(
         <NewsFullScreen news={fullScreenNews} onClose={closeFullScreen} />,
         document.body
       )}
       
-      {/* Loading indicator for infinite scroll */}
       {!isMobile && isLoadingMore && (
         <div className="loading-more-indicator">
           <div className="loading-more-spinner"></div>
         </div>
       )}
       
-      {/* "Show more" button for desktop view as an alternative to scrolling */}
       {!isMobile && news.length > 0 && !isLoadingMore && (
         <div className="show-more-container">
           <button className="show-more-button" onClick={loadMoreNews}>

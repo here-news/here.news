@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - News App</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 600px;
+      padding: 30px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #e53935;
+      margin-top: 0;
+    }
+    
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      margin: 10px 0 20px;
+      line-height: 1.5;
+    }
+    
+    button {
+      background-color: #3f51b5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #303f9f;
+    }
+    
+    .cached-content {
+      margin-top: 30px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📶</div>
+    <h1>You're offline</h1>
+    <p>It looks like you're not connected to the internet right now. Some features may be limited until you're back online.</p>
+    <p>You can still view any previously loaded content.</p>
+    <button onclick="tryReconnect()">Try Again</button>
+    
+    <div id="cached-content" class="cached-content">
+      <h2>Previously Viewed Content</h2>
+      <div id="cached-items">
+        <p>Checking for available content...</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function tryReconnect() {
+      window.location.reload();
+    }
+    
+    // Try to display some cached content
+    if ('caches' in window) {
+      caches.open('news-api-cache-v1')
+        .then(cache => {
+          cache.keys()
+            .then(requests => {
+              const cachedItems = document.getElementById('cached-items');
+              
+              if (requests.length === 0) {
+                cachedItems.innerHTML = '<p>No cached content available.</p>';
+                return;
+              }
+              
+              cachedItems.innerHTML = '<ul id="cached-list"></ul>';
+              const cachedList = document.getElementById('cached-list');
+              
+              requests.forEach(request => {
+                if (request.url.includes('/news/')) {
+                  cache.match(request)
+                    .then(response => response.json())
+                    .then(data => {
+                      const li = document.createElement('li');
+                      li.innerHTML = `
+                        <a href="${request.url}">${data.title || 'News Article'}</a>
+                      `;
+                      cachedList.appendChild(li);
+                    })
+                    .catch(err => {
+                      console.error('Error displaying cached item:', err);
+                    });
+                }
+              });
+            });
+        })
+        .catch(err => {
+          console.error('Error accessing cache:', err);
+          document.getElementById('cached-items').innerHTML = 
+            '<p>Unable to retrieve cached content.</p>';
+        });
+    } else {
+      document.getElementById('cached-items').innerHTML = 
+        '<p>Your browser does not support caching.</p>';
+    }
+  </script>
+</body>
+</html>

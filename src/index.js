@@ -4,6 +4,9 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Import service worker registration utility
+import { register as registerServiceWorker } from './utils/serviceWorkerRegistration';
+
 // Dynamic import of key2svg.js for avatar generation
 const loadExternalDependencies = async () => {
   try {
@@ -44,3 +47,6 @@ loadExternalDependencies().then(() => {
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+
+// Register service worker for offline support and caching
+registerServiceWorker();
