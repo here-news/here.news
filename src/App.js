@@ -11,12 +11,11 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { UserProvider } from './UserContext';
-import News from './News';
 import NewsDetail from './NewsDetail'; // New separate component for news details
 import Profile from './Profile';
 import Home from './Home';
 
-                                                                                                                                                                                                                                                                                                                                  // Custom component to handle body class based on route
+// Custom component to handle body class based on route
 const RouteBasedBodyClass = () => {
   const location = useLocation();
   

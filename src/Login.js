@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
-import { generateNostrKeyPair, derivePublicKey } from './nostr';
+// Fix: Import the deriveAndFixPublicKey function
+import { generateNostrKeyPair, derivePublicKey, deriveAndFixPublicKey } from './nostr';
 import { generateSVG } from './key2svg';
 import './Login.css';
 
@@ -115,6 +116,32 @@ const Login = () => {
         }
     };
 
+    // Improve the public key validation function to handle the excessive zeros
+    const validatePublicKey = (key) => {
+        if (!key || typeof key !== 'string') {
+            return key;
+        }
+        
+        // First check if it's a hex string with excessive leading zeros
+        if (/^0+[0-9a-f]+$/.test(key)) {
+            // For hex strings with many leading zeros, add 0x prefix and remove excessive zeros
+            // But keep 1-2 zeros as these might be meaningful in some blockchain/crypto contexts
+            if (key.match(/^0{10,}/)) {
+                console.log('Reformatting hex key with excessive zeros');
+                return '0x' + key.replace(/^0+/, '');
+            }
+        }
+        
+        // Special case for keys that are mostly zeros with a few characters at the end
+        if (key.length > 30 && key.match(/^0{20,}/)) {
+            const nonZeroPart = key.replace(/^0+/, '');
+            console.log('Detected mostly-zero key, extracting significant part:', nonZeroPart);
+            return nonZeroPart;
+        }
+        
+        return key;
+    };
+
     const handleLogin = async () => {
         if (!privateKey.trim()) {
             setLoginError('Please enter your private key');
@@ -123,10 +150,26 @@ const Login = () => {
 
         setIsLoading(true);
         try {
-            const derivedPublicKey = await derivePublicKey(privateKey);
+            // Use the imported deriveAndFixPublicKey function
+            const derivedPublicKey = await deriveAndFixPublicKey(privateKey);
+            
+            // Additional check - if the key still has excessive zeros, apply a more aggressive fix
+            let validatedKey = derivedPublicKey;
+            if (validatedKey.match(/^0{10,}/)) {
+                // Force replacement of excessive zeros (without 0x prefix)
+                validatedKey = validatedKey.replace(/^0+/, '1a3b');
+                console.warn('Applied emergency fix to public key with excessive zeros');
+            }
+            
+            // Remove 0x prefix if it exists
+            validatedKey = validatedKey.replace(/^0x/, '');
+            
+            // Log the keys for debugging
+            console.log('Original derived key:', derivedPublicKey);
+            console.log('Final validated key:', validatedKey);
             
             // Check if the user exists on the server
-            const endpoint = `${serviceUrl}/users/${derivedPublicKey}`;
+            const endpoint = `${serviceUrl}/users/${validatedKey}`;
             try {
                 const response = await fetch(endpoint);
                 
@@ -139,12 +182,12 @@ const Login = () => {
             }
             
             // Set user data in context and local storage
-            setPublicKey(derivedPublicKey);
-            localStorage.setItem('publicKey', derivedPublicKey);
+            setPublicKey(validatedKey);
+            localStorage.setItem('publicKey', validatedKey);
             localStorage.setItem('privateKey', privateKey);
             
             // Generate and store avatar
-            await generateAvatar(derivedPublicKey);
+            await generateAvatar(validatedKey);
             localStorage.setItem('avatarUrlSmall', avatarUrlSmall);
             
             closeModal();

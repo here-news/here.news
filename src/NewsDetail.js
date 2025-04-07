@@ -346,7 +346,12 @@ const NewsDetail = () => {
                 <h1 className="news-title">{news.title}</h1>
                 
                 <div className="news-image-container">
-                  <img src={news.preview} className="news-image" onError={(e) => e.target.src = '/static/3d.webp'} alt={news.title} />
+                  <img 
+                    src={news.preview || '/static/3d.webp'} 
+                    className="news-image" 
+                    onError={(e) => e.target.src = '/static/3d.webp'} 
+                    alt={news.title} 
+                  />
                   <a href={news.canonical} className="news-source-link" onClick={handleUrlClick}>
                     Source: {new URL(news.canonical).hostname.replace('www.', '')}
                   </a>

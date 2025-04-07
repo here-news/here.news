@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useUser } from './UserContext';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login';
+import { shortenPublicKey } from './util'; // Make sure to import the function
 
 const ProfileWidget = () => {
     const { 
@@ -11,7 +12,6 @@ const ProfileWidget = () => {
         logout, 
         isModalOpen,
         openModal, 
-        shortenPublicKey,
         userSocketConnected
     } = useUser();
     
