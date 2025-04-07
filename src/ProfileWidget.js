@@ -3,6 +3,7 @@ import { useUser } from './UserContext';
 import { useNavigate } from 'react-router-dom';
 import Login from './Login';
 import { shortenPublicKey } from './util'; // Make sure to import the function
+import { debugLog } from './utils/debugUtils';
 
 const ProfileWidget = () => {
     const { 
@@ -21,18 +22,20 @@ const ProfileWidget = () => {
     // Check if user is authenticated
     const isAuthenticated = Boolean(publicKey);
 
+    // Extract balance from userInfo to avoid complex expression in dependency array
+    const userBalance = userInfo?.balance;
+    
     // Memoize and format the balance for better performance
     const displayBalance = useMemo(() => {
-        const balance = userInfo?.balance;
-        if (typeof balance === 'undefined') return '0';
+        if (typeof userBalance === 'undefined') return '0';
         
         // Format the balance with appropriate decimal places
-        return balance >= 100 
-            ? balance.toFixed(0) 
-            : balance >= 10 
-                ? balance.toFixed(1) 
-                : balance.toFixed(2);
-    }, [userInfo?.balance]);
+        return userBalance >= 100 
+            ? userBalance.toFixed(0) 
+            : userBalance >= 10 
+                ? userBalance.toFixed(1) 
+                : userBalance.toFixed(2);
+    }, [userBalance]); // Fixed dependency array
     
     // Show connection status visually (optional)
     const connectionIndicator = useMemo(() => {
@@ -70,16 +73,16 @@ const ProfileWidget = () => {
         event.preventDefault();
         event.stopPropagation();
         
-        console.log('Login button clicked');
-        console.log('Current modal state before opening:', isModalOpen);
+        debugLog('Login button clicked');
+        debugLog('Current modal state before opening:', isModalOpen);
         openModal();
         
         // Check if state changed immediately (it won't due to React's state updates)
-        console.log('Current modal state right after openModal():', isModalOpen);
+        debugLog('Current modal state right after openModal():', isModalOpen);
         
         // We'll see the actual change in the next render cycle
         setTimeout(() => {
-            console.log('Modal state after timeout:', isModalOpen);
+            debugLog('Modal state after timeout:', isModalOpen);
         }, 0);
     };
 
@@ -99,7 +102,7 @@ const ProfileWidget = () => {
                 <div className="user-info">
                     {/* Spices/Balance display */}
                     <div className="user-balance">
-                        <span className="balance-icon">✨</span>
+                        <span className="balance-icon" role="img" aria-label="sparkles">✨</span>
                         <span className="balance-amount"> ${displayBalance}
                         </span>
                     </div>
@@ -134,25 +137,25 @@ const ProfileWidget = () => {
                                 
                                 <div className="menu-items">
                                     <button onClick={gotoProfile('')} className="menu-item">
-                                        <span className="menu-icon">👤</span> Profile
+                                        <span className="menu-icon" role="img" aria-label="user">👤</span> Profile
                                     </button>
                                     
                                     <button onClick={gotoProfile('wallet')} className="menu-item">
-                                        <span className="menu-icon">✨</span> Wallet & Portfolio
+                                        <span className="menu-icon" role="img" aria-label="sparkles">✨</span> Wallet & Portfolio
                                     </button>
                                     
                                     <button onClick={gotoProfile('activities')} className="menu-item">
-                                        <span className="menu-icon">📰</span> Activities
+                                        <span className="menu-icon" role="img" aria-label="newspaper">📰</span> Activities
                                     </button>
                                     
                                     <button onClick={gotoProfile('settings')} className="menu-item">
-                                        <span className="menu-icon">⚙️</span> Settings
+                                        <span className="menu-icon" role="img" aria-label="gear">⚙️</span> Settings
                                     </button>
                                     
                                     <div className="menu-divider"></div>
                                     
                                     <button onClick={handleLogout} className="menu-item logout">
-                                        <span className="menu-icon">🚪</span> Logout
+                                        <span className="menu-icon" role="img" aria-label="door">🚪</span> Logout
                                     </button>
                                 </div>
                             </div>

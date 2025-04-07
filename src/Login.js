@@ -5,6 +5,7 @@ import serviceUrl from './config';
 import { generateNostrKeyPair, derivePublicKey, deriveAndFixPublicKey } from './nostr';
 import { generateSVG } from './key2svg';
 import './Login.css';
+import { debugLog } from './utils/debugUtils';
 
 const Login = () => {
     const { publicKey, setPublicKey, isModalOpen, closeModal } = useUser();
@@ -165,8 +166,8 @@ const Login = () => {
             validatedKey = validatedKey.replace(/^0x/, '');
             
             // Log the keys for debugging
-            console.log('Original derived key:', derivedPublicKey);
-            console.log('Final validated key:', validatedKey);
+            debugLog('Original derived key:', derivedPublicKey);
+            debugLog('Final validated key:', validatedKey);
             
             // Check if the user exists on the server
             const endpoint = `${serviceUrl}/users/${validatedKey}`;

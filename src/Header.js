@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import ProfileWidget from './ProfileWidget';
 import './Header.css';  
@@ -22,7 +22,7 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                 </div>
                 <div className="header-center">
                     <div className="header-search-bar">
-                        <span className="search-icon">🔍</span>
+                        <span className="search-icon"><span role="img" aria-label="search">🔍</span></span>
                         <input
                             type="text"
                             placeholder="Search news..."

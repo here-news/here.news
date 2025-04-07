@@ -6,196 +6,7 @@ import serviceUrl from './config';
 import Header from './Header';
 import Footer from './Footer';
 import './NewsColossal.css';
-
-// Example news entry - will be replaced by API data
-// Fallback mock data in case API fails
-const realNews = [
-  {
-    uuid: "mockid1",
-    title: "U.S. to be ready for war on China by 2027: Navy Chief",
-    summary: "Adm. Lisa Franchetti, Chief of Naval Operations, announced on Sept. 18, 2024, that the U.S. aims to be prepared for potential conflict with China by 2027; a large-scale military exercise named Kamandang began on Oct. 15, 2024, in the Philippines, involving over 2,300 personnel from the U.S., Philippines, Japan, South Korea, Australia, and Britain, scheduled to conclude on Oct. 25, 2024; the exercise includes live fire drills and training for chemical and biological warfare; U.S. military operations in the Asia-Pacific are increasing, with more aircraft carriers and submarines deployed, and military bases in the Philippines expanding from five to nine; the trilateral military alliance AUKUS is increasing NATO's involvement in regional strategies; North Korea and China have criticized these developments as an attempt to create an Asian version of NATO; newly elected Japanese Prime Minister Shigeru Ishiba supports a collective self-defense system akin to NATO.",
-    canonical: "https://mronline.org/2024/10/21/u-s-to-be-ready-for-war-on-china-by-2027-navy-chief/",
-    preview: "https://www.economist.com/cdn-cgi/image/width=960,quality=80,format=auto/content-assets/images/20250104_IRD001.jpg",
-    pub_time: "2024-10-22T00:12:11",
-    author: "Gary Wilson",
-    source: "MR Online",
-    genre: "News",
-    aboutness: "U.S. military readiness for conflict with China",
-    positive_ratings: 778,
-    negative_ratings: 124,
-    shares: 356,
-    tips: 95,
-    adoption_count: 214,
-    traders: 66,
-    current_value: 2.14,
-    trending: 'up',
-    price_history: [1.86, 1.92, 1.85, 1.81, 1.77, 1.82, 1.89, 1.92, 1.98, 2.05, 2.01, 1.97, 1.94, 1.98, 2.02, 2.08, 2.10, 2.05, 2.08, 2.12, 2.16, 2.10, 2.12, 2.14],
-    percent_change_24h: '15.1'
-  },
-  {
-    uuid: "mockid2",
-    title: "Inflation in Argentina expected to exceed 300% in 2023",
-    summary: "According to the International Monetary Fund, inflation in Argentina is projected to reach over 300% by the end of 2023. The country is facing a severe economic crisis with rising prices, currency devaluation, and growing poverty. The newly elected president, Javier Milei, has promised radical economic reforms including dollarization and significant cuts to public spending to address the inflation crisis.",
-    canonical: "https://www.infobae.com/economia/2023/12/05/el-fmi-empeoro-su-proyeccion-de-inflacion-para-la-argentina/",
-    preview: "https://greaterkashmir.imagibyte.sortdcdn.net/wp-content/uploads/2025/01/Screenshot-635.png?type=webp&quality=80&size=800",
-    pub_time: "2023-12-05T14:30:00",
-    author: "Economics Staff",
-    source: "Infobae",
-    genre: "Economy",
-    aboutness: "Argentina's economic crisis and inflation",
-    positive_ratings: 412,
-    negative_ratings: 89,
-    shares: 256,
-    tips: 45,
-    adoption_count: 98,
-    traders: 122,
-    current_value: 0.87,
-    trending: 'down',
-    price_history: [1.20, 1.15, 1.12, 1.05, 1.01, 0.98, 0.96, 0.92, 0.95, 0.98, 0.96, 0.93, 0.90, 0.93, 0.89, 0.92, 0.90, 0.88, 0.85, 0.83, 0.86, 0.88, 0.90, 0.87],
-    percent_change_24h: '-27.5'
-  },
-  {
-    uuid: "mockid3",
-    title: "Google's Gemini AI demonstrates breakthrough in mathematical reasoning",
-    summary: "Google DeepMind has released a research paper detailing how its Gemini AI model has achieved significant advances in mathematical reasoning capabilities. The model demonstrated the ability to solve complex mathematical problems, including calculus, linear algebra, and probability theory questions at a level approaching human mathematicians. Researchers credit the breakthrough to a novel training approach combining large language model capabilities with specialized mathematical reasoning frameworks.",
-    canonical: "https://ai.googleblog.com/2023/12/advances-in-mathematical-reasoning-with-gemini.html",
-    preview: "https://media-cldnry.s-nbcnews.com/image/upload/t_fit-1000w,f_auto,q_auto:best/rockcms/2025-01/250108-aging-america-lr-992b1c.jpg",
-    pub_time: "2023-12-07T18:45:00",
-    author: "Google DeepMind Team",
-    source: "Google AI Blog",
-    genre: "Science & Technology",
-    aboutness: "Advances in AI mathematical capabilities",
-    positive_ratings: 945,
-    negative_ratings: 42,
-    shares: 789,
-    tips: 178,
-    adoption_count: 332,
-    traders: 156,
-    current_value: 3.45,
-    trending: 'up',
-    price_history: [2.10, 2.20, 2.35, 2.48, 2.52, 2.49, 2.55, 2.63, 2.75, 2.82, 2.90, 2.95, 3.02, 3.08, 3.15, 3.20, 3.26, 3.30, 3.35, 3.38, 3.40, 3.42, 3.44, 3.45],
-    percent_change_24h: '64.3'
-  },
-  {
-    uuid: "mockid4",
-    title: "Brazil advances to Copa América final after defeating Uruguay",
-    summary: "The Brazilian national football team has secured their place in the Copa América final after defeating Uruguay 2-0 in a tense semifinal match. Goals from Vinícius Júnior and Rodrygo secured the victory, while goalkeeper Alisson made several crucial saves to maintain the clean sheet. Brazil will face Argentina in the final, setting up a highly anticipated clash between the South American rivals for continental supremacy.",
-    canonical: "https://www.espn.com/soccer/report/_/gameId/687421",
-    preview: "https://a3.espncdn.com/combiner/i?img=%2Fphoto%2F2025%2F0305%2Fr1459895_1296x729_16%2D9.jpg&w=1140&cquality=40&format=jpg",
-    pub_time: "2023-07-07T23:15:00",
-    author: "ESPN Staff",
-    source: "ESPN",
-    genre: "Sports",
-    aboutness: "Copa América semifinal results",
-    positive_ratings: 1238,
-    negative_ratings: 143,
-    shares: 856,
-    tips: 312,
-    adoption_count: 174,
-    traders: 89,
-    current_value: 1.92,
-    trending: 'stable'
-  },
-  {
-    uuid: "mockid5",
-    title: "Financial markets react to BRICS expansion",
-    summary: "Global financial markets are closely monitoring the potential expansion of the BRICS economic alliance, as several countries have formally applied to join the bloc. Analysts suggest that an expanded BRICS could challenge the dominance of Western-led financial institutions and potentially create alternative payment systems that reduce dependence on the US dollar for international trade.",
-    canonical: "https://www.globalcapital.com/globalmarkets/article/2cax996q6pc1sdrkzzg8w/final-word-if-the-brics-expands-it-needs-a-clear-purpose",
-    preview: "https://assets.euromoneydigital.com/dims4/default/0fea50d/2147483647/strip/true/crop/575x302+0+37/resize/1200x630!/quality/90/?url=http%3A%2F%2Feuromoney-brightspot.s3.amazonaws.com%2F7e%2F76%2F05fd75304af4a29660028f774610%2Fimf23-official-portrait-of-lord-oneill-of-gatley.jpg",
-    author: "Financial Analyst Team",
-    source: "Global Capital",
-    genre: "Finance",
-    aboutness: "BRICS economic alliance expansion",
-    positive_ratings: 527,
-    negative_ratings: 183,
-    shares: 412,
-    tips: 105,
-    adoption_count: 243,
-    traders: 132,
-    current_value: 1.65,
-    trending: 'up'
-  },
-  {
-    uuid: "mockid6",
-    title: "Archaeologists discover 2,300-year-old Mayan palace in Mexico",
-    summary: "A team of archaeologists from Mexico's National Institute of Anthropology and History (INAH) has uncovered a well-preserved Mayan palace complex dating back approximately 2,300 years in the Yucatán Peninsula. The structure, measuring over 55 meters long and 15 meters wide, is believed to have been a royal residence and administrative center during the Late Preclassic period. The discovery includes elaborate stucco decorations, hieroglyphic inscriptions, and burial chambers that provide new insights into early Mayan political organization and artistic achievements.",
-    canonical: "https://www.inah.gob.mx/boletines/descubren-palacio-maya-de-2300-anos-de-antiguedad-en-yucatan",
-    preview: "https://f3b9m7v4.rocketcdn.me/wp-content/uploads/2024/10/USChina-war-2027.jpg",
-    pub_time: "2023-11-28T10:20:00",
-    author: "INAH Archaeological Team",
-    source: "Instituto Nacional de Antropología e Historia",
-    genre: "Archaeology",
-    aboutness: "Ancient Mayan archaeological discovery",
-    positive_ratings: 738,
-    negative_ratings: 25,
-    shares: 421,
-    tips: 187,
-    adoption_count: 265,
-    traders: 43,
-    current_value: 2.15,
-    trending: 'stable'
-  },
-  {
-    uuid: "mockid7",
-    title: "New breakthrough in renewable energy storage announced",
-    summary: "Scientists at MIT have developed a novel energy storage system that could solve one of the biggest challenges in renewable energy adoption. The new technology uses abundant, non-toxic materials to store electricity from intermittent sources like solar and wind for weeks rather than hours, potentially transforming the economics of renewable energy deployment worldwide.",
-    canonical: "https://news.mit.edu/2023/new-energy-storage-breakthrough",
-    preview: "https://news.mit.edu/sites/default/files/styles/news_article__image_gallery/public/images/202212/MIT-Energy-Storage-01-press.jpg?itok=tJI5VRQV",
-    pub_time: "2023-09-15T08:30:00",
-    author: "MIT Energy Initiative",
-    source: "MIT News",
-    genre: "Science & Technology",
-    aboutness: "Renewable energy storage breakthrough",
-    positive_ratings: 892,
-    negative_ratings: 34,
-    shares: 651,
-    tips: 212,
-    adoption_count: 317,
-    traders: 138,
-    current_value: 2.87,
-    trending: 'up'
-  },
-  {
-    uuid: "mockid8",
-    title: "Global summit addresses climate migration challenges",
-    summary: "A first-of-its-kind international summit has concluded with new agreements on managing climate-driven migration, as rising sea levels and extreme weather events force millions to relocate. The framework includes provisions for legal recognition of climate refugees, financial support for affected communities, and guidelines for planned relocations of vulnerable populations.",
-    canonical: "https://www.un.org/climate/summit/2023/migration",
-    preview: "https://www.unhcr.org/content/dam/unhcr/Global%20Site/homepage-redesign/2022/content-modules/Climate%20Change%20%26%20Disaster%20Displacement/Somalia/Climate%20Change%20and%20Disaster%20Displacement%20banner%20Somalia.jpg/jcr:content/renditions/cq5dam.web.1440.960.jpegv3",
-    pub_time: "2023-10-05T16:45:00",
-    author: "UN Climate Summit",
-    source: "United Nations",
-    genre: "Environment",
-    aboutness: "Climate migration policy",
-    positive_ratings: 635,
-    negative_ratings: 187,
-    shares: 423,
-    tips: 156,
-    adoption_count: 289,
-    traders: 94,
-    current_value: 1.78,
-    trending: 'stable'
-  },
-  {
-    uuid: "mockid9",
-    title: "New AI tool revolutionizes drug discovery process",
-    summary: "Pharmaceutical researchers have unveiled a new artificial intelligence system that has successfully predicted molecular structures for potential treatments of previously 'undruggable' diseases. The tool identified several promising compounds for treating ALS that are now moving to preclinical testing, with researchers estimating it could shave years off traditional drug development timelines.",
-    canonical: "https://www.nature.com/articles/s41586-023-06145-x",
-    preview: "https://media.nature.com/lw767/magazine-assets/d41586-023-00107-z/d41586-023-00107-z_23881542.jpg",
-    pub_time: "2023-07-28T09:15:00",
-    author: "Nature Research Team",
-    source: "Nature",
-    genre: "Health & Technology",
-    aboutness: "AI in pharmaceutical research",
-    positive_ratings: 874,
-    negative_ratings: 51,
-    shares: 492,
-    tips: 208,
-    adoption_count: 326,
-    traders: 167,
-    current_value: 3.12,
-    trending: 'up'
-  }
-];
+import { debugLog } from './utils/debugUtils';
 
 // Mini price chart component to show price history
 const MiniPriceChart = ({ priceHistory, percentChange, width = 40, height = 20 }) => {
@@ -246,7 +57,7 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
   // Handle trading actions
   const handleLongPosition = (e) => {
     e.stopPropagation();
-    console.log('Long position on', news.title);
+    // Provide haptic feedback
     if (window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(50);
     }
@@ -254,7 +65,7 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, g
   
   const handleShortPosition = (e) => {
     e.stopPropagation();
-    console.log('Short position on', news.title);
+    // Provide haptic feedback
     if (window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(50);
     }
@@ -658,19 +469,13 @@ const NewsColossal = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef(null);
   
-  // Fetch news from API with console logging for debugging
-  // Return a promise so we can chain with .then()
+  // Fetch news from API
   const fetchTopNews = async () => {
     setIsLoading(true);
     
-    // Log detailed information about the service URL and current location
-    console.log('Current window location:', window.location.href);
-    console.log('Using API service URL:', serviceUrl);
-    
     try {
-      // Use the topnews endpoint as specified, with cache buster
+      // Use the topnews endpoint with cache buster
       const cacheBuster = new Date().getTime();
-      console.log(`Fetching from ${serviceUrl}/topnews endpoint (${window.location.hostname})`);
       
       // Simple fetch without credentials or special headers to avoid CORS issues
       const response = await fetch(`${serviceUrl}/topnews?range=2h&limit=9&_=${cacheBuster}`);
@@ -680,7 +485,7 @@ const NewsColossal = () => {
       }
       
       let data = await response.json();
-      console.log('Raw API response:', data);
+      debugLog('Raw API response:', data);
       
       // Determine the structure of the response
       let fetchedNews = [];
@@ -713,60 +518,57 @@ const NewsColossal = () => {
         }
       }
       
-      console.log('Processed news array:', fetchedNews);
+      debugLog('Processed news array:', fetchedNews);
       
       if (!Array.isArray(fetchedNews) || fetchedNews.length === 0) {
-        console.error('Could not extract news array from API response');
         throw new Error('Could not extract news array from API response');
       }
       
-      // Add trading-related mock data for prototype
+      // Add trading-related data where missing
       fetchedNews = fetchedNews.map(item => {
-        // Generate random price history for the chart
-        const priceHistory = [];
-        const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
-        const initialPrice = (Math.random() * 3 + 0.5);
-        let lastPrice = initialPrice;
-        
-        // Generate 24 price points (hourly for last 24 hours)
-        for (let i = 0; i < 24; i++) {
-          // Random change with slight bias in trend direction
-          const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
-          lastPrice = Math.max(0.1, lastPrice + change); // Ensure price doesn't go below 0.1
-          priceHistory.push(lastPrice);
+        // Only generate price history if it doesn't exist
+        if (!item.price_history) {
+          // Generate random price history for the chart
+          const priceHistory = [];
+          const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
+          const initialPrice = (Math.random() * 3 + 0.5);
+          let lastPrice = initialPrice;
+          
+          // Generate price points
+          for (let i = 0; i < 24; i++) {
+            const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
+            lastPrice = Math.max(0.1, lastPrice + change);
+            priceHistory.push(lastPrice);
+          }
+          
+          // Determine trending direction from last prices
+          const finalPrice = priceHistory[priceHistory.length - 1];
+          const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
+          const priceDiff = finalPrice - previousPrice;
+          const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
+          
+          // Calculate 24hr percent change
+          const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+          
+          // Only add fields that don't exist
+          return {
+            ...item,
+            current_value: item.current_value || finalPrice.toFixed(2),
+            trending: item.trending || trending,
+            price_history: priceHistory,
+            percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
+          };
         }
         
-        // Determine trending direction from last two prices
-        const finalPrice = priceHistory[priceHistory.length - 1];
-        const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
-        const priceDiff = finalPrice - previousPrice;
-        const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-        
-        // Calculate 24hr percent change
-        const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-        
-        return {
-          ...item,
-          positive_ratings: item.positive_ratings || Math.floor(Math.random() * 1000) + 100,
-          negative_ratings: item.negative_ratings || Math.floor(Math.random() * 200) + 20,
-          shares: Math.floor(Math.random() * 800) + 100,
-          tips: Math.floor(Math.random() * 300) + 30,
-          adoption_count: Math.floor(Math.random() * 400) + 50,
-          traders: Math.floor(Math.random() * 150) + 20,
-          current_value: finalPrice.toFixed(2),
-          trending,
-          price_history: priceHistory,
-          percent_change_24h: percentChange.toFixed(1)
-        };
+        return item;
       });
       
-      console.log('Enhanced news with trading data:', fetchedNews);
+      debugLog('Enhanced news with trading data:', fetchedNews);
       setNews(fetchedNews);
     } catch (error) {
-      console.error('Error fetching news:', error);
-      // Fallback to sample data if API fails
-      console.log('Falling back to sample data');
-      setNews(realNews);
+      debugLog('Error fetching news:', error);
+      // In production, handle error gracefully without mock data
+      setNews([]);
     } finally {
       setIsLoading(false);
     }
@@ -775,22 +577,16 @@ const NewsColossal = () => {
   // Fetch news details for a specific article
   const fetchNewsDetails = async (uuid) => {
     try {
-      // Log information about the API URL being used
-      console.log('Current window location for detail fetch:', window.location.href);
-      console.log('Using API service URL for detail fetch:', serviceUrl);
-      console.log(`Making request to: ${serviceUrl}/news/${uuid}`);
-      
       // Add cache buster to prevent caching
       const cacheBuster = new Date().getTime();
       const response = await fetch(`${serviceUrl}/news/${uuid}?_=${cacheBuster}`);
       
       if (!response.ok) {
-        console.error(`API error: ${response.status} ${response.statusText}`);
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Raw news details from API:', data);
+      debugLog('Raw news details from API:', data);
       
       // Handle different response formats
       let newsDetails = data;
@@ -806,55 +602,48 @@ const NewsColossal = () => {
         }
       }
       
-      console.log('Processed news details:', newsDetails);
+      debugLog('Processed news details:', newsDetails);
       
       if (!newsDetails || Object.keys(newsDetails).length === 0) {
-        console.error('Empty news details returned');
         throw new Error('Empty news details returned');
       }
       
-      // Add trading-related mock data with price history
-      // Generate random price history for the chart
-      const priceHistory = [];
-      const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
-      const initialPrice = (Math.random() * 3 + 0.5);
-      let lastPrice = initialPrice;
-      
-      // Generate 24 price points (hourly for last 24 hours)
-      for (let i = 0; i < 24; i++) {
-        // Random change with slight bias in trend direction
-        const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
-        lastPrice = Math.max(0.1, lastPrice + change); // Ensure price doesn't go below 0.1
-        priceHistory.push(lastPrice);
+      // Add trading-related data with price history
+      if (!newsDetails.price_history) {
+        // Generate random price history for the chart
+        const priceHistory = [];
+        const trendBias = Math.random() > 0.5 ? 1 : -1; // Determine if trending up or down overall
+        const initialPrice = (Math.random() * 3 + 0.5);
+        let lastPrice = initialPrice;
+        
+        // Generate price points
+        for (let i = 0; i < 24; i++) {
+          const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
+          lastPrice = Math.max(0.1, lastPrice + change);
+          priceHistory.push(lastPrice);
+        }
+        
+        // Determine trending direction from last prices
+        const finalPrice = priceHistory[priceHistory.length - 1];
+        const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
+        const priceDiff = finalPrice - previousPrice;
+        const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
+        
+        // Calculate 24hr percent change
+        const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+        
+        return {
+          ...newsDetails,
+          current_value: newsDetails.current_value || finalPrice.toFixed(2),
+          trending: newsDetails.trending || trending,
+          price_history: priceHistory,
+          percent_change_24h: newsDetails.percent_change_24h || percentChange.toFixed(1)
+        };
       }
       
-      // Determine trending direction from last two prices
-      const finalPrice = priceHistory[priceHistory.length - 1];
-      const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
-      const priceDiff = finalPrice - previousPrice;
-      const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-      
-      // Calculate 24hr percent change
-      const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-      
-      const enhancedNewsDetails = {
-        ...newsDetails,
-        positive_ratings: newsDetails.positive_ratings || Math.floor(Math.random() * 1000) + 100,
-        negative_ratings: newsDetails.negative_ratings || Math.floor(Math.random() * 200) + 20,
-        shares: Math.floor(Math.random() * 800) + 100,
-        tips: Math.floor(Math.random() * 300) + 30,
-        adoption_count: Math.floor(Math.random() * 400) + 50,
-        traders: Math.floor(Math.random() * 150) + 20,
-        current_value: finalPrice.toFixed(2),
-        trending,
-        price_history: priceHistory,
-        percent_change_24h: percentChange.toFixed(1)
-      };
-      
-      console.log('Enhanced news details:', enhancedNewsDetails);
-      return enhancedNewsDetails;
+      return newsDetails;
     } catch (error) {
-      console.error(`Error fetching details for news ${uuid}:`, error);
+      debugLog(`Error fetching details for news ${uuid}:`, error);
       return null;
     }
   };
@@ -866,19 +655,17 @@ const NewsColossal = () => {
   useEffect(() => {
     // Only fetch if we haven't loaded data yet
     if (!hasLoadedData && news.length === 0) {
-      console.log('Initial data fetch...');
       fetchTopNews()
         .then(() => {
           setHasLoadedData(true);
-          console.log('Data loaded successfully, marking as loaded');
+          debugLog('Data loaded successfully, marking as loaded');
         })
         .catch(error => {
-          console.error('Error in initial data fetch:', error);
+          debugLog('Error in initial data fetch:', error);
           // Still mark as loaded to prevent constant retries
           setHasLoadedData(true);
         });
     }
-  // The empty dependency array ensures this only runs once on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -944,7 +731,6 @@ const NewsColossal = () => {
   useEffect(() => {
     const handleResize = () => {
       const mobileView = window.innerWidth <= 768;
-      console.log('Screen width:', window.innerWidth, 'Mobile:', mobileView);
       setIsMobile(mobileView);
       
       // Force apply correct styles to body for cascade
@@ -955,7 +741,6 @@ const NewsColossal = () => {
         // Check if we're in landscape mode on mobile
         if (window.matchMedia("(orientation: landscape)").matches) {
           // Show notification or handle landscape mode
-          console.log('Please rotate your device to portrait mode for the best experience');
         }
       } else {
         document.body.classList.remove('mobile-view');
@@ -968,7 +753,6 @@ const NewsColossal = () => {
       if (window.innerWidth <= 768) {
         if (window.matchMedia("(orientation: landscape)").matches) {
           // We're in landscape on mobile - show notification
-          console.log('Landscape mode detected - app is optimized for portrait mode');
           
           // Optional: vibrate to notify user
           if (window.navigator && window.navigator.vibrate) {
@@ -1005,8 +789,6 @@ const NewsColossal = () => {
         const currentScrollTop = containerRef.current.scrollTop;
         const scrollDirection = currentScrollTop > scrollLeft ? 'down' : 'up';
         
-        console.log(`Scrolling: direction=${scrollDirection}, position=${currentScrollTop}`);
-        
         if (scrollDirection === 'down') {
           scrollCount++;
           
@@ -1019,11 +801,8 @@ const NewsColossal = () => {
           const { scrollHeight, scrollTop, clientHeight } = containerRef.current;
           const scrollBottom = scrollHeight - scrollTop - clientHeight;
           
-          console.log(`Scroll metrics: Bottom=${scrollBottom}, Height=${scrollHeight}, Top=${scrollTop}, ClientHeight=${clientHeight}`);
-          
           // If we're within 500px of the bottom, load more (increased threshold for better responsiveness)
           if (scrollBottom < 500 && !isLoadingMore) {
-            console.log('Near bottom, loading more news...');
             loadMoreNews();
           }
         }
@@ -1045,79 +824,16 @@ const NewsColossal = () => {
   // Function to load more news on scroll
   const loadMoreNews = () => {
     setIsLoadingMore(true);
-    console.log('Loading more news...');
     
     // In a real implementation, we would fetch the next page of news
-    // For now, let's just simulate a delay and add more mock news
     setTimeout(() => {
       try {
-        // Create more substantial mock news
-        const additionalNews = [];
+        // Simply mark as completed without adding mock data
+        setIsLoadingMore(false);
         
-        // Add variations of existing news items with different titles
-        for (let i = 0; i < Math.min(news.length, 5); i++) {
-          const baseItem = news[i % news.length];
-          additionalNews.push({
-            ...baseItem,
-            uuid: `${baseItem.uuid}-${Date.now()}-${i}`, // Ensure unique IDs
-            title: `Latest: ${baseItem.title.replace(/^\[NEW\] /, '')}`,
-            summary: `Updated information on this topic. ${baseItem.summary}`
-          });
-        }
-        
-        // Add some completely new mock items
-        const genres = ['Technology', 'Finance', 'Health', 'Culture', 'Politics', 'Environment'];
-        const sources = ['TechDaily', 'FinanceReport', 'HealthJournal', 'CultureToday', 'PoliticsWeekly'];
-        
-        for (let i = 0; i < 5; i++) {
-          const randomGenre = genres[Math.floor(Math.random() * genres.length)];
-          const randomSource = sources[Math.floor(Math.random() * sources.length)];
-          
-          additionalNews.push({
-            uuid: `new-item-${Date.now()}-${i}`,
-            title: `${randomGenre} News: Latest developments in ${randomGenre.toLowerCase()} sector`,
-            summary: `This is a summary of the latest developments in the ${randomGenre.toLowerCase()} sector. Read more for detailed information and analysis.`,
-            preview: '/static/3d.webp',
-            source: randomSource,
-            genre: randomGenre,
-            canonical: 'https://example.com',
-            current_value: (Math.random() * 100).toFixed(2),
-            trending: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)],
-            percent_change_24h: (Math.random() * 10 - 5).toFixed(2),
-            price_history: Array(10).fill().map(() => Math.random() * 100 + 50)
-          });
-        }
-        
-        // Properly update state to avoid layout shifts
-        console.log(`Adding ${additionalNews.length} new items to existing ${news.length} items`);
-        
-        // Update the news state with the combined array
-        setNews(prevNews => {
-          const combined = [...prevNews, ...additionalNews];
-          console.log(`Total news count after update: ${combined.length}`);
-          return combined;
-        });
-        
-        // Ensure the layout is maintained
-        setTimeout(() => {
-          if (containerRef.current) {
-            console.log('Maintaining container width and layout');
-            
-            // Make sure all cards have proper width
-            const allCards = containerRef.current.querySelectorAll('.news-card');
-            allCards.forEach(card => {
-              card.style.width = '100%';
-            });
-            
-            // Force a small scroll to update view without changing layout
-            const currentScrollPos = containerRef.current.scrollTop;
-            containerRef.current.scrollTop = currentScrollPos + 1;
-          }
-          
-          setIsLoadingMore(false);
-        }, 200);
+        // In a production app, we would fetch and add more data here
       } catch (error) {
-        console.error('Error loading more news:', error);
+        debugLog('Error loading more news:', error);
         setIsLoadingMore(false);
       }
     }, 1000);
@@ -1507,7 +1223,6 @@ const NewsColossal = () => {
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     // In a real implementation, this would trigger search as the user types
-    console.log('Search query:', e.target.value);
   };
 
   return (

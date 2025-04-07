@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import serviceUrl from './config';
+import { debugLog } from './utils/debugUtils';
 
 // Create context
 const UserContext = createContext();
@@ -17,7 +18,7 @@ const validatePublicKey = (key) => {
   if (/^0+[0-9a-f]+$/.test(cleanKey)) {
     // If the key has an excessive number of leading zeros, replace them
     if (cleanKey.match(/^0{10,}/)) {
-      console.log('UserContext: Reformatting hex key with excessive zeros');
+      debugLog('UserContext: Reformatting hex key with excessive zeros');
       return cleanKey.replace(/^0+/, '1a3b');
     }
   }
@@ -25,7 +26,7 @@ const validatePublicKey = (key) => {
   // Special case for keys that are mostly zeros with a few characters at the end
   if (cleanKey.length > 30 && cleanKey.match(/^0{20,}/)) {
     const nonZeroPart = cleanKey.replace(/^0+/, '');
-    console.log('UserContext: Detected mostly-zero key, extracting significant part:', nonZeroPart);
+    debugLog('UserContext: Detected mostly-zero key, extracting significant part:', nonZeroPart);
     return nonZeroPart;
   }
   
@@ -49,7 +50,7 @@ export const UserProvider = ({ children }) => {
   // Wrap the setter to validate keys before setting them
   const setPublicKey = useCallback((key) => {
     const validatedKey = validatePublicKey(key);
-    console.log('Setting public key:', { original: key, validated: validatedKey });
+    debugLog('Setting public key:', { original: key, validated: validatedKey });
     _setPublicKey(validatedKey);
   }, []);
   
@@ -134,7 +135,7 @@ export const UserProvider = ({ children }) => {
       let validatedKey = validatePublicKey(key);
       
       // Special logging for debugging key issues
-      console.log({
+      debugLog({
         original_key: key,
         validated_key: validatedKey,
         key_length: key ? key.length : 0,
@@ -250,7 +251,7 @@ export const UserProvider = ({ children }) => {
 
   // Function to open modal
   const openModal = useCallback(() => {
-    console.log('Opening modal from UserContext');
+    debugLog('Opening modal from UserContext');
     setIsModalOpen(true);
   }, []);
   
@@ -261,7 +262,7 @@ export const UserProvider = ({ children }) => {
 
   // Fix the updateUserBalance function to ensure balance is a number
   const updateUserBalance = useCallback((newBalance) => {
-    console.log('Updating user balance to:', newBalance);
+    debugLog('Updating user balance to:', newBalance);
     
     // Ensure the balance is a valid number
     const balanceNumber = Number(newBalance);
