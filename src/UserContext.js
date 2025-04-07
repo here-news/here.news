@@ -63,6 +63,8 @@ export const UserProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [error, setError] = useState(null);
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -77,6 +79,14 @@ export const UserProvider = ({ children }) => {
         setDisplayName(userData.displayName || null);
         setBio(userData.bio || null);
         setIsLoggedIn(!!userData.publicKey);
+        
+        // Set the userInfo object with the public_key
+        setUserInfo({
+          public_key: validatedKey,
+          name: userData.displayName || userData.username || "User",
+          email: userData.email || "",
+          balance: balance || 0
+        });
         
         // Fetch latest balance from API if we have a publicKey
         if (userData.publicKey) {
@@ -99,7 +109,14 @@ export const UserProvider = ({ children }) => {
       const response = await fetch(`${serviceUrl}/user/${key}/balance`);
       if (response.ok) {
         const data = await response.json();
-        setBalance(data.balance || 0);
+        const newBalance = data.balance || 0;
+        setBalance(newBalance);
+        
+        // Update userInfo with new balance
+        setUserInfo(prevInfo => ({
+          ...prevInfo,
+          balance: newBalance
+        }));
       }
     } catch (error) {
       console.error('Error fetching user balance:', error);
@@ -187,6 +204,8 @@ export const UserProvider = ({ children }) => {
     setBalance(0);
     setIsLoggedIn(false);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUserInfo(null);
   }, []);
 
   // Update user profile
@@ -240,6 +259,32 @@ export const UserProvider = ({ children }) => {
     setIsModalOpen(false);
   }, []);
 
+  // Fix the updateUserBalance function to ensure balance is a number
+  const updateUserBalance = useCallback((newBalance) => {
+    console.log('Updating user balance to:', newBalance);
+    
+    // Ensure the balance is a valid number
+    const balanceNumber = Number(newBalance);
+    const validBalance = !isNaN(balanceNumber) ? balanceNumber : 0;
+    
+    setBalance(validBalance);
+    
+    setUserInfo(prevUserInfo => {
+      if (!prevUserInfo) {
+        // If userInfo doesn't exist yet, create it with basic data
+        return {
+          public_key: publicKey,
+          name: displayName || username || "User",
+          balance: validBalance
+        };
+      }
+      return {
+        ...prevUserInfo,
+        balance: validBalance
+      };
+    });
+  }, [publicKey, displayName, username]);
+
   // Value object with all context data and functions
   const value = {
     publicKey,
@@ -262,10 +307,14 @@ export const UserProvider = ({ children }) => {
     openModal,
     closeModal,
     userSocketConnected: true,
-    userInfo: {
-      balance,
-      name: displayName,
-    }
+    userInfo: userInfo || {
+      public_key: publicKey,
+      name: displayName || username || "User",
+      balance: Number(balance) || 0,
+      email: ""
+    },
+    error,
+    updateUserBalance
   };
 
   return (
