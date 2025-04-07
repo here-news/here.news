@@ -242,6 +242,74 @@ button:active:not(:disabled) {
     text-decoration: underline;
 }
 
+/* Extension Login Button */
+.extension-login-container {
+    margin-bottom: 20px;
+}
+
+.extension-login-btn {
+    background-color: #6b47ed;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.extension-login-btn:hover {
+    background-color: #5636c9;
+}
+
+.extension-login-btn:disabled {
+    background-color: #a8a8a8;
+    cursor: not-allowed;
+}
+
+.extension-login-btn::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-10V8h4v2h-4zm0 4v-2h4v2h-4z"/></svg>');
+    background-size: contain;
+    margin-right: 10px;
+}
+
+.extension-info {
+    color: #666;
+    font-size: 0.9em;
+    text-align: center;
+    margin: 5px 0;
+}
+
+.separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 15px 0;
+    color: #888;
+}
+
+.separator::before,
+.separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.separator span {
+    padding: 0 10px;
+    font-size: 0.9em;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 576px) {
     .modal-content {
@@ -262,4 +330,89 @@ button:active:not(:disabled) {
         width: 100px;
         height: 100px;
     }
+}
+
+/* Add to existing Login.css file */
+
+.nostr-extension-prompt {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 320px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.prompt-content {
+    padding: 16px;
+}
+
+.prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.prompt-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.close-prompt {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.prompt-actions {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.prompt-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    gap: 8px;
+}
+
+.prompt-buttons button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.prompt-buttons .connect-btn {
+    background: #0077cc;
+    color: white;
+    border: none;
+}
+
+.prompt-actions label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
 }

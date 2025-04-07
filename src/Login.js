@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
-// Fix: Import the deriveAndFixPublicKey function
 import { generateNostrKeyPair, derivePublicKey, deriveAndFixPublicKey } from './nostr';
 import { generateSVG } from './key2svg';
 import './Login.css';
@@ -17,8 +16,46 @@ const Login = () => {
     const [tempPublicKey, setTempPublicKey] = useState('');
     const [avatarUrlSmall, setAvatarUrlSmall] = useState('');
     const [avatarUrlLarge, setAvatarUrlLarge] = useState('');
+    const [hasNostrExtension, setHasNostrExtension] = useState(false);
+    const [extensionName, setExtensionName] = useState('');
+    const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
+    const [dontAskAgain, setDontAskAgain] = useState(false);
 
     const svgRef = useRef(null);
+
+    // Check for Nostr browser extensions and auto-prompt
+    useEffect(() => {
+        const checkNostrExtensions = async () => {
+            // Check for window.nostr (NIP-07 standard)
+            if (window.nostr) {
+                setHasNostrExtension(true);
+                try {
+                    // Try to get the extension name
+                    const extension = await window.nostr.getExtensionInfo?.() || {};
+                    setExtensionName(extension.name || 'Nostr Extension');
+                } catch (error) {
+                    setExtensionName('Nostr Extension');
+                }
+                debugLog('Nostr extension detected:', window.nostr);
+                
+                // Check if we should show the auto-connect prompt
+                const dontAsk = localStorage.getItem('nostrDontAskAgain') === 'true';
+                const alreadyLoggedIn = !!localStorage.getItem('publicKey');
+                
+                if (!dontAsk && !alreadyLoggedIn && !isModalOpen) {
+                    // Show the auto-connect prompt after a short delay
+                    setTimeout(() => {
+                        setShowExtensionPrompt(true);
+                    }, 1000);
+                }
+            } else {
+                debugLog('No Nostr extension detected');
+                setHasNostrExtension(false);
+            }
+        };
+
+        checkNostrExtensions();
+    }, [isModalOpen]);
 
     useEffect(() => {
         // Create empty SVG for avatar generation
@@ -143,6 +180,67 @@ const Login = () => {
         return key;
     };
 
+    const handleExtensionLogin = async () => {
+        if (!window.nostr) {
+            setLoginError('Nostr extension not detected. Please install a Nostr extension like Nos2X or Alby.');
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            
+            // Request public key from the extension
+            const extensionPubKey = await window.nostr.getPublicKey();
+            
+            if (!extensionPubKey) {
+                throw new Error('Failed to get public key from extension');
+            }
+            
+            debugLog('Got public key from extension:', extensionPubKey);
+            
+            // Validate and fix the public key if needed
+            const validatedKey = extensionPubKey.replace(/^0x/, '');
+            
+            // Check if the user exists on the server
+            const endpoint = `${serviceUrl}/users/${validatedKey}`;
+            try {
+                const response = await fetch(endpoint);
+                
+                if (!response.ok) {
+                    // If user doesn't exist, show registration form
+                    setTempPublicKey(validatedKey);
+                    setShowLogin(false); // Switch to registration view
+                    setIsLoading(false);
+                    return;
+                }
+                
+                // User exists, proceed with login
+                const userData = await response.json();
+                debugLog('User found:', userData);
+                
+            } catch (error) {
+                console.warn("Could not verify user with server:", error);
+            }
+            
+            // Set user data in context and local storage
+            setPublicKey(validatedKey);
+            localStorage.setItem('publicKey', validatedKey);
+            // We don't store private key when using extensions
+            localStorage.removeItem('privateKey');
+            
+            // Generate and store avatar
+            await generateAvatar(validatedKey);
+            localStorage.setItem('avatarUrlSmall', avatarUrlSmall);
+            
+            closeModal();
+        } catch (error) {
+            console.error('Extension login error:', error);
+            setLoginError(`Error logging in with extension: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleLogin = async () => {
         if (!privateKey.trim()) {
             setLoginError('Please enter your private key');
@@ -200,6 +298,33 @@ const Login = () => {
         }
     };
 
+    // Function to handle auto-connect prompt response
+    const handleExtensionPromptResponse = (connect, dontAsk) => {
+        setShowExtensionPrompt(false);
+        
+        if (dontAsk) {
+            localStorage.setItem('nostrDontAskAgain', 'true');
+            setDontAskAgain(true);
+        }
+        
+        if (connect) {
+            // If user wants to connect, open modal and attempt extension login
+            openModal();
+            setTimeout(() => {
+                handleExtensionLogin();
+            }, 500);
+        }
+    };
+
+    // Function to open the login modal (should be received from context)
+    const openModal = () => {
+        // This function should be available through the UserContext,
+        // but for this example, we're assuming it's handled externally
+        if (typeof window !== 'undefined' && window.openLoginModal) {
+            window.openLoginModal();
+        }
+    };
+
     // Create a style for the modal visibility
     const modalStyle = {
         display: isModalOpen ? 'flex' : 'none'
@@ -224,144 +349,197 @@ const Login = () => {
     };
 
     return (
-        <div className="modal" style={modalStyle}>
-            <div className="modal-content">
-                <span className="close" onClick={closeModal}>&times;</span>
-                {!registrationSuccess && !showLogin ? (
-                    <div className="register-form">
-                        <h2>Register with Nostr</h2>
-                        <p className="info-text">
-                            Create a Nostr identity to use with this application.
-                            Your keys are stored locally and give you control of your data.
-                        </p>
-                        
-                        <div className="form-group">
-                            <label htmlFor="name">Display Name</label>
-                            <input 
-                                id="name"
-                                type="text" 
-                                value={name} 
-                                onChange={(e) => setName(e.target.value)} 
-                                placeholder="Enter your display name" 
-                            />
-                        </div>
-                        
-                        <button 
-                            className="generate-btn" 
-                            onClick={generateKeyPair}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Generating...' : 'Generate Key Pair'}
-                        </button>
-                        
-                        {tempPublicKey && (
-                            <div className="key-info">
-                                <div className="avatar-container">
-                                    <img src={avatarUrlLarge} alt="Public Key Avatar"/>
-                                </div> 
-                                
-                                <div className="key-details">
-                                    <div className="key-field">
-                                        <label>Public Key:</label>
-                                        <div className="key-value">{tempPublicKey}</div>
-                                    </div>
+        <>
+            <div className="modal" style={modalStyle}>
+                <div className="modal-content">
+                    <span className="close" onClick={closeModal}>&times;</span>
+                    {!registrationSuccess && !showLogin ? (
+                        <div className="register-form">
+                            <h2>Register with Nostr</h2>
+                            <p className="info-text">
+                                Create a Nostr identity to use with this application.
+                                Your keys are stored locally and give you control of your data.
+                            </p>
+                            
+                            <div className="form-group">
+                                <label htmlFor="name">Display Name</label>
+                                <input 
+                                    id="name"
+                                    type="text" 
+                                    value={name} 
+                                    onChange={(e) => setName(e.target.value)} 
+                                    placeholder="Enter your display name" 
+                                />
+                            </div>
+                            
+                            <button 
+                                className="generate-btn" 
+                                onClick={generateKeyPair}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Generating...' : 'Generate Key Pair'}
+                            </button>
+                            
+                            {tempPublicKey && (
+                                <div className="key-info">
+                                    <div className="avatar-container">
+                                        <img src={avatarUrlLarge} alt="Public Key Avatar"/>
+                                    </div> 
                                     
-                                    <div className="key-field">
-                                        <label>Private Key:</label>
-                                        <div className="key-value private">
-                                            {privateKey}
-                                            <div className="warning">
-                                                Save this privately! Anyone with this key can access your account.
+                                    <div className="key-details">
+                                        <div className="key-field">
+                                            <label>Public Key:</label>
+                                            <div className="key-value">{tempPublicKey}</div>
+                                        </div>
+                                        
+                                        <div className="key-field">
+                                            <label>Private Key:</label>
+                                            <div className="key-value private">
+                                                {privateKey}
+                                                <div className="warning">
+                                                    Save this privately! Anyone with this key can access your account.
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <button 
+                                        className="register-btn" 
+                                        onClick={registerUser}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Registering...' : 'Complete Registration'}
+                                    </button>
                                 </div>
-                                
-                                <button 
-                                    className="register-btn" 
-                                    onClick={registerUser}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? 'Registering...' : 'Complete Registration'}
+                            )}
+                            
+                            {loginError && <p className="error">{loginError}</p>}
+                            
+                            <p className="login-link">
+                                Already have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Sign In</a>
+                            </p>
+                        </div>
+                    ) : showLogin ? (
+                        <div className="login-form">
+                            <h2>Login with Nostr</h2>
+                            <p className="info-text">
+                                Enter your private key to sign in or use a Nostr browser extension.
+                            </p>
+                            
+                            {/* Extension Login Button */}
+                            {hasNostrExtension && (
+                                <div className="extension-login-container">
+                                    <button 
+                                        className="extension-login-btn" 
+                                        onClick={handleExtensionLogin}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Connecting...' : `Login with ${extensionName}`}
+                                    </button>
+                                    <p className="extension-info">
+                                        <small>
+                                            Securely login using your browser extension without entering your private key
+                                        </small>
+                                    </p>
+                                    <div className="separator">
+                                        <span>or</span>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="form-group">
+                                <label htmlFor="privateKey">Private Key</label>
+                                <input 
+                                    id="privateKey"
+                                    type="password" 
+                                    placeholder="Enter your private key" 
+                                    value={privateKey} 
+                                    onChange={(e) => setPrivateKey(e.target.value)} 
+                                />
+                            </div>
+                            
+                            <button 
+                                className="login-btn" 
+                                onClick={handleLogin}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Signing in...' : 'Sign In with Key'}
+                            </button>
+                            
+                            {loginError && <p className="error">{loginError}</p>}
+                            
+                            <p className="register-link">
+                                Don't have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Register</a>
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="login-form">
+                            <h2>Login with Nostr</h2>
+                            <p className="info-text">
+                                Enter your private key to sign in. Your key is stored locally
+                                and never sent to our servers.
+                            </p>
+                            
+                            <div className="form-group">
+                                <label htmlFor="privateKey">Private Key</label>
+                                <input 
+                                    id="privateKey"
+                                    type="password" 
+                                    placeholder="Enter your private key" 
+                                    value={privateKey} 
+                                    onChange={(e) => setPrivateKey(e.target.value)} 
+                                />
+                            </div>
+                            
+                            <button 
+                                className="login-btn" 
+                                onClick={handleLogin}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Signing in...' : 'Sign In'}
+                            </button>
+                            
+                            {loginError && <p className="error">{loginError}</p>}
+                            
+                            <p className="register-link">
+                                Don't have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Register</a>
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+            
+            {/* Add the auto-connect prompt */}
+            {showExtensionPrompt && (
+                <div className="nostr-extension-prompt">
+                    <div className="prompt-content">
+                        <div className="prompt-header">
+                            <h3>Nostr Extension Detected</h3>
+                            <button className="close-prompt" onClick={() => setShowExtensionPrompt(false)}>×</button>
+                        </div>
+                        <p>We detected {extensionName}. Would you like to connect with it?</p>
+                        <div className="prompt-actions">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    checked={dontAskAgain}
+                                    onChange={(e) => setDontAskAgain(e.target.checked)}
+                                /> 
+                                Don't ask again
+                            </label>
+                            <div className="prompt-buttons">
+                                <button onClick={() => handleExtensionPromptResponse(false, dontAskAgain)}>
+                                    Not Now
+                                </button>
+                                <button className="connect-btn" onClick={() => handleExtensionPromptResponse(true, dontAskAgain)}>
+                                    Connect
                                 </button>
                             </div>
-                        )}
-                        
-                        {loginError && <p className="error">{loginError}</p>}
-                        
-                        <p className="login-link">
-                            Already have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Sign In</a>
-                        </p>
-                    </div>
-                ) : showLogin ? (
-                    <div className="login-form">
-                        <h2>Login with Nostr</h2>
-                        <p className="info-text">
-                            Enter your private key to sign in. Your key is stored locally
-                            and never sent to our servers.
-                        </p>
-                        
-                        <div className="form-group">
-                            <label htmlFor="privateKey">Private Key</label>
-                            <input 
-                                id="privateKey"
-                                type="password" 
-                                placeholder="Enter your private key" 
-                                value={privateKey} 
-                                onChange={(e) => setPrivateKey(e.target.value)} 
-                            />
                         </div>
-                        
-                        <button 
-                            className="login-btn" 
-                            onClick={handleLogin}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Signing in...' : 'Sign In'}
-                        </button>
-                        
-                        {loginError && <p className="error">{loginError}</p>}
-                        
-                        <p className="register-link">
-                            Don't have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Register</a>
-                        </p>
                     </div>
-                ) : (
-                    <div className="login-form">
-                        <h2>Login with Nostr</h2>
-                        <p className="info-text">
-                            Enter your private key to sign in. Your key is stored locally
-                            and never sent to our servers.
-                        </p>
-                        
-                        <div className="form-group">
-                            <label htmlFor="privateKey">Private Key</label>
-                            <input 
-                                id="privateKey"
-                                type="password" 
-                                placeholder="Enter your private key" 
-                                value={privateKey} 
-                                onChange={(e) => setPrivateKey(e.target.value)} 
-                            />
-                        </div>
-                        
-                        <button 
-                            className="login-btn" 
-                            onClick={handleLogin}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Signing in...' : 'Sign In'}
-                        </button>
-                        
-                        {loginError && <p className="error">{loginError}</p>}
-                        
-                        <p className="register-link">
-                            Don't have a key? <a href="#" onClick={(e) => {e.preventDefault(); toggleForm();}}>Register</a>
-                        </p>
-                    </div>
-                )}
-            </div>
-        </div>
+                </div>
+            )}
+        </>
     );
 };
 
