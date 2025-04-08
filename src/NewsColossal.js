@@ -22,7 +22,9 @@ const NewsColossal = () => {
     retryCount,
     fetchTopNews,
     loadMoreNews,
-    setRetryCount 
+    setRetryCount,
+    hasMore,
+    totalCount
   } = useNewsData();
 
   // Handle window resize
@@ -79,6 +81,9 @@ const NewsColossal = () => {
           <NewsColossalMobile 
             news={news}
             handleCardClick={handleCardClick}
+            loadMoreNews={loadMoreNews}
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
           />
         ) : (
           <NewsColossalDesktop 
@@ -90,6 +95,8 @@ const NewsColossal = () => {
             handleSearchChange={handleSearchChange}
             isLoadingMore={isLoadingMore}
             loadMoreNews={loadMoreNews}
+            hasMore={hasMore}
+            totalCount={totalCount}
           />
         )}
       </div>

@@ -24,6 +24,10 @@ export const useNewsData = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  // Add pagination state
+  const [lastTimestamp, setLastTimestamp] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   
   const maxRetries = 3;
 
@@ -103,30 +107,57 @@ export const useNewsData = () => {
     
     try {
       const cacheBuster = new Date().getTime();
-      const data = await fetchWithFallback(`${serviceUrl}/topnews?range=2h&limit=9&_=${cacheBuster}`);
+      // Update the API call to use the new format
+      const url = new URL(`${serviceUrl}/topnews`);
+      url.searchParams.append('limit', 9);
+      url.searchParams.append('_', cacheBuster);
+      
+      const data = await fetchWithFallback(url.toString());
       
       // Process response data
       let fetchedNews = [];
+      let nextTimestamp = null;
+      let moreAvailable = false;
       
       if (Array.isArray(data)) {
+        // Legacy format
         fetchedNews = data;
+        moreAvailable = data.length === 9;
       } else if (data && typeof data === 'object') {
-        if (Array.isArray(data.results)) fetchedNews = data.results;
-        else if (Array.isArray(data.data)) fetchedNews = data.data;
-        else if (Array.isArray(data.items)) fetchedNews = data.items;
-        else if (Array.isArray(data.news)) fetchedNews = data.news;
-        else {
+        // New format
+        if (Array.isArray(data.items)) {
+          fetchedNews = data.items;
+          nextTimestamp = data.next_timestamp || null;
+          moreAvailable = data.has_more || false;
+          setTotalCount(data.total_count || fetchedNews.length);
+        } else if (Array.isArray(data.results)) {
+          fetchedNews = data.results;
+          moreAvailable = fetchedNews.length === 9;
+        } else if (Array.isArray(data.data)) {
+          fetchedNews = data.data;
+          moreAvailable = fetchedNews.length === 9;
+        } else if (Array.isArray(data.news)) {
+          fetchedNews = data.news;
+          moreAvailable = fetchedNews.length === 9;
+        } else {
           const keys = Object.keys(data).filter(key => key !== 'status' && key !== 'message');
           if (keys.length > 0 && data[keys[0]] && typeof data[keys[0]] === 'object') {
             fetchedNews = Object.values(data);
           } else {
             fetchedNews = [data];
           }
+          moreAvailable = false;
         }
       }
       
       if (!Array.isArray(fetchedNews) || fetchedNews.length === 0) {
         throw new Error('Could not extract news array from API response');
+      }
+      
+      // Set timestamp from the last item for pagination
+      if (!nextTimestamp && fetchedNews.length > 0) {
+        const lastItem = fetchedNews[fetchedNews.length - 1];
+        nextTimestamp = lastItem.pub_time || null;
       }
       
       // Add trading data where missing
@@ -168,7 +199,7 @@ export const useNewsData = () => {
           const response = new Response(JSON.stringify(fetchedNews), {
             headers: { 'Content-Type': 'application/json' }
           });
-          await cache.put(`${serviceUrl}/topnews?range=2h&limit=9`, response);
+          await cache.put(url.toString(), response);
         } catch (cacheError) {
           debugLog('Failed to cache news data:', cacheError);
         }
@@ -176,6 +207,8 @@ export const useNewsData = () => {
       
       setRetryCount(0);
       setNews(fetchedNews);
+      setLastTimestamp(nextTimestamp);
+      setHasMore(moreAvailable);
     } catch (error) {
       debugLog('Error fetching news:', error);
       
@@ -240,10 +273,98 @@ export const useNewsData = () => {
     setNetworkError("Couldn't load news. Please try again when you're back online.");
   };
   
-  // Load more news
-  const loadMoreNews = () => {
+  // Load more news - implemented with timestamp-based pagination
+  const loadMoreNews = async () => {
+    if (!hasMore || isLoadingMore) return;
+    
     setIsLoadingMore(true);
-    setTimeout(() => setIsLoadingMore(false), 1000);
+    
+    try {
+      const url = new URL(`${serviceUrl}/topnews`);
+      url.searchParams.append('limit', 9);
+      
+      if (lastTimestamp) {
+        url.searchParams.append('since_timestamp', lastTimestamp);
+      }
+      
+      url.searchParams.append('_', new Date().getTime()); // Cache buster
+      
+      const data = await fetchWithFallback(url.toString());
+      
+      let fetchedNews = [];
+      let nextTimestamp = null;
+      let moreAvailable = false;
+      
+      if (Array.isArray(data)) {
+        // Legacy format
+        fetchedNews = data;
+        moreAvailable = data.length === 9;
+      } else if (data && typeof data === 'object') {
+        // New format
+        if (Array.isArray(data.items)) {
+          fetchedNews = data.items;
+          nextTimestamp = data.next_timestamp || null;
+          moreAvailable = data.has_more || false;
+          setTotalCount(prev => prev + (data.total_count || fetchedNews.length));
+        } else if (Array.isArray(data.results)) {
+          fetchedNews = data.results;
+          moreAvailable = fetchedNews.length === 9;
+        } else if (Array.isArray(data.data)) {
+          fetchedNews = data.data;
+          moreAvailable = fetchedNews.length === 9;
+        }
+      }
+      
+      // Add trading data where missing (same as in fetchTopNews)
+      fetchedNews = fetchedNews.map(item => {
+        if (!item.price_history) {
+          // Same pricing data generation as before
+          const priceHistory = [];
+          const trendBias = Math.random() > 0.5 ? 1 : -1;
+          const initialPrice = (Math.random() * 3 + 0.5);
+          let lastPrice = initialPrice;
+          
+          for (let i = 0; i < 24; i++) {
+            const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
+            lastPrice = Math.max(0.1, lastPrice + change);
+            priceHistory.push(lastPrice);
+          }
+          
+          const finalPrice = priceHistory[priceHistory.length - 1];
+          const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
+          const priceDiff = finalPrice - previousPrice;
+          const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
+          const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
+          
+          return {
+            ...item,
+            current_value: item.current_value || finalPrice.toFixed(2),
+            trending: item.trending || trending,
+            price_history: priceHistory,
+            percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
+          };
+        }
+        return item;
+      });
+      
+      // Set timestamp from the last item for pagination if not provided by API
+      if (!nextTimestamp && fetchedNews.length > 0) {
+        const lastItem = fetchedNews[fetchedNews.length - 1];
+        nextTimestamp = lastItem.pub_time || null;
+      }
+      
+      setNews(prevNews => [...prevNews, ...fetchedNews]);
+      setLastTimestamp(nextTimestamp);
+      setHasMore(moreAvailable && fetchedNews.length > 0);
+      
+    } catch (error) {
+      debugLog('Error loading more news:', error);
+      // Show a temporary error but don't change the current news array
+      setNetworkError("Couldn't load more news. Please try again.");
+      setTimeout(() => setNetworkError(null), 3000);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   // Fetch data once on mount
@@ -286,6 +407,8 @@ export const useNewsData = () => {
     setRetryCount,
     isLoadingMore,
     fetchTopNews,
-    loadMoreNews
+    loadMoreNews,
+    hasMore,
+    totalCount
   };
 };

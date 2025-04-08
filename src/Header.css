@@ -1,4 +1,4 @@
-/* Header styles */
+/* Streamlined header styles */
 .header {
     background-color: #f8f9fa;
     padding: 10px 0;
@@ -6,10 +6,11 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 10002; /* Higher than news-fullscreen (10001) */
+    z-index: 10002;
     border-bottom: 1px solid #e9ecef;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+
 .header .container {
     display: flex;
     justify-content: space-between;
@@ -19,6 +20,12 @@
     padding: 0 15px;
 }
 
+/* Core layout sections */
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
 .header-center {
     flex: 1;
     display: flex;
@@ -26,6 +33,47 @@
     padding: 0 20px;
 }
 
+.header-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Logo specific styles */
+.logo {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;  /* Larger tap target */
+    margin: -10px;  /* Offset padding */
+    z-index: 10100; /* Very high z-index */
+    position: relative;
+}
+
+.logo img {
+    height: 28px;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.logo-text {
+    font-weight: 800;
+    font-size: 32px;
+    margin-right: 4px;
+    color: #333;
+    letter-spacing: 1px;
+    transform: skewX(-10deg);
+    display: inline-block;
+}
+
+.slogan-text {
+    font-size: 14px;
+    color: #666;
+    margin-left: 10px;
+    font-style: italic;
+}
+
+/* Search bar */
 .header-search-bar {
     width: 100%;
     max-width: 400px;
@@ -36,12 +84,6 @@
     display: flex;
     align-items: center;
     padding: 0 15px;
-    transition: all 0.2s ease;
-}
-
-.header-search-bar:focus-within {
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
-    border-color: #aaa;
 }
 
 .header-search-bar input {
@@ -58,28 +100,7 @@
     font-size: 14px;
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-}
-
-.logo-text {
-    font-weight: 800;
-    font-size: 32px;
-    margin-right: 4px;
-    color: #333;
-    letter-spacing: 1px;
-    transform: skewX(5deg); /*Negative value slants text to the left */
-    display: inline-block; /* Needed for transform to work properly */
-}
-
-.slogan-text {
-    font-size: 14px;
-    color: #666;
-    margin-left: 10px;
-    font-style: italic;
-}
-
+/* Responsive utilities */
 .desktop-only {
     display: inline-block;
 }
@@ -88,67 +109,55 @@
     display: none;
 }
 
-.header-right {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
+/* Mobile optimization */
+@media (max-width: 768px) {
+    .header {
+        padding: 5px 0;
+    }
+    
+    .header .container {
+        padding: 0 10px;
+    }
+    
+    .desktop-only {
+        display: none;
+    }
+    
+    .mobile-only {
+        display: inline-block;
+    }
+    
+    .header-center {
+        padding: 0 10px;
+    }
+    
+    /* Extremely aggressive logo clickability fix for mobile */
+    .header-left {
+        min-width: 40px;
+        position: relative;
+        z-index: 20000; /* Ultra high z-index */
+    }
+    
+    .logo {
+        padding: 15px 10px; /* Very large tap area */
+        margin: -15px -10px;
+        background: transparent;
+        z-index: 20000;
+    }
+    
+    .logo img {
+        height: 28px;
+        position: relative;
+        z-index: 20000;
+    }
+    
+    /* Isolate search bar from logo area */
+    .header-center {
+        z-index: 10001;
+    }
 }
 
-.slogan {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 0;
-    text-align: center;
-}
-
-.header-left a.logo img {
-    height: 28px;
-  }
-  
-.header .user-profile {
-    display: flex;
-    align-items: center;
-}
-
-.header .user-profile img {
-    width: 32px; /* Set a consistent width and height for the avatar */
-    height: 32px;
-    border-radius: 50%; /* Ensure the avatar is a circle */
-    margin-right: 10px;
-}
-
-.header .user-profile span {
-    font-size: 14px;
-    color: #333; /* Adjust the font size and color as needed */
-}
-
-/* Login Button Styles */
-.login-button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.login-button:hover:not(:disabled) {
-    background-color: #2980b9;
-}
-
-.login-button:active:not(:disabled) {
-    transform: translateY(1px);
-}
-
-.login-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-/* User Info Styles */
+/* Keep critical user info styles */
 .user-info {
     display: flex;
     align-items: center;
@@ -290,55 +299,4 @@
 
 .menu-item.logout:hover {
     background-color: #ffeeee;
-}
-
-@media (max-width: 768px) {
-    .header {
-        padding: 5px 0;
-    }
-    
-    .header .container {
-        flex-direction: row; /* Keep horizontal layout on mobile */
-        align-items: center;
-        padding: 0 10px;
-    }
-
-    .header-left a.logo img {
-        height: 28px; /* Smaller logo on mobile */
-    }
-    
-    .desktop-only {
-        display: none; /* Hide desktop elements on mobile */
-    }
-    
-    .mobile-only {
-        display: inline-block; /* Show mobile elements */
-    }
-    
-    .header-center {
-        flex: 1;
-        padding: 0 10px;
-    }
-    
-    .header-search-bar {
-        height: 32px;
-        border-radius: 16px;
-    }
-    
-    .header-search-bar input {
-        font-size: 12px;
-    }
-    
-    .search-icon {
-        font-size: 12px;
-    }
-    
-    .login-button {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-    
-    .profile-dropdown-menu {
-        width: 200px;
-    }
 }

@@ -44,11 +44,6 @@ const NewsFullScreen = ({ news, onClose, isMobile }) => {
         className={`news-fullscreen ${isPulling ? 'pulling' : ''}`}
         ref={fullscreenRef}
       >
-      {isMobile && (
-        <div className="pull-indicator">
-          <span className="ticker-refresh">↻ Pull to refresh market data ↻</span>
-        </div>
-      )}
       
       <div className="fullscreen-close-button">
         <button onClick={onClose} className="close-btn">×</button>

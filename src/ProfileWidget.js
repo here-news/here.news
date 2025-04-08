@@ -102,7 +102,6 @@ const ProfileWidget = () => {
                 <div className="user-info">
                     {/* Spices/Balance display */}
                     <div className="user-balance">
-                        <span className="balance-icon" role="img" aria-label="sparkles">✨</span>
                         <span className="balance-amount"> ${displayBalance}
                         </span>
                     </div>
