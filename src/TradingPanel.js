@@ -379,7 +379,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
   
   return (
     <div className="static-trading-panel">
-      <h2>{articleTitle || 'Market Trading'}</h2>
       
       {/* Only show auth error messages at the top, trading errors will appear in position panel */}
       {errorMessage && errorMessage.includes("Authentication") && 

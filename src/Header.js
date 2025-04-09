@@ -28,7 +28,7 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                         onClick={goToHome}
                     >
                         <img src="/static/hn2_logo.svg" alt="Logo" />
-                        <span className="logo-text desktop-only">HERE</span>
+                        <span className="logo-text desktop-only">HƎRE</span>
                     </div>
                     <span className="slogan-text desktop-only">Truth Gains</span>
                 </div>
