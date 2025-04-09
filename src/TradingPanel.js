@@ -18,12 +18,11 @@ function debounce(func, wait) {
 
 // Enhanced version with custom hooks for better organization and reusability
 const TradingPanel = ({ newsId, onTradeComplete }) => {
-  // Add updateUserBalance to the destructured values from useUser
   const { 
     publicKey, 
     userInfo, 
     userSocketConnected,
-    updateUserBalance // Add this line 
+    updateUserBalance
   } = useUser();
   
   const [previousPrice, setPreviousPrice] = useState(0);
@@ -35,8 +34,8 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     { price: 6, description: "Next Issuance Tier @ 6¢" },
     { price: 7, description: "Issuance Tier @ 7¢" }
   ]);
+  const [showExplanation, setShowExplanation] = useState(false);
   
-  // Custom hooks for data and actions
   const { 
     marketStats,
     trending,
@@ -60,7 +59,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     throttledCheckShares
   } = useUserPositions(newsId);
   
-  // Trading actions hook
   const {
     executeTrade,
     loading: tradeLoading,
@@ -71,11 +69,10 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
   } = useTradingActions({
     newsId,
     onTradeComplete,
-    refreshPositions: throttledCheckShares, // Use throttled version to prevent flooding
-    refreshMarketData: throttledFetchMarketData // Use throttled version to prevent flooding
+    refreshPositions: throttledCheckShares,
+    refreshMarketData: throttledFetchMarketData
   });
   
-  // Fetch user data from REST API
   const updateUserData = useCallback(async () => {
     if (!publicKey) return;
     
@@ -98,7 +95,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     }
   }, [publicKey]);
   
-  // Debounced version of updateUserData to prevent flooding
   const debouncedUpdateUserData = useCallback(
     debounce(() => {
       if (publicKey) {
@@ -108,7 +104,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     [publicKey, updateUserData]
   );
   
-  // Handle WebSocket market updates with memoization to prevent rerenders
   const handleMarketWebSocketMessage = useCallback((message) => {
     if (!message || typeof message !== 'object') return;
     
@@ -116,15 +111,13 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
       case 'market_init':
       case 'market_update':
       case 'market_stats':
-      case 'market': // New belief market update type
-      case 'price_history': // Handle price history update messages
-        // Store previous price for change visualization
+      case 'market':
+      case 'price_history':
         if (marketStats?.yes_price) {
           setPreviousPrice(marketStats.yes_price);
         } else if (marketStats?.current_price) {
           setPreviousPrice(marketStats.current_price);
         }
-        // Refresh market data through our hook - using throttled version
         throttledFetchMarketData();
         break;
         
@@ -139,38 +132,30 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         
       case 'trade_executed':
       case 'trade':
-        // Add the new trade to recent trades
         if (message.data) {
-          // For belief market trade messages, convert to standard format if needed
           let tradeData = message.data;
           
-          // Check if this is a belief market trade with side field
           if (tradeData.side) {
-            // Convert belief market trade to backward compatibility format
             const isBuy = tradeData.type === 'BUY';
             const isYes = tradeData.side === 'YES';
             
-            // Map to belief market actions for display purposes
             let legacyAction;
             if (isYes && isBuy) legacyAction = 'yes_buy';
             else if (isYes && !isBuy) legacyAction = 'yes_sell';
             else if (!isYes && isBuy) legacyAction = 'no_buy';
             else if (!isYes && !isBuy) legacyAction = 'no_sell';
             
-            // Add legacy action field for backward compatibility
             tradeData.action = legacyAction;
           }
           
           setRecentTrades(prev => [tradeData, ...prev].slice(0, 50));
         }
         
-        // Also refresh market data and positions - using throttled versions
         throttledFetchMarketData();
         throttledCheckShares();
         break;
         
       case 'batch':
-        // Handle batched messages (process each one)
         if (Array.isArray(message.data)) {
           message.data.forEach(submessage => {
             handleMarketWebSocketMessage(submessage);
@@ -179,7 +164,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         break;
         
       default:
-        // Check for positions updates for backward compatibility
         if (message.data && message.data.positions) {
           throttledCheckShares();
         }
@@ -187,7 +171,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     }
   }, [marketStats, throttledFetchMarketData, throttledCheckShares]);
   
-  // Handle user WebSocket updates with memoization to prevent rerenders
   const handleUserWebSocketMessage = useCallback((message) => {
     if (!message || typeof message !== 'object') return;
     
@@ -195,24 +178,19 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
       case 'user_update':
       case 'balance':
       case 'balance_update':
-        console.log("Balance update message detected");
         if (message.data && typeof message.data.quote_balance !== 'undefined') {
-          console.log("Calling updateUserBalance with:", message.data.quote_balance);
           updateUserBalance(message.data.quote_balance);
         } else if (typeof message.quote_balance !== 'undefined') {
-          console.log("Calling updateUserBalance with:", message.quote_balance);
           updateUserBalance(message.quote_balance);
         }
         break;
        
       case 'positions_update':
-      case 'position': // New belief market position update type
-        // Refresh positions through our hook
+      case 'position':
         checkUserShares();
         break;
         
       case 'batch':
-        // Handle batched messages (process each one)
         if (Array.isArray(message.data)) {
           message.data.forEach(submessage => {
             handleUserWebSocketMessage(submessage);
@@ -221,14 +199,11 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         break;
         
       default:
-        // Check common patterns in different message formats
         if (message.user_id === publicKey || 
             (message.data && message.data.user_id === publicKey)) {
-          // This message is for the current user, update data
           updateUserData();
           checkUserShares();
           
-          // Also check for balance updates in various formats
           if (message.data && typeof message.data.quote_balance !== 'undefined') {
             updateUserBalance(message.data.quote_balance);
           } else if (typeof message.quote_balance !== 'undefined') {
@@ -236,7 +211,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           }
         }
         
-        // Check for positions in message.data.positions (belief market format)
         if (message.data && message.data.positions && message.data.positions[newsId]) {
           checkUserShares();
         }
@@ -244,7 +218,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     }
   }, [publicKey, newsId, updateUserData, checkUserShares, updateUserBalance]);
   
-  // Setup WebSocket connections
   const marketWebSocket = useWebSocketConnection({
     endpoint: `/ws/market/${newsId}`,
     newsId,
@@ -257,15 +230,13 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     publicKey
   });
   
-  // Register for market message types
   useEffect(() => {
     if (!marketWebSocket.isConnected) return;
     
-    // Register for market messages - including belief market types
     const unregisterMarketWebSocket = marketWebSocket.registerForMessageType('market_update', handleMarketWebSocketMessage);
     const unregisterMarketInit = marketWebSocket.registerForMessageType('market_init', handleMarketWebSocketMessage);
     const unregisterMarketStats = marketWebSocket.registerForMessageType('market_stats', handleMarketWebSocketMessage);
-    const unregisterMarket = marketWebSocket.registerForMessageType('market', handleMarketWebSocketMessage); // New belief market type
+    const unregisterMarket = marketWebSocket.registerForMessageType('market', handleMarketWebSocketMessage);
     const unregisterOrderBook = marketWebSocket.registerForMessageType('order_book_update', handleMarketWebSocketMessage);
     const unregisterOrderBookUpdate = marketWebSocket.registerForMessageType('order_book', handleMarketWebSocketMessage);
     const unregisterTrade = marketWebSocket.registerForMessageType('trade_executed', handleMarketWebSocketMessage);
@@ -285,16 +256,14 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     };
   }, [marketWebSocket.isConnected, marketWebSocket.registerForMessageType, handleMarketWebSocketMessage]);
   
-  // Register for user message types
   useEffect(() => {
     if (!userWebSocket.isConnected) return;
     
-    // Register for user messages - including belief market types
     const unregisterUserUpdate = userWebSocket.registerForMessageType('user_update', handleUserWebSocketMessage);
     const unregisterBalance = userWebSocket.registerForMessageType('balance', handleUserWebSocketMessage);
     const unregisterBalanceUpdate = userWebSocket.registerForMessageType('balance_update', handleUserWebSocketMessage);
     const unregisterPositionsUpdate = userWebSocket.registerForMessageType('positions_update', handleUserWebSocketMessage);
-    const unregisterPosition = userWebSocket.registerForMessageType('position', handleUserWebSocketMessage); // New belief market type
+    const unregisterPosition = userWebSocket.registerForMessageType('position', handleUserWebSocketMessage);
     const unregisterBalanceField = userWebSocket.registerForMessageType('field:quote_balance', handleUserWebSocketMessage);
     const unregisterBatch = userWebSocket.registerForMessageType('batch', handleUserWebSocketMessage);
     
@@ -309,31 +278,22 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     };
   }, [userWebSocket.isConnected, userWebSocket.registerForMessageType, handleUserWebSocketMessage]);
 
-  // Helper function for position actions - support belief market positions
   const handlePositionAction = (position) => {
     if (!position) return;
     
-    // Ensure integer shares (>=0)
     const shares = Math.max(1, Math.floor(position.shares));
     if (shares <= 0) return;
     
-    // Handle belief market position types (yes/no) and legacy types (long/short)
     if (position.type === 'yes' || position.type === 'long') {
-      // Sell YES position (or legacy long)
       const price = marketStats?.yes_price || marketStats?.current_price || 0;
-      // Always sell 1 share when using the sell button
       executeTrade('yes_sell', 1, price, userData, userPositions, positionData);
     } else if (position.type === 'no' || position.type === 'short') {
-      // Sell NO position (or legacy short)
       const price = marketStats?.no_price || (marketStats?.max_price ? marketStats.max_price - (marketStats.yes_price || marketStats.current_price || 0) : 0);
-      // Always sell 1 share when using the sell button
       executeTrade('no_sell', 1, price, userData, userPositions, positionData);
     }
   };
   
-  // Initial data fetching
   useEffect(() => {
-    // Fetch market title if needed
     if (!articleTitle && newsId) {
       fetch(`${serviceUrl}/news/${newsId}`)
         .then(response => response.json())
@@ -345,21 +305,17 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         .catch(error => console.error('Error fetching article title:', error));
     }
     
-    // Get initial user data if logged in
     if (publicKey) {
       updateUserData();
     }
   }, [newsId, publicKey, articleTitle]);
   
-  // Loading and error states
   const isLoading = marketLoading || positionsLoading || tradeLoading;
   const errorMessage = tradeError || marketError || positionsError || '';
   
-  // Format market data for belief market trading panel
-  // For backward compatibility, use yes_price as current_price if available
   const currentPrice = marketStats?.yes_price || marketStats?.current_price || 0;
-  const formattedPrice = currentPrice * 100; // Convert to cents
-  const formattedPreviousPrice = previousPrice * 100; // Convert to cents
+  const formattedPrice = currentPrice * 100;
+  const formattedPreviousPrice = previousPrice * 100;
   const isPriceUp = formattedPrice > formattedPreviousPrice;
   const isPriceDown = formattedPrice < formattedPreviousPrice;
   const priceChangeAmount = Math.abs(formattedPrice - formattedPreviousPrice).toFixed(1);
@@ -367,35 +323,53 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
     ? Math.abs((formattedPrice - formattedPreviousPrice) / formattedPreviousPrice * 100).toFixed(1) 
     : '0.0';
     
-  // Belief market data
   const noPrice = marketStats?.no_price || (marketStats?.max_price ? marketStats.max_price - currentPrice : 0);
-  const formattedNoPrice = noPrice * 100; // Convert to cents
+  const formattedNoPrice = noPrice * 100;
   const beliefRatio = marketStats?.belief_ratio || (marketStats?.max_price ? currentPrice / marketStats.max_price : 0.5);
   const beliefPercentage = (beliefRatio * 100).toFixed(1);
   
-  // Determine connection status based on websocket state and heartbeats
   const isRealTimeConnected = marketWebSocket.isConnected && 
     (marketWebSocket.hasRecentHeartbeat || userWebSocket.hasRecentHeartbeat || userSocketConnected);
   
   return (
     <div className="static-trading-panel">
       
-      {/* Only show auth error messages at the top, trading errors will appear in position panel */}
       {errorMessage && errorMessage.includes("Authentication") && 
         <div className="error-message">{errorMessage}</div>
       }
       
-      {/* Price indicator, chart, and connection status for belief market */}
       {marketStats && (
         <div className="simplified-price-display">
           <div className="belief-meter">
-            <div className="belief-label">Belief Ratio: {beliefPercentage}%</div>
+            <div className="belief-label">
+              Market Belief
+              <span 
+                className="info-icon"
+                onMouseEnter={() => setShowExplanation(true)}
+                onMouseLeave={() => setShowExplanation(false)}
+              >
+                ⓘ
+              </span>
+            </div>
+            {showExplanation && (
+              <div className="belief-explanation-tooltip">
+                The price reflects the market's belief. If YES is priced at {formattedPrice.toFixed(1)}¢, 
+                NO is priced at {formattedNoPrice.toFixed(1)}¢ because the total belief equals 100%.
+              </div>
+            )}
             <div className="belief-bar">
-              <div className="belief-fill" style={{width: `${beliefPercentage}%`}}></div>
+              <div className="yes-belief-fill" style={{width: `${beliefPercentage}%`}}>
+                <span className="belief-price-label">YES: {formattedPrice.toFixed(1)}¢</span>
+              </div>
+              <div className="no-belief-fill" style={{width: `${100 - parseFloat(beliefPercentage)}%`}}>
+                <span className="belief-price-label">NO: {formattedNoPrice.toFixed(1)}¢</span>
+              </div>
+            </div>
+            <div className="belief-explanation">
+              YES: {beliefPercentage}% ● NO: {(100 - parseFloat(beliefPercentage)).toFixed(1)}%
             </div>
           </div>
           
-          {/* Price History Chart */}
           <MiniPriceChart 
             priceHistory={marketStats.price_history || []} 
             currentPrice={currentPrice}
@@ -403,48 +377,8 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           />
         </div>
       )}
-
-      {/* Stats Section - only key stats */}
-        <div className="condensed-stats">
-          <div className="stat-pair">
-            <div className="stat-item">
-          <span className="stat-label">Market Cap</span>
-          <span className="stat-value">
-            ${(() => {
-              // Calculate market cap as yes_price*volume_yes + no_price*volume_no
-              if (marketStats?.yes_price && marketStats?.volume_yes && 
-              marketStats?.no_price && marketStats?.volume_no) {
-            const calculatedMarketCap = 
-              marketStats.yes_price * marketStats.volume_yes + 
-              marketStats.no_price * marketStats.volume_no;
-            return calculatedMarketCap.toFixed(2);
-              } else if (marketStats?.market_cap && typeof marketStats.market_cap === 'number') {
-            // Fallback to existing market_cap if calculation isn't possible
-            return marketStats.market_cap.toFixed(2);
-              }
-              return '0.00';
-            })()}
-          </span>
-            </div>
-            <div className="stat-item">
-          <span className="stat-label">Traders</span>
-          <span className="stat-value">{marketStats?.user_count || tradersCount || '0'}</span>
-            </div>
-          </div>
-          <div className="stat-pair">
-            <div className="stat-item">
-          <span className="stat-label">YES Volume</span>
-          <span className="stat-value">{marketStats?.volume_yes ? Math.floor(marketStats.volume_yes) : '0'}</span>
-            </div>
-            <div className="stat-item">
-          <span className="stat-label">NO Volume</span>
-          <span className="stat-value">{marketStats?.volume_no ? Math.floor(marketStats.volume_no) : '0'}</span>
-            </div>
-          </div>
-        </div>
           
-        {/* Belief Market Trading Buttons with YES/NO options */}
-      <div className="belief-market-actions">
+          <div className="belief-market-actions">
         <div className="action-column">
           <div className="action-block">
             <button 
@@ -453,22 +387,25 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="yes-buy-button"
             >
-              Pump ▲  @{formattedPrice.toFixed(1)}¢  
+              Support YES @{formattedPrice.toFixed(1)}¢  
             </button>
             {userPositions?.filter(pos => pos.type === 'yes' || pos.type === 'long').map((position, index) => {
-              const currentMarketPrice = formattedPrice / 100; // YES price in dollars
+              const currentMarketPrice = formattedPrice / 100;
               const profitPerShare = currentMarketPrice - position.avg_price;
               const totalProfit = profitPerShare * position.shares;
               const profitIsPositive = totalProfit > 0;
 
-                return (
+              return (
                 <div key={index} className="position-info">
-                  {position.shares} shares @~{(position.avg_price * 100).toFixed(1)}¢
-                  <span style={{ color: profitIsPositive ? 'green' : 'red' }}>
-                  ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
-                  </span>
+                  <div className="position-details">
+                    <span className="position-shares">{position.shares} shares</span> 
+                    <span className="position-price">@{(position.avg_price * 100).toFixed(1)}¢</span>
+                    <span className={`position-profit ${profitIsPositive ? 'positive' : 'negative'}`}>
+                      ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
                 </div>
-                );
+              );
             })}
           </div>
           <hr />
@@ -479,27 +416,65 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="no-buy-button"
             >
-              Dump ▼ @{formattedNoPrice.toFixed(1)}¢
+              Support NO @{formattedNoPrice.toFixed(1)}¢
             </button>
             {userPositions?.filter(pos => pos.type === 'no' || pos.type === 'short').map((position, index) => {
-              const currentMarketPrice = formattedNoPrice / 100; // NO price in dollars
+              const currentMarketPrice = formattedNoPrice / 100;
               const profitPerShare = currentMarketPrice - position.avg_price;
               const totalProfit = profitPerShare * position.shares;
               const profitIsPositive = totalProfit > 0;
 
-                return (
+              return (
                 <div key={index} className="position-info">
-                  {position.shares} shares @~{(position.avg_price * 100).toFixed(1)}¢
-                  <span style={{ color: profitIsPositive ? 'green' : 'red' }}>
-                  ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
-                  </span>
+                  <div className="position-details">
+                    <span className="position-shares">{position.shares} shares</span> 
+                    <span className="position-price">@{(position.avg_price * 100).toFixed(1)}¢</span>
+                    <span className={`position-profit ${profitIsPositive ? 'positive' : 'negative'}`}>
+                      ({profitIsPositive ? '+' : ''}{((profitPerShare / position.avg_price) * 100).toFixed(1)}%)
+                    </span>
+                  </div>
                 </div>
-                );
+              );
             })}
           </div>
         </div>
       </div>
-
+      
+      <div className="condensed-stats">
+        <div className="stat-pair">
+          <div className="stat-item">
+            <span className="stat-label">Market Cap</span>
+            <span className="stat-value">
+              ${(() => {
+                if (marketStats?.yes_price && marketStats?.volume_yes && 
+                marketStats?.no_price && marketStats?.volume_no) {
+                  const calculatedMarketCap = 
+                    marketStats.yes_price * marketStats.volume_yes + 
+                    marketStats.no_price * marketStats.volume_no;
+                  return calculatedMarketCap.toFixed(2);
+                } else if (marketStats?.market_cap && typeof marketStats.market_cap === 'number') {
+                  return marketStats.market_cap.toFixed(2);
+                }
+                return '0.00';
+              })()}
+            </span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Traders</span>
+            <span className="stat-value">{marketStats?.user_count || tradersCount || '0'}</span>
+          </div>
+        </div>
+        <div className="stat-pair">
+          <div className="stat-item">
+            <span className="stat-label">YES Volume</span>
+            <span className="stat-value">{marketStats?.volume_yes ? Math.floor(marketStats.volume_yes) : '0'}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">NO Volume</span>
+            <span className="stat-value">{marketStats?.volume_no ? Math.floor(marketStats.volume_no) : '0'}</span>
+          </div>
+        </div>
+      </div>
 
     </div>
   );
