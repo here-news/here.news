@@ -164,8 +164,10 @@ export const useNewsData = () => {
       fetchedNews = fetchedNews.map(item => {
         if (!item.price_history) {
           const priceHistory = [];
-          const trendBias = Math.random() > 0.5 ? 1 : -1;
-          const initialPrice = (Math.random() * 3 + 0.5);
+          // Generate a belief ratio between 0.5 and 1.0 (occasionally lower)
+          const beliefRatio = Math.random() < 0.8 ? (Math.random() * 0.5 + 0.5) : (Math.random() * 0.5);
+          const initialPrice = beliefRatio;
+          const trendBias = beliefRatio > 0.5 ? 1 : -1;
           let lastPrice = initialPrice;
           
           for (let i = 0; i < 24; i++) {
@@ -183,6 +185,7 @@ export const useNewsData = () => {
           return {
             ...item,
             current_value: item.current_value || finalPrice.toFixed(2),
+            belief_ratio: item.belief_ratio || beliefRatio.toFixed(2),
             trending: item.trending || trending,
             price_history: priceHistory,
             percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
@@ -320,8 +323,10 @@ export const useNewsData = () => {
         if (!item.price_history) {
           // Same pricing data generation as before
           const priceHistory = [];
-          const trendBias = Math.random() > 0.5 ? 1 : -1;
-          const initialPrice = (Math.random() * 3 + 0.5);
+          // Generate a belief ratio between 0.5 and 1.0 (occasionally lower)
+          const beliefRatio = Math.random() < 0.8 ? (Math.random() * 0.5 + 0.5) : (Math.random() * 0.5);
+          const initialPrice = beliefRatio;
+          const trendBias = beliefRatio > 0.5 ? 1 : -1;
           let lastPrice = initialPrice;
           
           for (let i = 0; i < 24; i++) {
@@ -339,6 +344,7 @@ export const useNewsData = () => {
           return {
             ...item,
             current_value: item.current_value || finalPrice.toFixed(2),
+            belief_ratio: item.belief_ratio || beliefRatio.toFixed(2),
             trending: item.trending || trending,
             price_history: priceHistory,
             percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
@@ -399,6 +405,7 @@ export const useNewsData = () => {
 
   return {
     news,
+    setNews,
     activeIndex,
     setActiveIndex,
     isLoading,

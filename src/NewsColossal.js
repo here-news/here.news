@@ -16,6 +16,7 @@ const NewsColossal = () => {
   
   const { 
     news, 
+    setNews,
     isLoading, 
     networkError, 
     isLoadingMore, 
@@ -97,6 +98,7 @@ const NewsColossal = () => {
             loadMoreNews={loadMoreNews}
             hasMore={hasMore}
             totalCount={totalCount}
+            setNews={setNews}
           />
         )}
       </div>

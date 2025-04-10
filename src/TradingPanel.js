@@ -365,9 +365,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
                 <span className="belief-price-label">NO: {formattedNoPrice.toFixed(1)}¢</span>
               </div>
             </div>
-            <div className="belief-explanation">
-              YES: {beliefPercentage}% ● NO: {(100 - parseFloat(beliefPercentage)).toFixed(1)}%
-            </div>
+
           </div>
           
           <MiniPriceChart 
