@@ -83,7 +83,14 @@ const NewsDetail = () => {
   const [relatedNews, setRelatedNews] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  // Add iframe status tracking
+  const [iframeStatus, setIframeStatus] = useState('idle'); // 'idle', 'loading', 'loaded', 'error'
+  const [iframeMessage, setIframeMessage] = useState('');
+  // Add link status state to track the article access process
+  const [linkStatus, setLinkStatus] = useState('');
   
+  // Add ref for invisible iframe for background loading
+  const invisibleIframeRef = useRef(null);
   // Add ref for scrolling to trading panel
   const tradingPanelRef = useRef(null);
 
@@ -259,30 +266,109 @@ const NewsDetail = () => {
   }
 
   const handleUrlClick = async (event) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (event) event.preventDefault();
+    if (event) event.preventDefault();
     
     // Check if user has access based on shares owned
     if (userHasAccess || userOwnedShares > 0) {
-      // User already has access, show the article
-      showArticle();
+      // User already has access, start the background iframe process
+      processArticleAccess();
     } else {
       // User doesn't have access, do a final check with the API
+      setLinkStatus('Verifying shares...');
       const currentShares = await checkUserShares();
       
       if (currentShares > 0) {
-        // User has shares according to API, show the article
-        showArticle();
+        // User has shares according to API, start the background iframe process
+        processArticleAccess();
       } else {
-        // Scroll to the trading panel so user can purchase shares
+        // No shares, update status and scroll to trading panel
+        setLinkStatus('You need at least 1 share to access the article');
         if (tradingPanelRef.current) {
           tradingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+        
+        // Reset link status after 3 seconds
+        setTimeout(() => {
+          setLinkStatus('');
+        }, 3000);
       }
     }
   };
 
+  // New function to process article access with background iframe loading
+  const processArticleAccess = () => {
+    setLinkStatus('Generating ticket...');
+    
+    // Generate a ticket for tracking access
+    const timestamp = Date.now();
+    const ticket = btoa(`${uuid}_${publicKey || 'guest'}_${timestamp}`);
+    const urlWithTicket = `${news.canonical}${news.canonical.includes('?') ? '&' : '?'}ticket=${ticket}`;
+    
+    // Update status to indicate we're checking if iframe can load
+    setLinkStatus('Checking if article can be embedded...');
+    
+    // Create a hidden iframe to test loading
+    const hiddenIframe = document.createElement('iframe');
+    hiddenIframe.style.display = 'none';
+    hiddenIframe.src = urlWithTicket;
+    
+    // Set a timeout to detect if it takes too long
+    const timeoutId = setTimeout(() => {
+      setLinkStatus('Taking too long to load. Trying in new tab...');
+      // Clean up the hidden iframe
+      if (document.body.contains(hiddenIframe)) {
+        document.body.removeChild(hiddenIframe);
+      }
+      // Open in new tab as fallback
+      openInNewTab();
+    }, 8000); // 8 second timeout
+    
+    // Attach load handler
+    hiddenIframe.onload = () => {
+      clearTimeout(timeoutId);
+      setLinkStatus('Article loaded successfully');
+      
+      // Show the iframe popup with the article
+      setIframeStatus('loaded');
+      setIframeMessage('');
+      setShowIframe(true);
+      
+      // Clean up the hidden iframe
+      if (document.body.contains(hiddenIframe)) {
+        document.body.removeChild(hiddenIframe);
+      }
+      
+      // Reset link status after 1 second
+      setTimeout(() => {
+        setLinkStatus('');
+      }, 1000);
+    };
+    
+    // Attach error handler
+    hiddenIframe.onerror = () => {
+      clearTimeout(timeoutId);
+      setLinkStatus('Failed to load. Opening in new tab...');
+      
+      // Clean up the hidden iframe
+      if (document.body.contains(hiddenIframe)) {
+        document.body.removeChild(hiddenIframe);
+      }
+      
+      // Short delay before opening in new tab
+      setTimeout(() => {
+        openInNewTab();
+      }, 1500);
+    };
+    
+    // Append the hidden iframe to the document
+    document.body.appendChild(hiddenIframe);
+  };
+
   const closeIframe = async () => {
     setShowIframe(false);
+    setIframeStatus('idle');
+    setIframeMessage('');
+    setLinkStatus(''); // Reset link status when iframe is closed
     
     // Force refresh of all data when iframe is closed
     try {
@@ -301,17 +387,24 @@ const NewsDetail = () => {
 
   const openInNewTab = () => {
     setShowIframe(false);
-    window.open(news.canonical, '_blank');
+    setIframeStatus('idle');
+    setIframeMessage('');
+    
+    // Generate a fresh ticket for the new tab
+    const timestamp = Date.now();
+    const ticket = btoa(`${uuid}_${publicKey || 'guest'}_${timestamp}`);
+    const urlWithTicket = `${news.canonical}${news.canonical.includes('?') ? '&' : '?'}ticket=${ticket}`;
+    
+    // Open in new tab
+    window.open(urlWithTicket, '_blank');
+    
+    // Reset link status after a short delay
+    setTimeout(() => {
+      setLinkStatus('');
+    }, 1500);
   };
   
-  const showArticle = () => {
-    // Generate a "ticket" parameter to include with the URL
-    const timestamp = Date.now();
-    const ticket = `ticket=${btoa(`${uuid}_${publicKey || 'guest'}_${timestamp}`)}`;
-    
-    // Show iframe with the article
-    setShowIframe(true);
-  };
+  // Remove the showArticle function as it's replaced by processArticleAccess
 
   // Value trend indicator
   const trendingArrow = trending === 'up' 
@@ -366,13 +459,22 @@ const NewsDetail = () => {
                 <div className="news-read-original">
                   <a 
                     href="#read-article"
-                    onClick={handleUrlClick} 
-                    className="read-article-link"
+                    onClick={iframeStatus === 'idle' ? handleUrlClick : null} 
+                    className={`read-article-link ${linkStatus ? 'processing' : ''}`}
                   >
-                    {userHasAccess || userOwnedShares > 0
+                    {linkStatus || (userHasAccess || userOwnedShares > 0
                       ? `Access full article (You own ${userOwnedShares} share${userOwnedShares !== 1 ? 's' : ''})`
-                      : 'READ full article if you purchase at least 1 share (either direction) from market'}
+                      : 'READ full article if you purchase at least 1 share (either direction) from market')}
+                    {linkStatus && linkStatus !== 'Failed to load. Open in a new tab?' && 
+                      linkStatus !== 'You need at least 1 share to access the article' && (
+                      <span className="spinner"></span>
+                    )}
                   </a>
+                  {linkStatus === 'Failed to load. Open in a new tab?' && (
+                    <button onClick={openInNewTab} className="fallback-button">
+                      Open in New Tab
+                    </button>
+                  )}
                 </div>
                 {!(userHasAccess || userOwnedShares > 0) && readingPurchaseStatus === 'failed' && (
                   <div className="news-action-description">
@@ -451,10 +553,29 @@ const NewsDetail = () => {
                 <button onClick={closeIframe} className="iframe-close-button">✖ Close</button>
               </div>
             </div>
+            
+            {/* Show loading or error message */}
+            {(iframeStatus === 'loading' || iframeStatus === 'error') && (
+              <div className={`iframe-status-container ${iframeStatus}`}>
+                <p>{iframeMessage}</p>
+                {iframeStatus === 'error' && (
+                  <button onClick={openInNewTab} className="iframe-fallback-button">
+                    Open in new tab
+                  </button>
+                )}
+              </div>
+            )}
+            
             <iframe 
               src={`${news.canonical}${news.canonical.includes('?') ? '&' : '?'}ticket=${btoa(`${uuid}_${publicKey || 'guest'}_${Date.now()}`)}`} 
               title="News Source"
-            ></iframe>
+              onError={() => {
+                // If the main iframe fails after already being shown, offer to open in new tab
+                setIframeStatus('error');
+                setIframeMessage('Failed to load. Open in a new tab?');
+                setLinkStatus('Failed to load. Open in a new tab?');
+              }}
+            />
           </div>
         </div>
       )}

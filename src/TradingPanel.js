@@ -342,7 +342,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         <div className="simplified-price-display">
           <div className="belief-meter">
             <div className="belief-label">
-              Market Belief
+              Public Belief
               <span 
                 className="info-icon"
                 onMouseEnter={() => setShowExplanation(true)}
