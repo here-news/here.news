@@ -1,0 +1,63 @@
+/* 
+ * GenreBadges.css
+ * Unified styling for genre badges across the application
+ */
+
+/* Base genre badge styling */
+.genre-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: white;
+  color: #444;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* Ensure consistent behavior on hover */
+.genre-badge:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Genre-specific styles with white background and colored borders/text */
+.genre-badge.genre-science { color: #4a148c; border-color: #4a148c; }
+.genre-badge.genre-technology { color: #0b4d9e; border-color: #0b4d9e; }
+.genre-badge.genre-environment { color: #1b5e20; border-color: #1b5e20; }
+.genre-badge.genre-economy { color: #0d47a1; border-color: #0d47a1; }
+.genre-badge.genre-finance { color: #004d40; border-color: #004d40; }
+.genre-badge.genre-health { color: #b71c1c; border-color: #b71c1c; }
+.genre-badge.genre-science-technology { color: #4a148c; border-color: #4a148c; }
+.genre-badge.genre-health-technology { color: #b71c1c; border-color: #b71c1c; }
+.genre-badge.genre-archaeology { color: #795548; border-color: #795548; }
+.genre-badge.genre-history { color: #795548; border-color: #795548; }
+.genre-badge.genre-politics { color: #880e4f; border-color: #880e4f; }
+.genre-badge.genre-culture { color: #e65100; border-color: #e65100; }
+.genre-badge.genre-sports { color: #0097a7; border-color: #0097a7; }
+.genre-badge.genre-entertainment { color: #8e24aa; border-color: #8e24aa; }
+.genre-badge.genre-news { color: #f4511e; border-color: #f4511e; }
+.genre-badge.genre-analysis { color: #1976d2; border-color: #1976d2; }
+.genre-badge.genre-interview { color: #8e24aa; border-color: #8e24aa; }
+.genre-badge.genre-editorial { color: #2e7d32; border-color: #2e7d32; }
+.genre-badge.genre-opinion { color: #c2185b; border-color: #c2185b; }
+.genre-badge.genre-feature { color: #0097a7; border-color: #0097a7; }
+.genre-badge.genre-investigative { color: #673ab7; border-color: #673ab7; }
+.genre-badge.genre-entertainment-lifestyle { color: #ff8f00; border-color: #ff8f00; }
+.genre-badge.genre-science-education { color: #673ab7; border-color: #673ab7; }
+.genre-badge.genre-miscellaneous { color: #607d8b; border-color: #607d8b; }
+
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .genre-badge {
+    padding: 1px 6px;
+    font-size: 10px;
+    margin-left: 6px;
+  }
+}

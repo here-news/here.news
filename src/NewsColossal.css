@@ -27,39 +27,43 @@
   margin-bottom: 20px;
 }
 
-.desktop-search-bar {
-  width: 80%;
-  max-width: 800px;
-  height: 45px;
-  padding: 0 20px;
-  border-radius: 25px;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-size: 16px;
-  background-color: #f5f5f5;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
+/* Enhanced Card Title Styles - New flexible implementation */
+/* Title styling now imported from components/CardTitle.css */
+
+/* Removed redundant styles for .card-title, .card-title-featured, .card-title-large, .card-title-medium, .card-title-small, and related variants */
+
+/* Desktop specific title adjustments */
+.news-carousel.desktop .card-title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-bottom: 3px;
+  display: -webkit-box;
+  display: box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: #222;
+  white-space: nowrap;
 }
 
-.desktop-search-bar:hover,
-.desktop-search-bar:focus {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #ccc;
+/* Mobile specific title adjustments */
+.news-carousel.mobile .card-title {
+  margin-bottom: 15px;
 }
 
-.desktop-search-bar input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 16px;
+/* Active card title adjustments */
+.news-card.active .card-title {
+  margin-bottom: 16px;
 }
 
-.desktop-search-bar .search-icon {
-  color: #999;
-  margin-right: 10px;
-  font-size: 18px;
+.desktop-active .card-title {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
 }
 
 /* Bottom search bar that appears after scrolling */
@@ -555,8 +559,11 @@ body.mobile-view .news-card.genre-news {
   line-height: 1.2;
   margin-bottom: 3px;
   display: -webkit-box;
+  display: box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
+  box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
@@ -574,8 +581,11 @@ body.mobile-view .news-card.genre-news {
   line-height: 1.3;
   overflow: hidden;
   display: -webkit-box;
+  display: box;
   -webkit-line-clamp: 1; /* Show only one line */
+  line-clamp: 1;
   -webkit-box-orient: vertical;
+  box-orient: vertical;
   text-overflow: ellipsis;
   margin-bottom: 0;
   color: #555;
@@ -841,70 +851,6 @@ body.mobile-view .news-card.genre-news {
   font-weight: 500;
 }
 
-/* Enhance text visibility on colored backgrounds */
-.news-card.active .card-title,
-.news-card.active .card-summary,
-.news-card.active .card-source span,
-.news-card.active .metric-value {
-  color: white !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-.genre-badge-active {
-  background-color: rgba(255, 255, 255, 0.25) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card-preview {
-  width: 100%;
-  height: 160px;
-  overflow: hidden;
-}
-
-.card-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.news-card:hover .card-preview img {
-  transform: scale(1.05);
-}
-
-.card-content {
-  padding: 15px;
-  position: relative;
-  z-index: 5;
-  background: rgba(0, 0, 0, 0.2); /* Semi-transparent overlay for better text visibility */
-  height: 100%;
-}
-
-/* Mobile-specific card content */
-body.mobile-view .card-content {
-  background: rgba(0, 0, 0, 0.35); /* Darker overlay for mobile */
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 20px;
-  padding-bottom: 80px; /* Extra padding at bottom for trading buttons */
-  border-radius: 0;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  width: 100%;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-}
-
-.card-source {
-  display: flex;
-  align-items: center;
-  margin-bottom: 2px;
-  font-size: 11px;
-  color: #666;
-}
-
 .source-favicon {
   margin-right: 5px;
   width: 12px !important;
@@ -916,15 +862,10 @@ body.mobile-view .card-content {
   object-fit: contain !important;
 }
 
-.genre-badge {
-  margin-left: 8px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-}
+/* 
+ * Genre badge styling has been moved to the centralized GenreBadges.css file
+ * which should be imported in the component that uses this CSS
+ */
 
 /* Desktop view should have clean, white badge with colored border */
 .news-carousel.desktop .genre-badge {
@@ -944,141 +885,9 @@ body.mobile-view .card-content {
   text-transform: uppercase;
 }
 
-/* Genre-specific badge colors - full color for mobile */
-.genre-badge.genre-science,
-.genre-badge.genre-science-technology,
-.genre-badge.genre-technology {
-  background: linear-gradient(135deg, #4a148c 0%, #7c43bd 100%);
-}
-
-.genre-badge.genre-environment {
-  background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
-}
-
-.genre-badge.genre-economy,
-.genre-badge.genre-finance {
-  background: linear-gradient(135deg, #0d47a1 0%, #2196f3 100%);
-}
-
-.genre-badge.genre-health,
-.genre-badge.genre-health-technology {
-  background: linear-gradient(135deg, #b71c1c 0%, #f44336 100%);
-}
-
-.genre-badge.genre-archaeology,
-.genre-badge.genre-history {
-  background: linear-gradient(135deg, #795548 0%, #a1887f 100%);
-}
-
-.genre-badge.genre-politics {
-  background: linear-gradient(135deg, #880e4f 0%, #e91e63 100%);
-}
-
-.genre-badge.genre-culture {
-  background: linear-gradient(135deg, #e65100 0%, #ff9800 100%);
-}
-
-.genre-badge.genre-sports {
-  background: linear-gradient(135deg, #006064 0%, #00bcd4 100%);
-}
-
-.genre-badge.genre-entertainment {
-  background: linear-gradient(135deg, #4a148c 0%, #9c27b0 100%);
-}
-
-.genre-badge.genre-news {
-  background: linear-gradient(135deg, #bf360c 0%, #ff5722 100%);
-}
-
-/* Genre-specific colors for desktop - with consistent, high-contrast styling */
-.news-carousel.desktop .genre-badge {
-  background-color: white;
-  color: #333;
-  border: 1px solid #e0e0e0;
-  font-weight: 600;
-}
-
-/* Science & Technology */
-.news-carousel.desktop .genre-badge.genre-science,
-.news-carousel.desktop .genre-badge.genre-science-technology,
-.news-carousel.desktop .genre-badge.genre-technology {
-  background-color: white;
-  color: #673ab7;
-  border-color: #673ab7;
-}
-
-/* Environment */
-.news-carousel.desktop .genre-badge.genre-environment {
-  background-color: white;
-  color: #2e7d32;
-  border-color: #2e7d32;
-}
-
-/* Economy & Finance */
-.news-carousel.desktop .genre-badge.genre-economy,
-.news-carousel.desktop .genre-badge.genre-finance {
-  background-color: white;
-  color: #1976d2;
-  border-color: #1976d2;
-}
-
-/* Health */
-.news-carousel.desktop .genre-badge.genre-health,
-.news-carousel.desktop .genre-badge.genre-health-technology {
-  background-color: white;
-  color: #d32f2f;
-  border-color: #d32f2f;
-}
-
-/* History & Archaeology */
-.news-carousel.desktop .genre-badge.genre-archaeology,
-.news-carousel.desktop .genre-badge.genre-history {
-  background-color: white;
-  color: #795548;
-  border-color: #795548;
-}
-
-/* Politics */
-.news-carousel.desktop .genre-badge.genre-politics {
-  background-color: white;
-  color: #c2185b;
-  border-color: #c2185b;
-}
-
-/* Culture */
-.news-carousel.desktop .genre-badge.genre-culture {
-  background-color: white;
-  color: #ff8f00;
-  border-color: #ff8f00;
-}
-
-/* Sports */
-.news-carousel.desktop .genre-badge.genre-sports {
-  background-color: white;
-  color: #0097a7;
-  border-color: #0097a7;
-}
-
-/* Entertainment */
-.news-carousel.desktop .genre-badge.genre-entertainment {
-  background-color: white;
-  color: #8e24aa;
-  border-color: #8e24aa;
-}
-
-/* News */
-.news-carousel.desktop .genre-badge.genre-news {
-  background-color: white;
-  color: #f4511e;
-  border-color: #f4511e;
-}
-
-/* Miscellaneous */
-.news-carousel.desktop .genre-badge.genre-miscellaneous {
-  background-color: white;
-  color: #607d8b;
-  border-color: #607d8b;
-}
+/* 
+ * Genre-specific badge colors have been moved to the centralized GenreBadges.css file
+ */
 
 .card-title {
   font-size: 22px;

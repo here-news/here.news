@@ -1,6 +1,28 @@
 import React from 'react';
 import getFaviconUrl from '../util';
 import '../GenreBadges.css'; // Import the unified genre badge styling
+import './CardTitle.css'; // Import the centralized card title styling
+
+// New custom CardTitle component for better title management
+const CardTitle = ({ title, className, size = 'medium', lines = 2, onClick }) => {
+  const sizeClasses = {
+    large: 'card-title-large',
+    medium: 'card-title-medium',
+    small: 'card-title-small',
+    featured: 'card-title-featured'
+  };
+
+  const lineClampClass = `line-clamp-${lines}`; // Add a class for line clamping
+
+  return (
+    <h2 
+      className={`card-title ${sizeClasses[size] || ''} ${lineClampClass} ${className || ''}`}
+      onClick={onClick}
+    >
+      {title}
+    </h2>
+  );
+};
 
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, extraClasses, children }, ref) => {
   // Format belief ratio as percentage
@@ -58,7 +80,12 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, e
               </div>
             </div>
             <div className="featured-title-overlay">
-              <h2 className="card-title">{news.title}</h2>
+              <CardTitle 
+                title={news.title} 
+                size="featured" 
+                lines={3} 
+                className="featured-title" 
+              />
               <div className="featured-info-container">
                 <div className="featured-info">
                   <div className="card-source">
@@ -116,7 +143,11 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, e
             <span className="source-name">{news.source}</span>
             <span className={`genre-badge ${getGenreClass()}`}>{news.genre}</span>
           </div>
-          <h2 className="card-title">{news.title}</h2>
+          <CardTitle 
+            title={news.title} 
+            size={isActive ? "large" : "medium"} 
+            lines={isActive ? 3 : 2} 
+          />
           <p className="card-summary">{news.summary}</p>
         </div>
         
@@ -154,7 +185,11 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, e
           <span className="source-name">{news.source}</span>
           <span className={`genre-badge ${getGenreClass()}`}>{news.genre}</span>
         </div>
-        <h2 className="card-title">{news.title}</h2>
+        <CardTitle 
+          title={news.title} 
+          size="large" 
+          lines={3} 
+        />
         <p className="card-summary">{news.summary}</p>
       </div>
       
