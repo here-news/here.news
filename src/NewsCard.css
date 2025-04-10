@@ -54,14 +54,17 @@
 }
 
 .card-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: 1.35;
+  color: #222;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: -0.3px;
 }
 
 .card-summary {
@@ -217,8 +220,17 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.8), rgba(0,0,0,0.5), rgba(0,0,0,0.2), transparent);
-  padding: 100px 25px 30px;
+  /* Enhanced gradient for better text readability */
+  background: linear-gradient(
+    to top, 
+    rgba(0,0,0,0.95) 0%, 
+    rgba(0,0,0,0.85) 30%, 
+    rgba(0,0,0,0.7) 50%, 
+    rgba(0,0,0,0.4) 70%, 
+    rgba(0,0,0,0.1) 90%, 
+    transparent 100%
+  );
+  padding: 120px 30px 35px; /* More padding for better spacing */
   color: white;
   z-index: 5;
   display: flex;
@@ -227,12 +239,15 @@
 
 .featured-title-overlay .card-title {
   color: white !important;
-  font-size: 28px !important;
-  line-height: 1.3 !important;
-  font-weight: 700 !important;
+  font-size: 32px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
   margin: 0 0 20px 0 !important;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  text-shadow: 0 3px 5px rgba(0,0,0,0.8);
   order: -1; /* Ensure title appears first */
+  letter-spacing: -0.5px; /* Tighter tracking for headlines */
+  font-family: 'Helvetica Neue', Arial, sans-serif; /* More premium font stack */
+  max-width: 90%; /* Prevent titles from stretching too wide */
 }
 
 .featured-info-container {
@@ -436,4 +451,86 @@
   .news-carousel {
     grid-template-columns: 1fr;
   }
+}
+
+/* Loading and pagination styles */
+.results-count {
+  width: 100%;
+  text-align: center;
+  padding: 15px;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.scroll-hint {
+  font-style: italic;
+  animation: pulse 2s infinite;
+  color: #007bff;
+}
+
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.show-more-button {
+  padding: 8px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.show-more-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.loading-more-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.loading-more-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0, 123, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Subtle fade-in animation for featured card title */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.featured-title-overlay .card-title {
+  animation: fadeInUp 0.8s ease-out;
 }

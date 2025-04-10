@@ -25,9 +25,10 @@ export const useNewsData = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   // Add pagination state
-  const [lastTimestamp, setLastTimestamp] = useState(null);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   
   const maxRetries = 3;
 
@@ -107,38 +108,42 @@ export const useNewsData = () => {
     
     try {
       const cacheBuster = new Date().getTime();
-      // Update the API call to use the new format
+      // Update the API call to use offset-based pagination
       const url = new URL(`${serviceUrl}/topnews`);
-      url.searchParams.append('limit', 9);
+      url.searchParams.append('limit', pageSize);
+      url.searchParams.append('offset', 0); // Initial load starts at offset 0
       url.searchParams.append('_', cacheBuster);
       
       const data = await fetchWithFallback(url.toString());
       
       // Process response data
       let fetchedNews = [];
-      let nextTimestamp = null;
       let moreAvailable = false;
+      let totalItems = 0;
       
       if (Array.isArray(data)) {
         // Legacy format
         fetchedNews = data;
-        moreAvailable = data.length === 9;
+        moreAvailable = data.length === pageSize;
+        totalItems = pageSize * 3; // Estimate total count if not provided
       } else if (data && typeof data === 'object') {
         // New format
         if (Array.isArray(data.items)) {
           fetchedNews = data.items;
-          nextTimestamp = data.next_timestamp || null;
           moreAvailable = data.has_more || false;
-          setTotalCount(data.total_count || fetchedNews.length);
+          totalItems = data.total_count || fetchedNews.length;
         } else if (Array.isArray(data.results)) {
           fetchedNews = data.results;
-          moreAvailable = fetchedNews.length === 9;
+          moreAvailable = fetchedNews.length === pageSize;
+          totalItems = pageSize * 3; // Estimate
         } else if (Array.isArray(data.data)) {
           fetchedNews = data.data;
-          moreAvailable = fetchedNews.length === 9;
+          moreAvailable = fetchedNews.length === pageSize;
+          totalItems = pageSize * 3; // Estimate
         } else if (Array.isArray(data.news)) {
           fetchedNews = data.news;
-          moreAvailable = fetchedNews.length === 9;
+          moreAvailable = fetchedNews.length === pageSize;
+          totalItems = pageSize * 3; // Estimate
         } else {
           const keys = Object.keys(data).filter(key => key !== 'status' && key !== 'message');
           if (keys.length > 0 && data[keys[0]] && typeof data[keys[0]] === 'object') {
@@ -147,6 +152,7 @@ export const useNewsData = () => {
             fetchedNews = [data];
           }
           moreAvailable = false;
+          totalItems = fetchedNews.length;
         }
       }
       
@@ -154,11 +160,9 @@ export const useNewsData = () => {
         throw new Error('Could not extract news array from API response');
       }
       
-      // Set timestamp from the last item for pagination
-      if (!nextTimestamp && fetchedNews.length > 0) {
-        const lastItem = fetchedNews[fetchedNews.length - 1];
-        nextTimestamp = lastItem.pub_time || null;
-      }
+      // Reset the offset to the first page length for next load
+      setCurrentOffset(fetchedNews.length);
+      setTotalCount(totalItems);
       
       // Add trading data where missing
       fetchedNews = fetchedNews.map(item => {
@@ -210,7 +214,6 @@ export const useNewsData = () => {
       
       setRetryCount(0);
       setNews(fetchedNews);
-      setLastTimestamp(nextTimestamp);
       setHasMore(moreAvailable);
     } catch (error) {
       debugLog('Error fetching news:', error);
@@ -244,11 +247,12 @@ export const useNewsData = () => {
     if ('caches' in window) {
       try {
         const cache = await caches.open('news-data');
-        const cachedResponse = await cache.match(`${serviceUrl}/topnews?range=2h&limit=9`);
+        const cachedResponse = await cache.match(`${serviceUrl}/topnews?limit=${pageSize}&offset=0`);
         
         if (cachedResponse) {
           const cachedData = await cachedResponse.json();
           setNews(cachedData);
+          setCurrentOffset(cachedData.length);
           setNetworkError("Showing previously cached content. Some data may be outdated.");
           return;
         }
@@ -276,7 +280,7 @@ export const useNewsData = () => {
     setNetworkError("Couldn't load news. Please try again when you're back online.");
   };
   
-  // Load more news - implemented with timestamp-based pagination
+  // Load more news - implemented with offset-based pagination
   const loadMoreNews = async () => {
     if (!hasMore || isLoadingMore) return;
     
@@ -284,37 +288,31 @@ export const useNewsData = () => {
     
     try {
       const url = new URL(`${serviceUrl}/topnews`);
-      url.searchParams.append('limit', 9);
-      
-      if (lastTimestamp) {
-        url.searchParams.append('since_timestamp', lastTimestamp);
-      }
-      
+      url.searchParams.append('limit', pageSize);
+      url.searchParams.append('offset', currentOffset);
       url.searchParams.append('_', new Date().getTime()); // Cache buster
       
       const data = await fetchWithFallback(url.toString());
       
       let fetchedNews = [];
-      let nextTimestamp = null;
       let moreAvailable = false;
       
       if (Array.isArray(data)) {
         // Legacy format
         fetchedNews = data;
-        moreAvailable = data.length === 9;
+        moreAvailable = data.length === pageSize;
       } else if (data && typeof data === 'object') {
         // New format
         if (Array.isArray(data.items)) {
           fetchedNews = data.items;
-          nextTimestamp = data.next_timestamp || null;
           moreAvailable = data.has_more || false;
-          setTotalCount(prev => prev + (data.total_count || fetchedNews.length));
+          // Don't update total count here as it may lead to duplications
         } else if (Array.isArray(data.results)) {
           fetchedNews = data.results;
-          moreAvailable = fetchedNews.length === 9;
+          moreAvailable = fetchedNews.length === pageSize;
         } else if (Array.isArray(data.data)) {
           fetchedNews = data.data;
-          moreAvailable = fetchedNews.length === 9;
+          moreAvailable = fetchedNews.length === pageSize;
         }
       }
       
@@ -353,14 +351,13 @@ export const useNewsData = () => {
         return item;
       });
       
-      // Set timestamp from the last item for pagination if not provided by API
-      if (!nextTimestamp && fetchedNews.length > 0) {
-        const lastItem = fetchedNews[fetchedNews.length - 1];
-        nextTimestamp = lastItem.pub_time || null;
-      }
-      
+      // Update the news array with the new items
       setNews(prevNews => [...prevNews, ...fetchedNews]);
-      setLastTimestamp(nextTimestamp);
+      
+      // Update the offset for the next fetch
+      setCurrentOffset(prev => prev + fetchedNews.length);
+      
+      // Update whether there are more items to load
       setHasMore(moreAvailable && fetchedNews.length > 0);
       
     } catch (error) {
