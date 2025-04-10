@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, Component } from 'react';
 import ReactDOM from 'react-dom';
 import NewsCard from './components/NewsCard';
-import NewsFullScreen from './components/NewsFullScreen';
 import './NewsCard.css'; // Import the card-specific CSS
 
 // Error Boundary to prevent the entire application from crashing
@@ -156,7 +155,6 @@ const NewsColossalDesktop = ({
   
   // Basic state
   const [activeIndex, setActiveIndex] = useState(0);
-  const [fullScreenNews, setFullScreenNews] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -580,10 +578,6 @@ const NewsColossalDesktop = ({
             // Safe handler for card clicks with error handling
             const handleCardItemClick = (uuid) => {
               try {
-                const fullScreenItem = news.find(n => n.uuid === uuid);
-                if (fullScreenItem) {
-                  setFullScreenNews(fullScreenItem);
-                }
                 if (handleCardClick) {
                   handleCardClick(uuid);
                 }
@@ -620,15 +614,6 @@ const NewsColossalDesktop = ({
           />
         </div>
       </div>
-
-      {fullScreenNews && ReactDOM.createPortal(
-        <NewsFullScreen 
-          news={fullScreenNews} 
-          onClose={() => setFullScreenNews(null)}
-          isMobile={false} 
-        />,
-        document.body
-      )}
       
       {isLoadingMore && (
         <div className="loading-more-indicator">

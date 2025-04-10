@@ -8,6 +8,7 @@ import TradingPanel from './TradingPanel';
 import { useUser } from './UserContext';
 import { useMarketData, useUserPositions, useWebSocketConnection } from './hooks';
 import './NewsDetail.css';
+import './GenreBadges.css'; // Import the unified genre badge styling
 
 // Mini price chart component to match the NewsColossal implementation
 const NewsDetailChart = ({ percentChange, width = 100, height = 40 }) => {

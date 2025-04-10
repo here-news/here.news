@@ -2,6 +2,7 @@ import React from 'react';
 import RatingBar from './RatingBar'
 import getFaviconUrl from './util';
 import './NewsCard.css';
+import './GenreBadges.css'; // Import the unified genre badge styling
 
 const NewsCard = ({ news, className, highlight }) => {
   const cardClasses = ['news-card', className];

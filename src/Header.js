@@ -6,7 +6,7 @@ import './Header.css';
 const Header = ({ searchQuery, setSearchQuery }) => {
     const navigate = useNavigate();
     
-    // Ultra-robust click handler with multiple fallbacks
+    // Enhanced navigation handler with debug logging
     const goToHome = (e) => {
         // Prevent default behavior to ensure our handler runs
         if (e) {
@@ -15,26 +15,19 @@ const Header = ({ searchQuery, setSearchQuery }) => {
         }
         
         console.log("Logo clicked, attempting navigation to home");
+        console.log("Event type:", e.type);
+        console.log("Event target:", e.target);
         
-        try {
-            // Try React Router navigation first
-            navigate('/');
-            console.log("React Router navigation executed");
-            
-            // Set a fallback in case React Router fails silently
-            setTimeout(() => {
-                // Check if we're not on the home page
-                if (window.location.pathname !== '/' && window.location.pathname !== '') {
-                    console.log("Fallback: Using window.location for navigation");
-                    window.location.href = '/';
-                }
-            }, 100);
-        } catch (error) {
-            console.error("Navigation error:", error);
-            
-            // Direct fallback if React Router throws an error
-            window.location.href = '/';
-        }
+        // Force immediate navigation 
+        navigate('/');
+        
+        // Additional failsafe with a tiny delay
+        setTimeout(() => {
+            if (window.location.pathname !== '/') {
+                console.log("Using direct location change as backup");
+                window.location.href = '/';
+            }
+        }, 50);
     };
     
     const handleSearchChange = (e) => {
@@ -47,27 +40,31 @@ const Header = ({ searchQuery, setSearchQuery }) => {
         <header className="header">
             <div className="container">
                 <div className="header-left">
-                    {/* Logo container with separate invisible touch button for mobile */}
-                    <div className="logo-container">
-                        {/* Hidden touch-friendly anchor that overlays the logo on mobile */}
-                        <a 
-                            href="/"
+                    <div className="logo-container" onClick={goToHome}>
+                        {/* Mobile touch button for extra touch area */}
+                        <div 
                             className="logo-mobile-touch-button" 
                             onClick={goToHome}
-                            onTouchEnd={() => window.location.href = '/'}
-                            aria-label="Go to homepage"
-                        ></a>
+                            onTouchEnd={goToHome}
+                        ></div>
                         
-                        {/* Regular logo link */}
-                        <a 
-                            href="/"
+                        {/* Logo with enhanced clickability */}
+                        <div 
                             className="logo"
                             onClick={goToHome}
-                            aria-label="Go to homepage"
+                            onTouchEnd={goToHome}
+                            style={{cursor: 'pointer'}}
                         >
-                            <img src="/static/hn2_logo.svg" alt="Logo" />
+                            {/* Apply direct event handlers to the image itself */}
+                            <img 
+                                src="/static/hn2_logo.svg" 
+                                alt="Logo" 
+                                onClick={goToHome}
+                                onTouchEnd={goToHome}
+                                style={{cursor: 'pointer'}}
+                            />
                             <span className="logo-text desktop-only">HƎRE</span>
-                        </a>
+                        </div>
                     </div>
                     <span className="slogan-text desktop-only">Truth Gains</span>
                 </div>

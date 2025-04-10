@@ -43,22 +43,23 @@
 .logo {
     display: flex;
     align-items: center;
-    cursor: pointer;
+    cursor: pointer !important;
     padding: 10px;  /* Larger tap target */
     margin: -10px;  /* Offset padding */
     z-index: 10100; /* Very high z-index */
     position: relative;
     color: inherit; /* For the anchor styling */
-    text-decoration: none; /* Remove underline since it's an anchor now */
+    text-decoration: none; /* Remove underline since it's now a div */
     user-select: none; /* Prevent text selection */
     -webkit-user-select: none;
     -moz-user-select: none;
+    pointer-events: auto !important; /* Force pointer events */
 }
 
 .logo img {
     height: 28px;
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: auto !important; /* Ensure image is clickable */
+    cursor: pointer !important;
 }
 
 .logo-text {
@@ -119,6 +120,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    cursor: pointer;
 }
 
 /* Hidden by default on desktop */
@@ -155,19 +157,19 @@
         z-index: 20000;
     }
     
-    /* Visible logo but no pointer events */
+    /* Make logo clickable on mobile */
     .logo {
         padding: 10px;
         background: transparent;
         z-index: 1;
         position: relative;
-        pointer-events: none; /* The separate button will handle clicks */
+        pointer-events: auto; /* Enable pointer events */
         text-decoration: none;
     }
     
     .logo img {
         height: 28px;
-        pointer-events: none;
+        pointer-events: auto; /* Enable pointer events */
     }
     
     /* Mobile touch button that overlays the logo */
@@ -178,8 +180,8 @@
         left: -15px;
         width: calc(100% + 30px);
         height: calc(100% + 30px);
-        /* Debug styling - slightly visible to ensure it's rendering */
-        background: rgba(0, 0, 255, 0.05);  /* Very slight blue tint to verify it's working */
+        /* Transparent background */
+        background: transparent;
         border: none;
         z-index: 30000; /* Super high to be on top */
         cursor: pointer;
@@ -187,12 +189,6 @@
         /* Ensure it can be touched */
         pointer-events: auto !important; 
         touch-action: auto !important;
-    }
-    
-    /* Add visual feedback for debugging - comment out in production */
-    .logo-mobile-touch-button:active,
-    .logo-mobile-touch-button:hover {
-        background-color: rgba(0, 0, 255, 0.2);
     }
     
     /* Isolate search bar from logo area */

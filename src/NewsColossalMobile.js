@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import NewsCard from './components/NewsCard';
-import NewsFullScreen from './components/NewsFullScreen';
 import MiniPriceChart from './components/MiniPriceChart';
 
 // Mobile specific implementation
 const NewsColossalMobile = ({ news, handleCardClick }) => {
+  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [fullScreenNews, setFullScreenNews] = useState(null);
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchEndY, setTouchEndY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -285,7 +285,7 @@ const NewsColossalMobile = ({ news, handleCardClick }) => {
               ref={setCardRef}
               news={item}
               isActive={isActive}
-              onClick={(uuid) => setFullScreenNews(news.find(n => n.uuid === uuid))}
+              onClick={(uuid) => navigate(`/news/${uuid}`)}
               style={cardStyle}
               isMobile={true}
             >
@@ -299,40 +299,6 @@ const NewsColossalMobile = ({ news, handleCardClick }) => {
           );
         })}
       </div>
-      
-      {news.length > 0 && ReactDOM.createPortal(
-        <div className="global-trading-actions">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div className="price-display">
-              <span className="price-label">Price</span>
-              <span className="price-value">${news[activeIndex]?.current_value || '0.00'}</span>
-            </div>
-            <MiniPriceChart 
-              priceHistory={news[activeIndex]?.price_history} 
-              percentChange={news[activeIndex]?.percent_change_24h}
-              width={50}
-              height={24}
-            />
-          </div>
-          <div className="trading-buttons-container">
-            <button className="trading-button long" onClick={() => handleGlobalPosition('long')}>
-              LONG
-            </button>
-            <button className="trading-button short" onClick={() => handleGlobalPosition('short')}>
-              SHORT
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
-      
-      {fullScreenNews && (
-        <NewsFullScreen 
-          news={fullScreenNews} 
-          onClose={() => setFullScreenNews(null)}
-          isMobile={true} 
-        />
-      )}
     </>
   );
 };

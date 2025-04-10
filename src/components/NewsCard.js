@@ -1,5 +1,6 @@
 import React from 'react';
 import getFaviconUrl from '../util';
+import '../GenreBadges.css'; // Import the unified genre badge styling
 
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, extraClasses, children }, ref) => {
   // Format belief ratio as percentage

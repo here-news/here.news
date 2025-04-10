@@ -3,6 +3,7 @@ import getFaviconUrl from '../util';
 import Header from '../Header';
 import Footer from '../Footer';
 import MiniPriceChart from './MiniPriceChart';
+import '../GenreBadges.css'; // Import the unified genre badge styling
 
 const NewsFullScreen = ({ news, onClose, isMobile }) => {
   const [isPulling, setIsPulling] = useState(false);

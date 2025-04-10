@@ -67,18 +67,6 @@
   margin-right: 8px;
 }
 
-.genre-badge {
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  background-color: white;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-  border: 1px solid #e0e0e0;
-}
-
 .news-publish-info {
   font-size: 0.85rem;
   color: #666;
@@ -126,19 +114,6 @@
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
 }
-
-/* Genre-specific badge styles */
-.genre-badge.genre-news { color: #f4511e; border-color: #f4511e; }
-.genre-badge.genre-analysis { color: #1976d2; border-color: #1976d2; }
-.genre-badge.genre-interview { color: #8e24aa; border-color: #8e24aa; }
-.genre-badge.genre-editorial { color: #2e7d32; border-color: #2e7d32; }
-.genre-badge.genre-opinion { color: #c2185b; border-color: #c2185b; }
-.genre-badge.genre-feature { color: #0097a7; border-color: #0097a7; }
-.genre-badge.genre-investigative { color: #673ab7; border-color: #673ab7; }
-.genre-badge.genre-entertainment-lifestyle { color: #ff8f00; border-color: #ff8f00; }
-.genre-badge.genre-sports { color: #0097a7; border-color: #0097a7; }
-.genre-badge.genre-science-education { color: #673ab7; border-color: #673ab7; }
-.genre-badge.genre-miscellaneous { color: #607d8b; border-color: #607d8b; }
 
 .news-title {
   font-size: 2rem;
