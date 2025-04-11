@@ -342,7 +342,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
         <div className="simplified-price-display">
           <div className="belief-meter">
             <div className="belief-label">
-              Public Belief
+              Belief of the Work
               <span 
                 className="info-icon"
                 onMouseEnter={() => setShowExplanation(true)}
@@ -359,10 +359,10 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             )}
             <div className="belief-bar">
               <div className="yes-belief-fill" style={{width: `${beliefPercentage}%`}}>
-                <span className="belief-price-label">YES: {formattedPrice.toFixed(1)}¢</span>
+                <span className="belief-price-label">{beliefPercentage}%</span>
               </div>
               <div className="no-belief-fill" style={{width: `${100 - parseFloat(beliefPercentage)}%`}}>
-                <span className="belief-price-label">NO: {formattedNoPrice.toFixed(1)}¢</span>
+                <span className="belief-price-label">{100 - parseFloat(beliefPercentage)}%</span>
               </div>
             </div>
 
@@ -385,7 +385,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="yes-buy-button"
             >
-              Support YES @{formattedPrice.toFixed(1)}¢  
+              Long @{formattedPrice.toFixed(1)}¢  
             </button>
             {userPositions?.filter(pos => pos.type === 'yes' || pos.type === 'long').map((position, index) => {
               const currentMarketPrice = formattedPrice / 100;
@@ -414,7 +414,7 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
               disabled={isLoading}
               className="no-buy-button"
             >
-              Support NO @{formattedNoPrice.toFixed(1)}¢
+              Short @{formattedNoPrice.toFixed(1)}¢
             </button>
             {userPositions?.filter(pos => pos.type === 'no' || pos.type === 'short').map((position, index) => {
               const currentMarketPrice = formattedNoPrice / 100;

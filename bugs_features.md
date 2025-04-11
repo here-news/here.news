@@ -3,10 +3,6 @@
 - always remember to apply minimal changes to fix a bug and not to add new files unless necessary
 
 # Bugs and Features 
+- [ ] New registered user name didn't show correctly in the profile page (e.g. "John Doe" registered but in the profile page it shows "User"), but I have no idea if it's from backend or not
 
-- [ ] The profileWidget on the header suppose to show the current balance immediately after login, but it doesn't show the current balance until the user check the wallet section in profile page
-- [ ] User's login information can't be saved in the local storage, so when the user refresh the page, the user is logged out
-
-
-# Done:
-- [x] Add a special effect at header(desktop) to the brand(HERE), when mouse hover it, the "HERE" will becomes E flipped horizontally, so it'd be "HƎRƎ". 
+ 
