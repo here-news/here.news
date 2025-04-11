@@ -14,7 +14,9 @@ const debugLog = (...args) => {
 };
 
 const Profile = () => {
-    const { section = 'profile' } = useParams(); // Default to 'profile' if no section is specified
+    // Update to use the correct parameter name matching the route in App.js
+    const { tab = 'profile' } = useParams(); // Get the tab parameter from URL with a default of 'profile'
+    const section = tab; // Keep 'section' for compatibility with existing code
     const navigate = useNavigate();
     const { userInfo, loading, error, updateUserBalance } = useUser();
     const [isDepositing, setIsDepositing] = useState(false);
@@ -35,6 +37,11 @@ const Profile = () => {
             navigate('/');
         }
     }, [loading, userInfo, navigate]);
+
+    // Log the current section to help with debugging
+    useEffect(() => {
+        debugLog('Current profile section:', section);
+    }, [section]);
 
     const handleNavigation = (section) => {
         navigate(`/profile/${section}`);

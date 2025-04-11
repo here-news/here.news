@@ -7,7 +7,14 @@ import './Login.css';
 import { debugLog } from './utils/debugUtils';
 
 const Login = () => {
-    const { publicKey, setPublicKey, isModalOpen, closeModal } = useUser();
+    const { 
+        publicKey, 
+        setPublicKey, 
+        isModalOpen, 
+        closeModal, 
+        fetchUserBalance,
+        updateUserBalance
+    } = useUser();
     const [privateKey, setPrivateKey] = useState('');
     const [name, setName] = useState('');
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -232,6 +239,14 @@ const Login = () => {
             await generateAvatar(validatedKey);
             localStorage.setItem('avatarUrlSmall', avatarUrlSmall);
             
+            // Fetch user balance immediately after login
+            try {
+                await fetchUserBalance(validatedKey);
+                debugLog('User balance fetched after login');
+            } catch (balanceError) {
+                console.error('Failed to fetch balance after login:', balanceError);
+            }
+            
             closeModal();
         } catch (error) {
             console.error('Extension login error:', error);
@@ -288,6 +303,14 @@ const Login = () => {
             // Generate and store avatar
             await generateAvatar(validatedKey);
             localStorage.setItem('avatarUrlSmall', avatarUrlSmall);
+            
+            // Fetch user balance immediately after login
+            try {
+                await fetchUserBalance(validatedKey);
+                debugLog('User balance fetched after login');
+            } catch (balanceError) {
+                console.error('Failed to fetch balance after login:', balanceError);
+            }
             
             closeModal();
         } catch (error) {

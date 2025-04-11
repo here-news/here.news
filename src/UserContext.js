@@ -69,29 +69,84 @@ export const UserProvider = ({ children }) => {
 
   // Load user data from localStorage on component mount
   useEffect(() => {
+    // First check for direct publicKey storage
+    const storedPublicKey = localStorage.getItem('publicKey');
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        // Validate the stored public key
-        const validatedKey = validatePublicKey(userData.publicKey || null);
-        setPublicKey(validatedKey);
-        setUsername(userData.username || null);
-        setDisplayName(userData.displayName || null);
-        setBio(userData.bio || null);
-        setIsLoggedIn(!!userData.publicKey);
-        
-        // Set the userInfo object with the public_key
+    
+    debugLog('Loading user from localStorage', { storedPublicKey, storedUser });
+    
+    // If we have a direct publicKey, prioritize that
+    if (storedPublicKey) {
+      const validatedKey = validatePublicKey(storedPublicKey);
+      setPublicKey(validatedKey);
+      setIsLoggedIn(true);
+      
+      // Try to get additional user data if available
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUsername(userData.username || null);
+          setDisplayName(userData.displayName || null);
+          setBio(userData.bio || null);
+          
+          // Set initial userInfo with what we have
+          setUserInfo({
+            public_key: validatedKey,
+            name: userData.displayName || userData.username || "User",
+            email: userData.email || "",
+            balance: userData.balance || 0
+          });
+          
+          // Update balance if it was stored
+          if (userData.balance) {
+            setBalance(Number(userData.balance));
+          }
+        } catch (e) {
+          console.error('Failed to parse user data from localStorage', e);
+        }
+      } else {
+        // Create minimal userInfo
         setUserInfo({
           public_key: validatedKey,
-          name: userData.displayName || userData.username || "User",
-          email: userData.email || "",
-          balance: balance || 0
+          name: "User", 
+          email: "",
+          balance: 0
         });
-        
-        // Fetch latest balance from API if we have a publicKey
+      }
+      
+      // Fetch latest balance from API with the validated key
+      fetchUserBalance(validatedKey);
+    } 
+    // If no direct publicKey but we have stored user data
+    else if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
         if (userData.publicKey) {
-          fetchUserBalance(userData.publicKey);
+          const validatedKey = validatePublicKey(userData.publicKey);
+          setPublicKey(validatedKey);
+          setUsername(userData.username || null);
+          setDisplayName(userData.displayName || null);
+          setBio(userData.bio || null);
+          setIsLoggedIn(true);
+          
+          // Also save to direct publicKey storage for consistency
+          localStorage.setItem('publicKey', validatedKey);
+          
+          // Set userInfo
+          setUserInfo({
+            public_key: validatedKey,
+            name: userData.displayName || userData.username || "User",
+            email: userData.email || "",
+            balance: userData.balance || 0
+          });
+          
+          // Update balance if it was stored
+          if (userData.balance) {
+            setBalance(Number(userData.balance));
+          }
+          
+          // Fetch latest balance
+          fetchUserBalance(validatedKey);
         } else {
           setIsLoading(false);
         }
@@ -104,29 +159,111 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // Function to fetch user balance
+  // Function to fetch user balance - fixed to use correct API endpoint
   const fetchUserBalance = useCallback(async (key) => {
+    if (!key) return;
+    
+    debugLog('Fetching balance for user:', key);
+    setIsLoading(true);
+    
     try {
-      const response = await fetch(`${serviceUrl}/user/${key}/balance`);
+      // First try the /me/balance endpoint with the X-Public-Key header
+      const response = await fetch(`${serviceUrl}/me/balance`, {
+        headers: {
+          'X-Public-Key': key
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
-        const newBalance = data.balance || 0;
+        debugLog('Balance data received:', data);
+        
+        // Extract the balance - handle different response formats
+        let newBalance = 0;
+        if (data && typeof data.quote_balance !== 'undefined') {
+          newBalance = Number(data.quote_balance);
+        } else if (data && data.balance && typeof data.balance.quote_balance !== 'undefined') {
+          newBalance = Number(data.balance.quote_balance);
+        } else if (data && typeof data.balance !== 'undefined') {
+          newBalance = Number(data.balance);
+        }
+        
+        // Ensure it's a valid number
+        if (isNaN(newBalance)) newBalance = 0;
+        
+        debugLog('Setting balance to:', newBalance);
         setBalance(newBalance);
         
         // Update userInfo with new balance
-        setUserInfo(prevInfo => ({
-          ...prevInfo,
-          balance: newBalance
-        }));
+        setUserInfo(prevInfo => {
+          const updatedInfo = {
+            ...(prevInfo || {}),
+            public_key: key,
+            balance: newBalance
+          };
+          
+          // Also ensure name is set if we have one
+          if (!updatedInfo.name && (displayName || username)) {
+            updatedInfo.name = displayName || username || "User";
+          }
+          
+          return updatedInfo;
+        });
+        
+        // Also update the balance in localStorage user object for persistence
+        try {
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            userData.balance = newBalance;
+            localStorage.setItem('user', JSON.stringify(userData));
+            debugLog('Updated balance in localStorage');
+          } else {
+            localStorage.setItem('user', JSON.stringify({
+              publicKey: key,
+              balance: newBalance
+            }));
+          }
+        } catch (e) {
+          console.error('Failed to update balance in localStorage', e);
+        }
+      } else {
+        // Fallback to the older endpoint if the first one fails
+        const fallbackResponse = await fetch(`${serviceUrl}/user/${key}/balance`);
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          const newBalance = Number(data.balance || 0);
+          setBalance(newBalance);
+          
+          // Update userInfo with new balance
+          setUserInfo(prevInfo => ({
+            ...(prevInfo || {}),
+            balance: newBalance
+          }));
+          
+          // Update in localStorage
+          try {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const userData = JSON.parse(storedUser);
+              userData.balance = newBalance;
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          } catch (e) {
+            console.error('Failed to update balance in localStorage', e);
+          }
+        } else {
+          console.error('Both balance endpoints failed');
+        }
       }
     } catch (error) {
       console.error('Error fetching user balance:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [displayName, username]);
 
-  // Login function with improved key handling
+  // Login function with improved key handling and persistence
   const login = useCallback(async (key, user = null) => {
     try {
       setIsLoading(true);
@@ -150,7 +287,8 @@ export const UserProvider = ({ children }) => {
         setBio(user.bio || null);
         setIsLoggedIn(true);
         
-        // Save to localStorage with the validated key
+        // Save to both localStorage methods for consistency
+        localStorage.setItem('publicKey', validatedKey);
         localStorage.setItem('user', JSON.stringify({
           publicKey: validatedKey,
           username: user.username,
@@ -173,7 +311,8 @@ export const UserProvider = ({ children }) => {
         setBio(data.bio || null);
         setIsLoggedIn(true);
         
-        // Save to localStorage with the validated key
+        // Save to both localStorage methods for consistency
+        localStorage.setItem('publicKey', validatedKey);
         localStorage.setItem('user', JSON.stringify({
           publicKey: validatedKey,
           username: data.username,
@@ -196,7 +335,7 @@ export const UserProvider = ({ children }) => {
     }
   }, [fetchUserBalance]);
 
-  // Logout function
+  // Logout function - now properly clears all stored data
   const logout = useCallback(() => {
     setPublicKey(null);
     setUsername(null);
@@ -204,9 +343,14 @@ export const UserProvider = ({ children }) => {
     setBio(null);
     setBalance(0);
     setIsLoggedIn(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
     setUserInfo(null);
+    
+    // Clear all auth-related items from localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('publicKey');
+    localStorage.removeItem('privateKey');
+    localStorage.removeItem('avatarUrlSmall');
+    localStorage.removeItem('token');
   }, []);
 
   // Update user profile
@@ -260,7 +404,7 @@ export const UserProvider = ({ children }) => {
     setIsModalOpen(false);
   }, []);
 
-  // Fix the updateUserBalance function to ensure balance is a number
+  // Fix the updateUserBalance function to ensure balance is a number and is persisted
   const updateUserBalance = useCallback((newBalance) => {
     debugLog('Updating user balance to:', newBalance);
     
@@ -284,6 +428,19 @@ export const UserProvider = ({ children }) => {
         balance: validBalance
       };
     });
+    
+    // Also update the balance in localStorage for persistence
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && publicKey) {
+        const userData = JSON.parse(storedUser);
+        userData.balance = validBalance;
+        localStorage.setItem('user', JSON.stringify(userData));
+        debugLog('Updated balance in localStorage via updateUserBalance');
+      }
+    } catch (e) {
+      console.error('Failed to update balance in localStorage', e);
+    }
   }, [publicKey, displayName, username]);
 
   // Value object with all context data and functions
