@@ -94,6 +94,8 @@ const NewsDetail = () => {
   const invisibleIframeRef = useRef(null);
   // Add ref for scrolling to trading panel
   const tradingPanelRef = useRef(null);
+  // Add ref to track hidden iframe element
+  const hiddenIframeRef = useRef(null);
 
   // Use custom hooks for data fetching and state management
   const { 
@@ -262,6 +264,53 @@ const NewsDetail = () => {
     }
   }, [publicKey, news, uuid, showIframe, lastRefreshTime, checkUserShares]);
 
+  // Improved cleanup function to handle all types of iframes
+  const cleanupIframes = () => {
+    // Clean up any hidden iframe in the ref
+    if (hiddenIframeRef.current && document.body.contains(hiddenIframeRef.current)) {
+      document.body.removeChild(hiddenIframeRef.current);
+      hiddenIframeRef.current = null;
+    }
+    
+    // Clean up any other iframes that might be left over
+    const blockingIframes = document.querySelectorAll('iframe[style*="position: fixed"]');
+    blockingIframes.forEach(iframe => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    });
+    
+    // Also clean up any hidden iframes
+    const hiddenIframes = document.querySelectorAll('iframe[style*="display: none"]');
+    hiddenIframes.forEach(iframe => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    });
+  };
+
+  // Cleanup any lingering iframes when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupIframes();
+    };
+  }, []);
+
+  // Add periodic cleanup to catch any iframes that might get "stuck"
+  useEffect(() => {
+    const cleanupInterval = setInterval(cleanupIframes, 30000); // Check every 30 seconds
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  // Clean up iframes on page navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      cleanupIframes();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   if (!news) {
     return <div>Loading...</div>;
   }
@@ -313,12 +362,16 @@ const NewsDetail = () => {
     hiddenIframe.style.display = 'none';
     hiddenIframe.src = urlWithTicket;
     
+    // Store reference in ref for cleanup
+    hiddenIframeRef.current = hiddenIframe;
+    
     // Set a timeout to detect if it takes too long
     const timeoutId = setTimeout(() => {
       setLinkStatus('Taking too long to load. Trying in new tab...');
       // Clean up the hidden iframe
       if (document.body.contains(hiddenIframe)) {
         document.body.removeChild(hiddenIframe);
+        hiddenIframeRef.current = null;
       }
       // Open in new tab as fallback
       openInNewTab();
@@ -337,6 +390,7 @@ const NewsDetail = () => {
       // Clean up the hidden iframe
       if (document.body.contains(hiddenIframe)) {
         document.body.removeChild(hiddenIframe);
+        hiddenIframeRef.current = null;
       }
       
       // Reset link status after 1 second
@@ -353,6 +407,7 @@ const NewsDetail = () => {
       // Clean up the hidden iframe
       if (document.body.contains(hiddenIframe)) {
         document.body.removeChild(hiddenIframe);
+        hiddenIframeRef.current = null;
       }
       
       // Short delay before opening in new tab

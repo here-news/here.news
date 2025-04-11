@@ -10,8 +10,7 @@ const Footer = ({ isMobile }) => {
     return (
         <footer className="footer">
             <div className="container">
-                <p>© 2025 Balanced Intelligence. All rights reserved.</p>
-                <p>Helping you navigate news with context and perspective</p>
+                <p>(c) 2025 Quanta Intelligence. Some rights reserved. Follow Us on Nostr, Telegream and Signal.</p>
             </div>
         </footer>
     );
