@@ -76,7 +76,7 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                                 onTouchEnd={goToHome}
                                 style={{cursor: 'pointer'}}
                             />
-                            <span className="logo-text desktop-only">HƎRE</span>
+                            <span className="logo-text desktop-only">H<span className="flip-e">E</span>R<span className="flip-e">E</span></span>
                         </div>
                     </div>
                     <span className="slogan-text desktop-only">Truth Gains</span>

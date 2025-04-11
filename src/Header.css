@@ -72,6 +72,17 @@
     display: inline-block;
 }
 
+/* Special effect for letters in the logo on hover */
+.flip-e, .flip-r {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.logo-text:hover .flip-e,
+.logo-text:hover .flip-r {
+    transform: scaleX(-1);
+}
+
 .slogan-text {
     font-size: 14px;
     color: #666;
