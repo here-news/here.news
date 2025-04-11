@@ -73,15 +73,19 @@
 }
 
 /* Special effect for letters in the logo on hover */
-.flip-e, .flip-r {
+.flip-e {
     display: inline-block;
-    transition: transform 0.3s ease;
+    transition: transform 0.4s ease;
+    cursor: pointer;
 }
 
+/* Remove the hover CSS rule since we're now handling this with React state */
+/* 
 .logo-text:hover .flip-e,
 .logo-text:hover .flip-r {
     transform: scaleX(-1);
 }
+*/
 
 .slogan-text {
     font-size: 14px;

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileWidget from './ProfileWidget';
 import './Header.css';  
 
 const Header = ({ searchQuery, setSearchQuery }) => {
     const navigate = useNavigate();
+    const [eFlipped, setEFlipped] = useState(false);
     
     // Enhanced navigation handler with debug logging
     const goToHome = (e) => {
@@ -49,6 +50,8 @@ const Header = ({ searchQuery, setSearchQuery }) => {
         }
     };
 
+    const handleLogoHover = () => setEFlipped(!eFlipped);
+
     return (
         <header className="header">
             <div className="container">
@@ -76,7 +79,13 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                                 onTouchEnd={goToHome}
                                 style={{cursor: 'pointer'}}
                             />
-                            <span className="logo-text desktop-only">H<span className="flip-e">E</span>R<span className="flip-e">E</span></span>
+                            <span 
+                                className="logo-text desktop-only"
+                                onMouseEnter={handleLogoHover}
+                            >
+                                H<span className="flip-e" style={{ transform: eFlipped ? "scaleX(-1)" : "none" }}>E</span>
+                                R<span className="flip-e" style={{ transform: eFlipped ? "scaleX(-1)" : "none" }}>E</span>
+                            </span>
                         </div>
                     </div>
                     <span className="slogan-text desktop-only">Truth Gains</span>
