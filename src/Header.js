@@ -15,14 +15,27 @@ const Header = ({ searchQuery, setSearchQuery }) => {
         }
         
         console.log("Logo clicked, attempting navigation to home");
-        console.log("Event type:", e.type);
-        console.log("Event target:", e.target);
+        
+        // Force scroll to top immediately
+        window.scrollTo(0, 0);
+        
+        // Reset any transform or positioning on body
+        document.body.style.transform = 'none';
+        document.body.style.position = '';
+        document.body.style.top = '0px';
+        
+        // Remove any scroll position preservation classes
+        document.body.classList.remove('scroll-locked');
         
         // Force immediate navigation 
         navigate('/');
         
-        // Additional failsafe with a tiny delay
+        // Additional scroll reset after a tiny delay to ensure it takes effect
         setTimeout(() => {
+            console.log("Forcing additional scroll reset");
+            window.scrollTo(0, 0);
+            
+            // As a last resort, reload the page if we're still not at the homepage
             if (window.location.pathname !== '/') {
                 console.log("Using direct location change as backup");
                 window.location.href = '/';

@@ -17,19 +17,29 @@ const Home = () => {
     useEffect(() => {
         // Just set loading to false since our NewsColossal component handles its own loading
         setLoading(false);
+        
+        // Reset scroll when component mounts - do this explicitly for both window and body
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0; // For Safari compatibility
+        
+        // Reset any transform or positioning on body that might be lingering
+        document.body.style.transform = 'none';
+        document.body.style.position = '';
+        document.body.style.top = '0';
+        
+        // Also ensure the body has the correct class
+        document.body.classList.add('fixed-layout');
     }, []);
 
     return (
         <>
-            
             {/* New Colossal News UI */}
             <div className="colossal-section mb-5">
                 <NewsColossal />
             </div>
             <Footer isMobile={isMobile} />
-
         </>
     );
-};
+}
 
 export default Home;

@@ -166,6 +166,11 @@ const NewsColossalDesktop = ({
   
   // Track component performance and lifecycle
   useEffect(() => {
+    // Reset scroll position of container when component mounts
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+    
     // Mark as initialized on first render
     if (!componentState.isInitialized) {
       setComponentState(prev => ({

@@ -37,6 +37,17 @@ const NewsColossal = () => {
       document.body.classList.toggle('desktop-view', !mobileView);
     };
     
+    // Reset scroll position on mount
+    window.scrollTo(0, 0);
+    
+    // Ensure the publication grid is scrolled to the top
+    setTimeout(() => {
+      const grid = document.querySelector('.publication-grid');
+      if (grid) {
+        grid.scrollTop = 0;
+      }
+    }, 100);
+    
     handleResize();
     window.addEventListener('resize', handleResize);
     

@@ -24,33 +24,44 @@ const RouteBasedBodyClass = () => {
     // to allow scrolling
     if (location.pathname.startsWith('/news/') || location.pathname.startsWith('/story/')) {
       document.body.classList.remove('fixed-layout');
+      // Store current scroll position to prevent unwanted behavior when returning to homepage
+      document.body.setAttribute('data-scroll-top', '0');
+      // Reset scroll to top for news detail page
+      window.scrollTo(0, 0);
     } else {
       document.body.classList.add('fixed-layout');
+      // Reset body position and scroll
+      document.body.style.position = '';
+      document.body.style.top = '0px';
+      document.body.style.transform = 'none';
+      // Reset scroll position when going to fixed layout pages
+      window.scrollTo(0, 0);
     }
     
     // Cleanup function to ensure we reset the body class when component unmounts
     return () => {
-      document.body.classList.add('fixed-layout');
+      // Reset scroll position on route change
+      window.scrollTo(0, 0);
     };
-  }, [location]);
+  }, [location.pathname]);
   
   return null;
 };
 
+// Main App component
 const App = () => {
   return (
-    <UserProvider>
-      <Router>
+    <Router>
+      <UserProvider>
         <RouteBasedBodyClass />
         <Routes>
-          <Route path="/profile/:section" element={<Profile />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/news/:uuid" element={<NewsDetail />} />
           <Route path="/" element={<Home />} />
-          {/* Add other routes as needed */}
+          <Route path="/news/:uuid" element={<NewsDetail />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:tab" element={<Profile />} />
         </Routes>
-      </Router>
-    </UserProvider>
+      </UserProvider>
+    </Router>
   );
 };
 
