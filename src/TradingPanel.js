@@ -373,9 +373,6 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
             currentPrice={currentPrice}
             lastDirection={isPriceUp ? 'up' : isPriceDown ? 'down' : ''}
           />
-        </div>
-      )}
-          
           <div className="belief-market-actions">
         <div className="action-column">
           <div className="action-block">
@@ -437,6 +434,9 @@ const TradingPanel = ({ newsId, onTradeComplete }) => {
           </div>
         </div>
       </div>
+        </div>
+      )}
+          
       
       <div className="condensed-stats">
         <div className="stat-pair">

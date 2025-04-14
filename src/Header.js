@@ -95,7 +95,7 @@ const Header = ({ searchQuery, setSearchQuery }) => {
                         <span className="search-icon"><span role="img" aria-label="search">🔍</span></span>
                         <input
                             type="text"
-                            placeholder="Search news..."
+                            placeholder="Search ..."
                             value={searchQuery || ''}
                             onChange={handleSearchChange}
                         />
