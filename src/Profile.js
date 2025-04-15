@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
 import Header from './Header';
+import { apiRequest } from './services/api';
 import './Profile.css';
 
 // Set to true for development debugging, false for production
@@ -50,7 +51,7 @@ const Profile = () => {
     // Function to handle deposit
     const handleDeposit = async () => {
         if (!userInfo) {
-            console.error("Cannot deposit: User information not available");
+            console.error("Cannot deposit: User info not available");
             showNotification("User information not available. Please try logging in again.", "error");
             return;
         }
@@ -68,16 +69,16 @@ const Profile = () => {
             setIsDepositing(true);
             debugLog("Depositing for user with key:", userPublicKey);
             
-            const response = await fetch(`${serviceUrl}/me/deposit`, {
+            // Use apiRequest with JWT authentication for deposit
+            const response = await apiRequest(`${serviceUrl}/me/deposit`, {
                 method: 'POST',
                 headers: {
-                    'X-Public-Key': userPublicKey,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     amount: 10
                 })
-            });
+            }, true); // Mark as protected for JWT
 
             if (response.ok) {
                 const data = await response.json();
@@ -85,47 +86,47 @@ const Profile = () => {
                 
                 // The API returns balance inside a nested object
                 if (data && data.balance) {
-                    debugLog("Found balance object:", data.balance);
-                    
-                    // Extract quote_balance from the nested balance object
-                    if (data.balance.quote_balance !== undefined) {
-                        const numBalance = Number(data.balance.quote_balance);
-                        debugLog("Setting local balance from balance.quote_balance:", numBalance);
-                        setLocalBalance(numBalance);
-                        setHasLocalBalance(true);
+                    const newBalance = typeof data.balance === 'number' 
+                        ? data.balance 
+                        : parseFloat(data.balance);
                         
-                        if (updateUserBalance) {
-                            updateUserBalance(numBalance);
-                        }
-                    }   
-                } else if (data && data.quote_balance !== undefined) {
-                    // Direct quote_balance (just in case)
-                    const numBalance = Number(data.quote_balance);
-                    debugLog("Setting local balance from direct quote_balance:", numBalance);
-                    setLocalBalance(numBalance);
+                    setLocalBalance(newBalance);
                     setHasLocalBalance(true);
                     
+                    // Update global user balance
                     if (updateUserBalance) {
-                        updateUserBalance(numBalance);
+                        updateUserBalance(newBalance);
                     }
+                    
+                    showNotification(`Successfully deposited $10. New balance: $${newBalance.toFixed(2)}.`, "success");
+                } 
+                // Alternatively check for standalone quote_balance field
+                else if (data && data.quote_balance) {
+                    const newBalance = typeof data.quote_balance === 'number' 
+                        ? data.quote_balance 
+                        : parseFloat(data.quote_balance);
+                        
+                    setLocalBalance(newBalance);
+                    setHasLocalBalance(true);
+                    
+                    // Update global user balance
+                    if (updateUserBalance) {
+                        updateUserBalance(newBalance);
+                    }
+                    
+                    showNotification(`Successfully deposited $10. New balance: $${newBalance.toFixed(2)}.`, "success");
                 } else {
-                    console.error("No valid balance found in response:", data);
-                    showNotification("Deposit completed, but balance information wasn't returned properly.", "warning");
+                    console.error("Could not detect balance in response:", data);
+                    showNotification("Deposit successful, but couldn't retrieve your new balance.", "warning");
                 }
-                
-                // Show success message with the correct balance
-                const successBalance = data.balance && data.balance.quote_balance !== undefined
-                    ? Number(data.balance.quote_balance).toFixed(2)
-                    : 'updating...';
-                
-                showNotification(`Successfully deposited $10! Your new balance is $${successBalance}`, "success");
             } else {
-                console.error("Deposit failed:", await response.text());
-                showNotification("Failed to deposit. Please try again later.", "error");
+                const errorText = await response.text();
+                console.error("Deposit failed:", errorText);
+                showNotification("Failed to deposit funds. Please try again later.", "error");
             }
         } catch (error) {
             console.error("Error during deposit:", error);
-            showNotification("Error occurred during deposit. Please try again later.", "error");
+            showNotification("An error occurred while processing your deposit.", "error");
         } finally {
             setIsDepositing(false);
         }
@@ -167,11 +168,12 @@ const Profile = () => {
         if (!userInfo || !userInfo.public_key) return;
         
         try {
-            const response = await fetch(`${serviceUrl}/me/balance`, {
+            // Use apiRequest with JWT authentication for fetching balance
+            const response = await apiRequest(`${serviceUrl}/me/balance`, {
                 headers: {
-                    'X-Public-Key': userInfo.public_key
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
                 }
-            });
+            }, true); // Mark as protected for JWT
             
             if (response.ok) {
                 const data = await response.json();

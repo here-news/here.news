@@ -5,6 +5,7 @@ import { generateNostrKeyPair, derivePublicKey, deriveAndFixPublicKey } from './
 import { generateSVG } from './key2svg';
 import './Login.css';
 import { debugLog } from './utils/debugUtils';
+import { apiRequest, setJwtToken } from './services/api';
 
 const Login = () => {
     const { 
@@ -12,6 +13,7 @@ const Login = () => {
         setPublicKey, 
         isModalOpen, 
         closeModal, 
+        openModal, // <-- added openModal from context
         fetchUserBalance,
         updateUserBalance
     } = useUser();
@@ -141,16 +143,23 @@ const Login = () => {
         
         try {
             const endpoint = `${serviceUrl}/users/`;
-            const response = await fetch(endpoint, {
+            const response = await apiRequest(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(user)
-            });
+            }, false); // Registration is public
             
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            // Expect JWT in response
+            const data = await response.json();
+            if (data.token) {
+                setJwtToken(data.token);
+                localStorage.setItem('jwtToken', data.token);
             }
             
             setRegistrationSuccess(true);
@@ -211,7 +220,7 @@ const Login = () => {
             // Check if the user exists on the server
             const endpoint = `${serviceUrl}/users/${validatedKey}`;
             try {
-                const response = await fetch(endpoint);
+                const response = await apiRequest(endpoint, {}, false); // Public check
                 
                 if (!response.ok) {
                     // If user doesn't exist, show registration form
@@ -221,10 +230,21 @@ const Login = () => {
                     return;
                 }
                 
-                // User exists, proceed with login
-                const userData = await response.json();
-                debugLog('User found:', userData);
+                // User exists, try to login and get JWT
+                const loginEndpoint = `${serviceUrl}/auth/login`;
+                const loginResp = await apiRequest(loginEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ public_key: validatedKey })
+                }, false);
                 
+                if (loginResp.ok) {
+                    const loginData = await loginResp.json();
+                    if (loginData.token) {
+                        setJwtToken(loginData.token);
+                        localStorage.setItem('jwtToken', loginData.token);
+                    }
+                }
             } catch (error) {
                 console.warn("Could not verify user with server:", error);
             }
@@ -285,13 +305,28 @@ const Login = () => {
             // Check if the user exists on the server
             const endpoint = `${serviceUrl}/users/${validatedKey}`;
             try {
-                const response = await fetch(endpoint);
+                const response = await apiRequest(endpoint, {}, false); // Public check
                 
                 if (!response.ok) {
                     throw new Error('User not found. Please register first.');
                 }
+                
+                // User exists, try to login and get JWT
+                const loginEndpoint = `${serviceUrl}/auth/login`;
+                const loginResp = await apiRequest(loginEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ public_key: validatedKey, private_key: privateKey })
+                }, false);
+                
+                if (loginResp.ok) {
+                    const loginData = await loginResp.json();
+                    if (loginData.token) {
+                        setJwtToken(loginData.token);
+                        localStorage.setItem('jwtToken', loginData.token);
+                    }
+                }
             } catch (error) {
-                // In case the server is not available, continue anyway
                 console.warn("Could not verify user with server:", error);
             }
             
@@ -321,34 +356,6 @@ const Login = () => {
         }
     };
 
-    // Function to handle auto-connect prompt response
-    const handleExtensionPromptResponse = (connect, dontAsk) => {
-        setShowExtensionPrompt(false);
-        
-        if (dontAsk) {
-            localStorage.setItem('nostrDontAskAgain', 'true');
-            setDontAskAgain(true);
-        }
-        
-        if (connect) {
-            // If user wants to connect, open modal and attempt extension login
-            openModal();
-            setTimeout(() => {
-                handleExtensionLogin();
-            }, 500);
-        }
-    };
-
-    // Function to open the login modal (should be received from context)
-    const openModal = () => {
-        // This function should be available through the UserContext,
-        // but for this example, we're assuming it's handled externally
-        if (typeof window !== 'undefined' && window.openLoginModal) {
-            window.openLoginModal();
-        }
-    };
-
-    // Create a style for the modal visibility
     const modalStyle = {
         display: isModalOpen ? 'flex' : 'none'
     };
@@ -369,6 +376,22 @@ const Login = () => {
     const toggleForm = () => {
         setShowLogin(!showLogin);
         setLoginError(''); // Clear any error messages
+    };
+
+    // Function to handle auto-connect prompt response
+    const handleExtensionPromptResponse = (connect, dontAsk) => {
+        setShowExtensionPrompt(false);
+        if (dontAsk) {
+            localStorage.setItem('nostrDontAskAgain', 'true');
+            setDontAskAgain(true);
+        }
+        if (connect) {
+            // If user wants to connect, open modal and attempt extension login
+            openModal();
+            setTimeout(() => {
+                handleExtensionLogin();
+            }, 500);
+        }
     };
 
     return (

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import serviceUrl from './config';
 import { debugLog } from './utils/debugUtils';
+import { apiRequest, setJwtToken, clearJwtToken } from './services/api';
 
 // Create context
 const UserContext = createContext();
@@ -67,8 +68,11 @@ export const UserProvider = ({ children }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState(null);
 
-  // Load user data from localStorage on component mount
+  // On mount, initialize JWT from localStorage if present
   useEffect(() => {
+    const storedJwt = localStorage.getItem('jwtToken');
+    if (storedJwt) setJwtToken(storedJwt);
+
     // First check for direct publicKey storage
     const storedPublicKey = localStorage.getItem('publicKey');
     const storedUser = localStorage.getItem('user');
@@ -159,26 +163,22 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // Function to fetch user balance - fixed to use correct API endpoint
+  // Function to fetch user balance - now uses apiRequest and JWT
   const fetchUserBalance = useCallback(async (key) => {
     if (!key) return;
-    
     debugLog('Fetching balance for user:', key);
     setIsLoading(true);
-    
     try {
-      // First try the /me/balance endpoint with the X-Public-Key header
-      const response = await fetch(`${serviceUrl}/me/balance`, {
+      // Use protected endpoint with JWT
+      const response = await apiRequest(`${serviceUrl}/me/balance`, {
         headers: {
-          'X-Public-Key': key
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
-      });
+      }, true);
       
       if (response.ok) {
         const data = await response.json();
         debugLog('Balance data received:', data);
-        
-        // Extract the balance - handle different response formats
         let newBalance = 0;
         if (data && typeof data.quote_balance !== 'undefined') {
           newBalance = Number(data.quote_balance);
@@ -187,30 +187,20 @@ export const UserProvider = ({ children }) => {
         } else if (data && typeof data.balance !== 'undefined') {
           newBalance = Number(data.balance);
         }
-        
-        // Ensure it's a valid number
         if (isNaN(newBalance)) newBalance = 0;
-        
         debugLog('Setting balance to:', newBalance);
         setBalance(newBalance);
-        
-        // Update userInfo with new balance
         setUserInfo(prevInfo => {
           const updatedInfo = {
             ...(prevInfo || {}),
             public_key: key,
             balance: newBalance
           };
-          
-          // Also ensure name is set if we have one
           if (!updatedInfo.name && (displayName || username)) {
             updatedInfo.name = displayName || username || "User";
           }
-          
           return updatedInfo;
         });
-        
-        // Also update the balance in localStorage user object for persistence
         try {
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
@@ -228,33 +218,7 @@ export const UserProvider = ({ children }) => {
           console.error('Failed to update balance in localStorage', e);
         }
       } else {
-        // Fallback to the older endpoint if the first one fails
-        const fallbackResponse = await fetch(`${serviceUrl}/user/${key}/balance`);
-        if (fallbackResponse.ok) {
-          const data = await fallbackResponse.json();
-          const newBalance = Number(data.balance || 0);
-          setBalance(newBalance);
-          
-          // Update userInfo with new balance
-          setUserInfo(prevInfo => ({
-            ...(prevInfo || {}),
-            balance: newBalance
-          }));
-          
-          // Update in localStorage
-          try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-              const userData = JSON.parse(storedUser);
-              userData.balance = newBalance;
-              localStorage.setItem('user', JSON.stringify(userData));
-            }
-          } catch (e) {
-            console.error('Failed to update balance in localStorage', e);
-          }
-        } else {
-          console.error('Both balance endpoints failed');
-        }
+        console.error('Failed to fetch balance, status:', response.status);
       }
     } catch (error) {
       console.error('Error fetching user balance:', error);
@@ -263,31 +227,23 @@ export const UserProvider = ({ children }) => {
     }
   }, [displayName, username]);
 
-  // Login function with improved key handling and persistence
+  // Login function - now uses apiRequest and expects JWT
   const login = useCallback(async (key, user = null) => {
     try {
       setIsLoading(true);
-      
-      // More aggressive validation for keys with many leading zeros
       let validatedKey = validatePublicKey(key);
-      
-      // Special logging for debugging key issues
       debugLog({
         original_key: key,
         validated_key: validatedKey,
         key_length: key ? key.length : 0,
         validated_length: validatedKey ? validatedKey.length : 0
       });
-
-      // If user details are provided (from auth service), use them
       if (user) {
         setPublicKey(validatedKey);
         setUsername(user.username || null);
         setDisplayName(user.displayName || null);
         setBio(user.bio || null);
         setIsLoggedIn(true);
-        
-        // Save to both localStorage methods for consistency
         localStorage.setItem('publicKey', validatedKey);
         localStorage.setItem('user', JSON.stringify({
           publicKey: validatedKey,
@@ -295,36 +251,29 @@ export const UserProvider = ({ children }) => {
           displayName: user.displayName,
           bio: user.bio
         }));
-        
-        // Fetch balance
         await fetchUserBalance(validatedKey);
         return true;
       }
-      
-      // Otherwise fetch user details from API
-      const response = await fetch(`${serviceUrl}/user/${validatedKey}`);
-      if (response.ok) {
-        const data = await response.json();
+      // Use protected login endpoint
+      const loginResp = await apiRequest(`${serviceUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_key: validatedKey })
+      }, false);
+      if (loginResp.ok) {
+        const loginData = await loginResp.json();
+        if (loginData.token) {
+          setJwtToken(loginData.token);
+          localStorage.setItem('jwtToken', loginData.token);
+        }
+        // Optionally fetch user info here if needed
         setPublicKey(validatedKey);
-        setUsername(data.username || null);
-        setDisplayName(data.display_name || null);
-        setBio(data.bio || null);
         setIsLoggedIn(true);
-        
-        // Save to both localStorage methods for consistency
         localStorage.setItem('publicKey', validatedKey);
-        localStorage.setItem('user', JSON.stringify({
-          publicKey: validatedKey,
-          username: data.username,
-          displayName: data.display_name,
-          bio: data.bio
-        }));
-        
-        // Fetch balance
         await fetchUserBalance(validatedKey);
         return true;
       } else {
-        console.error('Failed to fetch user data');
+        console.error('Failed to login or fetch user data');
         return false;
       }
     } catch (error) {
@@ -335,7 +284,7 @@ export const UserProvider = ({ children }) => {
     }
   }, [fetchUserBalance]);
 
-  // Logout function - now properly clears all stored data
+  // Logout function - clear JWT as well
   const logout = useCallback(() => {
     setPublicKey(null);
     setUsername(null);
@@ -344,35 +293,30 @@ export const UserProvider = ({ children }) => {
     setBalance(0);
     setIsLoggedIn(false);
     setUserInfo(null);
-    
-    // Clear all auth-related items from localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('publicKey');
     localStorage.removeItem('privateKey');
     localStorage.removeItem('avatarUrlSmall');
     localStorage.removeItem('token');
+    localStorage.removeItem('jwtToken');
+    clearJwtToken();
   }, []);
 
-  // Update user profile
+  // Update user profile - use apiRequest and JWT
   const updateProfile = useCallback(async (updates) => {
     if (!publicKey) return false;
-    
     try {
-      const response = await fetch(`${serviceUrl}/user/${publicKey}`, {
+      const response = await apiRequest(`${serviceUrl}/user/${publicKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updates),
-      });
-      
+      }, true);
       if (response.ok) {
-        // Update local state
         if (updates.username) setUsername(updates.username);
         if (updates.display_name) setDisplayName(updates.display_name);
         if (updates.bio) setBio(updates.bio);
-        
-        // Update localStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
@@ -383,7 +327,6 @@ export const UserProvider = ({ children }) => {
             bio: updates.bio || userData.bio
           }));
         }
-        
         return true;
       }
       return false;

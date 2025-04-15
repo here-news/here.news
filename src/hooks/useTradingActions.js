@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useUser } from '../UserContext';
 import serviceUrl from '../config';
+import { apiRequest } from '../services/api';
 
 /**
  * Custom hook for trading actions (buy, sell, short, etc.)
@@ -120,46 +121,24 @@ const useTradingActions = ({
     if (!validateTradeParams(shares, currentPrice)) {
       return false;
     }
-
+    
     // Convert to numbers to ensure we're using correct types
-    const sharesInt = parseInt(shares, 10);
+    const sharesInt = parseInt(shares);
     const priceFloat = parseFloat(currentPrice);
 
     setLoading(true);
     setError('');
     setSuccess('');
-
+    
     try {
-      // In belief market, we directly specify YES side
-      const side = 'YES';
-      const type = actionType === 'buy' || actionType === 'yes_buy' ? 'BUY' : 'SELL';
-      
-      // For backward compatibility, check if user has shares
-      let totalShares = 0;
-      
-      // Check for YES shares in belief market format
-      if (positionData) {
-        if (positionData.yes_shares !== undefined) {
-          totalShares = parseFloat(positionData.yes_shares) || 0;
-        } else if (positionData.long_shares !== undefined) {
-          // Legacy format
-          totalShares = parseFloat(positionData.long_shares) || 0;
+      if (actionType === 'sell') {
+        // Also check userPositions array for YES positions
+        let totalShares = 0;
+        
+        if (positionData && typeof positionData.yes_shares === 'number') {
+          totalShares = Math.max(0, Math.floor(positionData.yes_shares));
         }
-      }
-      
-      // Check if user has enough balance for buy or enough shares for sell
-      const totalCost = sharesInt * priceFloat;
-      
-      if (actionType === 'buy') {
-        if (userData.balance < totalCost && userData.quote_balance < totalCost) {
-          const availableBalance = userData.quote_balance !== undefined ? 
-            userData.quote_balance : userData.balance;
-            
-          setError(`Not enough balance. Cost: $${totalCost.toFixed(2)}, Available: $${typeof availableBalance === 'number' ? availableBalance.toFixed(2) : '0.00'}`);
-          setLoading(false);
-          return false;
-        }
-      } else if (actionType === 'sell') {
+        
         // Also check userPositions array for YES positions
         if (userPositions && userPositions.length > 0) {
           const yesPositions = userPositions.filter(pos => 
@@ -198,21 +177,21 @@ const useTradingActions = ({
       
       // Updated payload structure to match new API requirements
       const beliefMarketPayload = {
-        side,
-        type,
+        side: 'YES',
+        type: actionType.toUpperCase(),
         shares // API now expects shares instead of amount
       };
       
       const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
       
-      const response = await fetch(endpoint, {
+      // Use our enhanced apiRequest with JWT authentication for trading operations
+      const response = await apiRequest(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Public-Key': publicKey
         },
         body: JSON.stringify(beliefMarketPayload)
-      });
+      }, true); // Mark as protected for JWT
       
       let responseData;
       try {
@@ -225,15 +204,14 @@ const useTradingActions = ({
       
       if (response.ok && (responseData.success || responseData.trade_id)) {
         // Belief market API success
-        const actionDescription = type === 'BUY' ? 'bought' : 'sold';
-        const sideDescription = side === 'YES' ? 'YES' : 'NO';
+        const actionDescription = actionType === 'buy' ? 'bought' : 'sold';
         
         // Always display 1 share when using our "Buy 1 Share" button (sharesInt=100)
         // This is a special case where we're using a fixed sharesInt value to indicate 
         // the user wants to buy 1 share at a fixed price
-        const displayShares = (type === 'BUY' && sharesInt === 100) ? 1 : sharesInt;
+        const displayShares = (actionType === 'buy' && sharesInt === 100) ? 1 : sharesInt;
         
-        setSuccess(`Successfully ${actionDescription} ${displayShares} ${sideDescription} share${displayShares !== 1 ? 's' : ''}.`);
+        setSuccess(`Successfully ${actionDescription} ${displayShares} YES share${displayShares !== 1 ? 's' : ''}.`);
         
         // Refresh positions after successful trade                      
         if (refreshPositions) {
@@ -342,14 +320,14 @@ const useTradingActions = ({
       
       const endpoint = `${serviceUrl}/belief-market/${newsId}/trade`;
       
-      const response = await fetch(endpoint, {
+      // Use our enhanced apiRequest with JWT authentication
+      const response = await apiRequest(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Public-Key': publicKey
         },
         body: JSON.stringify(beliefMarketPayload)
-      });
+      }, true); // Mark as protected for JWT
       
       let responseData;
       try {
