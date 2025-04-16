@@ -1,25 +1,272 @@
+/* Comments Section Styles */
 .comments-section {
-    margin-top: 20px;
-  }
-  
-  .comments-section textarea {
-    width: 100%;
-    height: 100px;
-    margin-bottom: 10px;
-  }
-  
-  .comments-section button {
-    margin-bottom: 20px;
-  }
-  
-  .comments-list .comment {
-    border-bottom: 1px solid #ccc;
-    padding: 10px 0;
-  }
-  
-  .comment-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.comments-section h3 {
+  margin-bottom: 15px;
+  font-size: 1.4rem;
+}
+
+.comments-section textarea {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+}
+
+.comments-section button {
+  margin-bottom: 20px;
+}
+
+/* Comment Filters */
+.comment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #eee;
+  border-radius: 6px;
+}
+
+.position-filters button {
+  margin-right: 5px;
+  padding: 5px 10px;
+  background-color: #e0e0e0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.position-filters button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.sort-options select {
+  padding: 5px;
+  border-radius: 4px;
+}
+
+/* Comment Input */
+.comment-input {
+  margin-bottom: 20px;
+}
+
+.comment-input textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.comment-input button {
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.comment-input button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.comment-position-indicator {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+/* Comments List */
+.comments-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.comments-list .comment {
+  border-bottom: 1px solid #ccc;
+  padding: 10px 0;
+}
+
+.comment {
+  margin-bottom: 15px;
+  padding: 12px;
+  background-color: white;
+  border-left: 4px solid #ddd;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Comment stake visualization */
+.small-stake {
+  border-left-width: 4px;
+}
+
+.medium-stake {
+  border-left-width: 6px;
+}
+
+.large-stake {
+  border-left-width: 8px;
+}
+
+/* Comment with no shares */
+.comment.no-shares {
+  opacity: 0.6;
+  background-color: #f5f5f5;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+/* Position badges */
+.position-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.position-badge.yes {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.position-badge.no {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.position-badge.neutral {
+  background-color: #cff4fc;
+  color: #055160;
+  border: 1px solid #9eeaf9;
+}
+
+.position-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+/* Position info display for mixed positions */
+.position-info {
+  background-color: #e2e3e5;
+  color: #383d41;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+}
+
+.stake-amount {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-right: 10px;
+}
+
+.no-shares-badge {
+  background-color: #e2e3e5;
+  color: #383d41;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+}
+
+.comment-text {
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: 5px;
+  border-top: 1px solid #f5f5f5;
+}
+
+/* Tipping section */
+.tip-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tips-received {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tips-received .fa-arrow-up {
+  font-size: 0.8rem;
+  color: #28a745;
+}
+
+.tip-amount {
+  margin-left: 4px;
+  font-size: 0.8rem;
+  color: #28a745;
+}
+
+/* More subtle upvote button */
+.tip-button {
+  background-color: transparent;
+  border: 1px solid #eee;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #adb5bd;
+  padding: 0;
+  margin: 0;
+}
+
+.tip-button:hover {
+  background-color: #f8f9fa;
+  color: #28a745;
+  border-color: #e2e6ea;
+}
+
+.tip-button:active {
+  transform: translateY(1px);
+}
+
+.tip-button .fa-arrow-up {
+  font-size: 12px;
+}
+
+/* Hide the old tip input field and button */
+.tip-section input {
+  display: none;
+}
+
+.no-comments {
+  text-align: center;
+  color: #6c757d;
+  padding: 20px;
+}

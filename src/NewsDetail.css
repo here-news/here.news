@@ -752,3 +752,80 @@
 .news-detail-page {
   padding-bottom: 40px;
 }
+
+/* Add styling for the comments section in NewsDetail */
+.news-comments-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e6e6e6;
+}
+
+.news-comments-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Adjust the existing comment styles when displayed inside NewsDetail */
+.news-comments-section .comments-section {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+/* Add separation between comments for better readability */
+.news-comments-section .comment {
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Style position badges to match NEWS design language */
+.news-comments-section .position-badge {
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.news-comments-section .position-badge.yes {
+  background-color: #e3f5e9;
+  color: #0a6634;
+}
+
+.news-comments-section .position-badge.no {
+  background-color: #f8e8e9;
+  color: #92200e;
+}
+
+/* Style the comment filters to match NewsDetail */
+.news-comments-section .comment-filters {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+/* Style tip button to match NewsDetail action buttons */
+.news-comments-section .tip-section button {
+  background-color: #007bff;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+}
+
+.news-comments-section .tip-section button:hover {
+  background-color: #0069d9;
+}
+
+/* For mobile devices, ensure the comment section is properly formatted */
+@media (max-width: 768px) {
+  .news-comments-section {
+    padding: 15px 0;
+  }
+  
+  .news-comments-section .comment-filters {
+    flex-direction: column;
+  }
+  
+  .news-comments-section .position-filters,
+  .news-comments-section .sort-options {
+    margin-top: 10px;
+  }
+}

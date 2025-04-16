@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import serviceUrl from './config';
 import Header from './Header';
 import Footer from './Footer';
+import Comments from './Comments'; // Import the Comments component
 import getFaviconUrl from "./util";
 import TradingPanel from './TradingPanel';
 import { useUser } from './UserContext';
@@ -112,7 +113,8 @@ const NewsDetail = () => {
     userHasAccess,
     readingPurchaseStatus,
     checkUserShares,
-    setReadingPurchaseStatus
+    setReadingPurchaseStatus,
+    positionData
   } = useUserPositions(uuid);
   
   // Initialize WebSocket connection using the shared WebSocketManager
@@ -260,7 +262,10 @@ const NewsDetail = () => {
   // Check user shares when necessary state changes
   useEffect(() => {
     if (publicKey && news) {
-      checkUserShares();
+      checkUserShares().catch(error => {
+        console.error("Error checking user shares:", error);
+        // Consider adding a user-friendly error notification here if needed
+      });
     }
   }, [publicKey, news, uuid, showIframe, lastRefreshTime, checkUserShares]);
 
@@ -539,6 +544,17 @@ const NewsDetail = () => {
                     </p>
                   </div>
                 )}
+              </div>
+              
+              {/* Add Comment Section */}
+              <div className="news-comments-section">
+                <Comments 
+                  entityId={uuid} 
+                  userSharesCount={userOwnedShares} 
+                  hasPosition={userOwnedShares > 0}
+                  yesShares={positionData?.yes_shares || 0}
+                  noShares={positionData?.no_shares || 0} 
+                />
               </div>
             </div>
           </div>
