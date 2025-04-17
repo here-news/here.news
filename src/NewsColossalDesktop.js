@@ -216,10 +216,18 @@ const NewsColossalDesktop = ({
 
   // Filter news with belief ratio above threshold (0.5)
   const filteredNews = useMemo(() => {
-    return news.filter(item => parseFloat(item.belief_ratio || 0.5) >= 0.5);
+    return news.filter(item => {
+      // Use yes_price, belief_ratio, or current_value (in order of preference)
+      const beliefMetric = 
+        parseFloat(item.yes_price) || 
+        parseFloat(item.belief_ratio) || 
+        parseFloat(item.current_value) || 
+        0.5;
+      return beliefMetric >= 0.01; // Keep all items with any positive value
+    });
   }, [news]);
   
-  // Sort news by belief ratio (descending)
+  // Sort news by trending metrics (use volume for trending tab)
   const sortedNews = useMemo(() => {
     // First make sure each item has a unique key
     const uniqueItems = [];
@@ -236,10 +244,26 @@ const NewsColossalDesktop = ({
       uniqueItems.push(item);
     }
     
-    // Sort by belief ratio (descending)
-    return uniqueItems.sort((a, b) => 
-      parseFloat(b.belief_ratio || 0.5) - parseFloat(a.belief_ratio || 0.5)
-    );
+    // For trending tab, use real metrics from backend:
+    // - First sort by total_volume (if available from trending endpoint)
+    // - Then by market_cap
+    // - Then by belief_ratio as fallback 
+    return uniqueItems.sort((a, b) => {
+      // Primary sort by total_volume (trending metric)
+      const aVolume = parseFloat(a.total_volume) || 0;
+      const bVolume = parseFloat(b.total_volume) || 0;
+      if (aVolume !== bVolume) return bVolume - aVolume;
+      
+      // Secondary sort by market_cap
+      const aMarketCap = parseFloat(a.market_cap) || 0;
+      const bMarketCap = parseFloat(b.market_cap) || 0;
+      if (aMarketCap !== bMarketCap) return bMarketCap - aMarketCap;
+      
+      // Fallback to belief ratio
+      const aBelief = parseFloat(a.belief_ratio) || parseFloat(a.yes_price) || 0.5;
+      const bBelief = parseFloat(b.belief_ratio) || parseFloat(b.yes_price) || 0.5;
+      return bBelief - aBelief;
+    });
   }, [filteredNews]);
 
   // Find featured news item (only the first one)
@@ -348,152 +372,8 @@ const NewsColossalDesktop = ({
     };
   }, [scrollLeft, showBottomSearch, isLoadingMore, loadMoreNews, setShowBottomSearch, hasMore]);
 
-  // Split the WebSocket simulation into two effects:
-  // 1. Initial assignment of belief ratios
-  useEffect(() => {
-    if (news.length === 0) return;
-
-    // Create a copy of the news array that we can modify
-    const newsWithBeliefRatios = news.map(item => {
-      // If it doesn't have a belief ratio, assign a random one
-      if (!item.belief_ratio) {
-        const initialRatio = Math.random() < 0.8 ? 
-          (Math.random() * 0.5 + 0.5) : // 80% chance of value between 0.5-1.0
-          (Math.random() * 0.5);        // 20% chance of value between 0.0-0.5
-        
-        return {
-          ...item,
-          belief_ratio: initialRatio.toFixed(2)
-        };
-      }
-      return item;
-    });
-    
-    // Update the news array with our modified copy only if we added belief ratios
-    if (newsWithBeliefRatios.some((item, idx) => 
-        !news[idx].belief_ratio && item.belief_ratio)) {
-      setNews([...newsWithBeliefRatios]);
-    }
-  }, [news, setNews]);
-  
-  // Create a ref to safely track the current news array
-  const newsRef = useRef(news);
-  
-  // Update the ref whenever news changes
-  useEffect(() => {
-    newsRef.current = news;
-  }, [news]);
-  
-  // 2. Periodic updates to simulate WebSocket
-  useEffect(() => {
-    // Only start simulation if setNews is available
-    if (!setNews) return;
-    
-    let isMounted = true;
-    let animationTimeoutId = null;
-    let updateIntervalId = null;
-    
-    const updateNewsData = () => {
-      if (!isMounted) return;
-      
-      // Get current news from ref to avoid stale closures
-      const currentNews = newsRef.current;
-      
-      // Skip if we don't have enough news items
-      if (!currentNews || currentNews.length < 3) return;
-      
-      try {
-        // Create a new copy of the news array to avoid mutation
-        // Use a more stable deep clone method
-        const updatedNews = currentNews.map(item => ({...item}));
-        const updatedIds = new Set();
-        
-        // Update 1-3 random items
-        const numToUpdate = Math.floor(Math.random() * 3) + 1;
-        
-        for (let i = 0; i < numToUpdate; i++) {
-          const randomIndex = Math.floor(Math.random() * updatedNews.length);
-          if (randomIndex >= updatedNews.length) continue;
-          
-          const newsItem = updatedNews[randomIndex];
-          if (!newsItem || !newsItem.uuid) continue;
-          
-          // Get current belief ratio and calculate a new one
-          const currentRatio = parseFloat(newsItem.belief_ratio || 0.5);
-          const change = (Math.random() * 0.1) - 0.05; // Between -0.05 and +0.05 (smaller change to reduce instability)
-          let newRatio = Math.max(0.1, Math.min(1.0, currentRatio + change));
-          newRatio = Math.round(newRatio * 100) / 100; // Round to 2 decimal places
-          
-          // Only update if there's an actual change
-          if (newRatio !== currentRatio) {
-            // Create a new object with the updated ratio
-            updatedNews[randomIndex] = {
-              ...newsItem,
-              belief_ratio: newRatio.toFixed(2)
-            };
-            
-            // Track this item as changed for animation
-            updatedIds.add(newsItem.uuid);
-          }
-        }
-        
-        // Only update state if there are actual changes
-        if (updatedIds.size > 0 && isMounted) {
-          // Use functional update to avoid closure issues with stale state
-          setNews(prevNews => {
-            // Apply our updates to the current state
-            const currentNews = [...prevNews];
-            updatedIds.forEach(uuid => {
-              const index = currentNews.findIndex(item => item.uuid === uuid);
-              if (index !== -1) {
-                const matchingUpdatedItem = updatedNews.find(item => item.uuid === uuid);
-                if (matchingUpdatedItem) {
-                  currentNews[index] = {...matchingUpdatedItem};
-                }
-              }
-            });
-            return currentNews;
-          });
-          
-          // Set animation state if component is still mounted
-          if (isMounted) {
-            setChangedItems(new Set(updatedIds));
-            
-            // Clear the animation flags after a delay
-            if (animationTimeoutId) {
-              clearTimeout(animationTimeoutId);
-              animationTimeoutId = null;
-            }
-            
-            animationTimeoutId = setTimeout(() => {
-              if (isMounted) {
-                setChangedItems(new Set());
-              }
-            }, 1000);
-          }
-        }
-      } catch (error) {
-        console.error("Error updating news items:", error);
-      }
-    };
-    
-    // Use less frequent updates to reduce potential for state update issues
-    updateIntervalId = setInterval(updateNewsData, 15000); // Update every 15 seconds
-    
-    return () => {
-      isMounted = false;
-      
-      if (updateIntervalId) {
-        clearInterval(updateIntervalId);
-        updateIntervalId = null;
-      }
-      
-      if (animationTimeoutId) {
-        clearTimeout(animationTimeoutId);
-        animationTimeoutId = null;
-      }
-    };
-  }, [setNews]); // Only depend on setNews, not news to avoid excessive re-renders
+  // Remove simulation effects that randomly update belief ratios
+  // The /homepage/trending endpoint now provides real trading data
 
   // Mouse events for desktop with useCallback for stable references
   const handleMouseDown = useCallback((e) => {

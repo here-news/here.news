@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import serviceUrl from '../config';
 import { debugLog } from '../utils/debugUtils';
 
@@ -29,6 +29,12 @@ export const useNewsData = () => {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  // Add active tab state for the tabbed interface
+  const [activeTab, setActiveTab] = useState('trending');
+  // Add refresh timer state
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  const refreshIntervalRef = useRef(null);
+  const lastPageRef = useRef(0);
   
   const maxRetries = 3;
 
@@ -79,40 +85,50 @@ export const useNewsData = () => {
       if (retryCount < maxRetries) throw error;
       
       // Return fallback data
-      if (url.includes('/topnews')) {
-        return [{
-          uuid: 'fallback-1',
-          title: 'Unable to load news at this time',
-          summary: 'Please check your connection and try again later.',
-          source: 'Offline Mode',
-          canonical: '#',
-          pub_time: new Date().toISOString(),
-          preview: '/static/3d.webp',
-          author: 'System',
-          genre: 'News',
-          current_value: '1.00',
-          trending: 'stable',
-          price_history: [1, 1, 1, 1, 1, 1, 1],
-          percent_change_24h: '0.0'
-        }];
+      if (url.includes('/homepage/trending') || url.includes('/topnews')) {
+        return {
+          items: [{
+            uuid: 'fallback-1',
+            title: 'Unable to load news at this time',
+            summary: 'Please check your connection and try again later.',
+            source: 'Offline Mode',
+            canonical: '#',
+            pub_time: new Date().toISOString(),
+            preview: '/static/3d.webp',
+            author: 'System',
+            genre: 'News',
+            current_value: '1.00',
+            trending: 'stable',
+            belief_ratio: 0.5,
+            price_history: [1, 1, 1, 1, 1, 1, 1],
+            percent_change_24h: '0.0'
+          }],
+          has_more: false
+        };
       }
       
       return { error: 'Failed to fetch data', offline: true };
     }
   };
   
-  // Fetch top news
-  const fetchTopNews = async () => {
-    setIsLoading(true);
+  // Fetch trending news with caching and pagination
+  const fetchTrendingNews = useCallback(async (page = 0, forceRefresh = false) => {
+    if (page === 0) setIsLoading(true);
     setNetworkError(null);
     
     try {
       const cacheBuster = new Date().getTime();
-      // Update the API call to use offset-based pagination
-      const url = new URL(`${serviceUrl}/topnews`);
+      const url = new URL(`${serviceUrl}/homepage/trending`);
       url.searchParams.append('limit', pageSize);
-      url.searchParams.append('offset', 0); // Initial load starts at offset 0
-      url.searchParams.append('_', cacheBuster);
+      url.searchParams.append('page', page);
+      url.searchParams.append('hours', 4);
+      
+      // Force cache refresh if needed
+      if (forceRefresh) {
+        url.searchParams.append('refresh', 'true');
+      }
+      
+      url.searchParams.append('_', cacheBuster); // Cache buster
       
       const data = await fetchWithFallback(url.toString());
       
@@ -159,51 +175,66 @@ export const useNewsData = () => {
       if (!Array.isArray(fetchedNews) || fetchedNews.length === 0) {
         throw new Error('Could not extract news array from API response');
       }
-      
-      // Reset the offset to the first page length for next load
-      setCurrentOffset(fetchedNews.length);
-      setTotalCount(totalItems);
-      
-      // Add trading data where missing
-      fetchedNews = fetchedNews.map(item => {
-        if (!item.price_history) {
-          const priceHistory = [];
-          // Generate a belief ratio between 0.5 and 1.0 (occasionally lower)
-          const beliefRatio = Math.random() < 0.8 ? (Math.random() * 0.5 + 0.5) : (Math.random() * 0.5);
-          const initialPrice = beliefRatio;
-          const trendBias = beliefRatio > 0.5 ? 1 : -1;
-          let lastPrice = initialPrice;
-          
-          for (let i = 0; i < 24; i++) {
-            const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
-            lastPrice = Math.max(0.1, lastPrice + change);
-            priceHistory.push(lastPrice);
-          }
-          
-          const finalPrice = priceHistory[priceHistory.length - 1];
-          const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
-          const priceDiff = finalPrice - previousPrice;
-          const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-          const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-          
-          return {
-            ...item,
-            current_value: item.current_value || finalPrice.toFixed(2),
-            belief_ratio: item.belief_ratio || beliefRatio.toFixed(2),
-            trending: item.trending || trending,
-            price_history: priceHistory,
-            percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
-          };
+
+      // Format belief ratios for consistent display
+      const processedNews = fetchedNews.map(item => {
+        const news = { ...item };
+        
+        // Ensure belief ratio is a number between 0 and 1
+        if (typeof news.belief_ratio === 'number') {
+          // Make sure it's within bounds
+          news.belief_ratio = Math.min(Math.max(news.belief_ratio, 0), 1);
+        } else if (news.belief_ratio === undefined || news.belief_ratio === null) {
+          // Set default if not provided
+          news.belief_ratio = 0.5;
         }
         
-        return item;
+        // Set trending direction based on belief ratio if not already set
+        if (!news.trending) {
+          if (news.belief_ratio > 0.60) {
+            news.trending = 'up';
+          } else if (news.belief_ratio < 0.40) {
+            news.trending = 'down';
+          } else {
+            news.trending = 'stable';
+          }
+        }
+        
+        // Format percentage for display
+        if (typeof news.belief_ratio === 'number') {
+          news.belief_percent = `${Math.round(news.belief_ratio * 100)}%`;
+        }
+        
+        return news;
       });
       
-      // Cache the response
+      // If it's first page (refresh), replace the news array
+      // Otherwise append to the existing news
+      if (page === 0) {
+        setNews(processedNews);
+        setCurrentOffset(processedNews.length);
+      } else {
+        setNews(prevNews => {
+          // Filter to avoid duplicates
+          const existingIds = prevNews.map(item => item.uuid);
+          const uniqueNews = processedNews.filter(item => !existingIds.includes(item.uuid));
+          return [...prevNews, ...uniqueNews];
+        });
+        setCurrentOffset(prev => prev + processedNews.length);
+      }
+      
+      setTotalCount(totalItems);
+      setHasMore(moreAvailable);
+      
+      // Cache the response for future use
       if ('caches' in window) {
         try {
           const cache = await caches.open('news-data');
-          const response = new Response(JSON.stringify(fetchedNews), {
+          const response = new Response(JSON.stringify({
+            items: processedNews,
+            has_more: moreAvailable,
+            last_updated: new Date().toISOString()
+          }), {
             headers: { 'Content-Type': 'application/json' }
           });
           await cache.put(url.toString(), response);
@@ -212,11 +243,16 @@ export const useNewsData = () => {
         }
       }
       
+      // Reset retry counter on success
       setRetryCount(0);
-      setNews(fetchedNews);
-      setHasMore(moreAvailable);
+      setLastRefreshTime(Date.now());
+      
+      // Store last page for refresh
+      lastPageRef.current = Math.max(lastPageRef.current, page);
+      
+      return true;
     } catch (error) {
-      debugLog('Error fetching news:', error);
+      debugLog('Error fetching trending news:', error);
       
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
@@ -232,29 +268,52 @@ export const useNewsData = () => {
       if (newRetryCount < maxRetries) {
         const backoffTime = Math.pow(2, newRetryCount) * 1000;
         setTimeout(() => {
-          fetchTopNews();
+          fetchTrendingNews(page, forceRefresh);
         }, backoffTime);
       } else {
         loadFromCacheOrFallback();
       }
+      
+      return false;
     } finally {
-      setIsLoading(false);
+      if (page === 0) setIsLoading(false);
     }
-  };
+  }, [pageSize, serviceUrl, retryCount]);
+  
+  // Alias for backward compatibility
+  const fetchTopNews = useCallback(() => fetchTrendingNews(0, true), [fetchTrendingNews]);
+  
+  // Force refresh all loaded pages
+  const refreshAllTrendingNews = useCallback(async () => {
+    // First refresh the first page to get latest content
+    const success = await fetchTrendingNews(0, true);
+    
+    if (success && lastPageRef.current > 0) {
+      // Then refresh any additional pages that were loaded
+      for (let page = 1; page <= lastPageRef.current; page++) {
+        await fetchTrendingNews(page, true);
+      }
+    }
+    
+    return success;
+  }, [fetchTrendingNews]);
   
   // Load from cache as last resort
   const loadFromCacheOrFallback = async () => {
     if ('caches' in window) {
       try {
         const cache = await caches.open('news-data');
-        const cachedResponse = await cache.match(`${serviceUrl}/topnews?limit=${pageSize}&offset=0`);
+        const cachedResponse = await cache.match(`${serviceUrl}/homepage/trending?limit=${pageSize}&page=0`);
         
         if (cachedResponse) {
           const cachedData = await cachedResponse.json();
-          setNews(cachedData);
-          setCurrentOffset(cachedData.length);
-          setNetworkError("Showing previously cached content. Some data may be outdated.");
-          return;
+          if (cachedData.items) {
+            setNews(cachedData.items);
+            setCurrentOffset(cachedData.items.length);
+            setHasMore(cachedData.has_more || false);
+            setNetworkError("Showing previously cached content. Some data may be outdated.");
+            return;
+          }
         }
       } catch (cacheError) {
         debugLog('Cache error:', cacheError);
@@ -274,117 +333,84 @@ export const useNewsData = () => {
       genre: 'News',
       current_value: '1.00',
       trending: 'stable',
+      belief_ratio: 0.5,
+      belief_percent: '50%',
       price_history: [1, 1, 1, 1, 1, 1, 1],
       percent_change_24h: '0.0'
     }]);
     setNetworkError("Couldn't load news. Please try again when you're back online.");
+    setHasMore(false);
   };
   
-  // Load more news - implemented with offset-based pagination
+  // Load more news - for infinite scrolling
   const loadMoreNews = async () => {
     if (!hasMore || isLoadingMore) return;
     
     setIsLoadingMore(true);
     
-    try {
-      const url = new URL(`${serviceUrl}/topnews`);
-      url.searchParams.append('limit', pageSize);
-      url.searchParams.append('offset', currentOffset);
-      url.searchParams.append('_', new Date().getTime()); // Cache buster
-      
-      const data = await fetchWithFallback(url.toString());
-      
-      let fetchedNews = [];
-      let moreAvailable = false;
-      
-      if (Array.isArray(data)) {
-        // Legacy format
-        fetchedNews = data;
-        moreAvailable = data.length === pageSize;
-      } else if (data && typeof data === 'object') {
-        // New format
-        if (Array.isArray(data.items)) {
-          fetchedNews = data.items;
-          moreAvailable = data.has_more || false;
-          // Don't update total count here as it may lead to duplications
-        } else if (Array.isArray(data.results)) {
-          fetchedNews = data.results;
-          moreAvailable = fetchedNews.length === pageSize;
-        } else if (Array.isArray(data.data)) {
-          fetchedNews = data.data;
-          moreAvailable = fetchedNews.length === pageSize;
-        }
-      }
-      
-      // Add trading data where missing (same as in fetchTopNews)
-      fetchedNews = fetchedNews.map(item => {
-        if (!item.price_history) {
-          // Same pricing data generation as before
-          const priceHistory = [];
-          // Generate a belief ratio between 0.5 and 1.0 (occasionally lower)
-          const beliefRatio = Math.random() < 0.8 ? (Math.random() * 0.5 + 0.5) : (Math.random() * 0.5);
-          const initialPrice = beliefRatio;
-          const trendBias = beliefRatio > 0.5 ? 1 : -1;
-          let lastPrice = initialPrice;
-          
-          for (let i = 0; i < 24; i++) {
-            const change = (Math.random() * 0.2 - 0.1) + (trendBias * 0.02);
-            lastPrice = Math.max(0.1, lastPrice + change);
-            priceHistory.push(lastPrice);
-          }
-          
-          const finalPrice = priceHistory[priceHistory.length - 1];
-          const previousPrice = priceHistory[priceHistory.length - 2] || initialPrice;
-          const priceDiff = finalPrice - previousPrice;
-          const trending = priceDiff > 0.05 ? 'up' : (priceDiff < -0.05 ? 'down' : 'stable');
-          const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-          
-          return {
-            ...item,
-            current_value: item.current_value || finalPrice.toFixed(2),
-            belief_ratio: item.belief_ratio || beliefRatio.toFixed(2),
-            trending: item.trending || trending,
-            price_history: priceHistory,
-            percent_change_24h: item.percent_change_24h || percentChange.toFixed(1)
-          };
-        }
-        return item;
-      });
-      
-      // Update the news array with the new items
-      setNews(prevNews => [...prevNews, ...fetchedNews]);
-      
-      // Update the offset for the next fetch
-      setCurrentOffset(prev => prev + fetchedNews.length);
-      
-      // Update whether there are more items to load
-      setHasMore(moreAvailable && fetchedNews.length > 0);
-      
-    } catch (error) {
-      debugLog('Error loading more news:', error);
-      // Show a temporary error but don't change the current news array
-      setNetworkError("Couldn't load more news. Please try again.");
-      setTimeout(() => setNetworkError(null), 3000);
-    } finally {
-      setIsLoadingMore(false);
-    }
+    const nextPage = Math.floor(currentOffset / pageSize);
+    await fetchTrendingNews(nextPage);
+    
+    setIsLoadingMore(false);
   };
 
   // Fetch data once on mount
   useEffect(() => {
     if (!hasLoadedData && news.length === 0) {
-      fetchTopNews()
+      fetchTrendingNews(0)
         .then(() => setHasLoadedData(true))
         .catch(() => setHasLoadedData(true));
     }
+    
+    // Set up auto-refresh interval (every 60 seconds)
+    refreshIntervalRef.current = setInterval(() => {
+      // Only auto-refresh if we're not loading and the tab is active
+      if (!isLoading && !isLoadingMore && document.visibilityState === 'visible') {
+        debugLog('Auto-refreshing trending news data');
+        fetchTrendingNews(0, true).catch(err => {
+          debugLog('Auto-refresh error:', err);
+        });
+      }
+    }, 60000); // 60 seconds refresh interval
+    
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-refresh when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // If the page has been hidden for more than 5 minutes, refresh data
+        const now = Date.now();
+        const timeSinceLastRefresh = now - lastRefreshTime;
+        if (timeSinceLastRefresh > 5 * 60 * 1000) { // 5 minutes
+          debugLog('Refreshing data after tab became visible');
+          fetchTrendingNews(0, true).catch(err => {
+            debugLog('Visibility refresh error:', err);
+          });
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchTrendingNews, lastRefreshTime]);
 
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setNetworkError(null);
-      if (news.length === 0 && !isLoading) fetchTopNews();
+      if (news.length === 0 || document.visibilityState === 'visible') {
+        fetchTrendingNews(0, true);
+      }
     };
     
     const handleOffline = () => {
@@ -398,7 +424,7 @@ export const useNewsData = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [news.length, isLoading]);
+  }, [fetchTrendingNews, news.length]);
 
   return {
     news,
@@ -411,8 +437,13 @@ export const useNewsData = () => {
     setRetryCount,
     isLoadingMore,
     fetchTopNews,
+    fetchTrendingNews,
+    refreshAllTrendingNews,
     loadMoreNews,
     hasMore,
-    totalCount
+    totalCount,
+    activeTab,
+    setActiveTab,
+    lastRefreshTime
   };
 };

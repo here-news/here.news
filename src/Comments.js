@@ -576,9 +576,8 @@ const Comments = ({
             <div className="comment-actions">
               <div className="tip-section">
                 <span className="tips-received">
-                  {comment.tip_count || 0} <i className="fa fa-arrow-up"></i> 
                   {comment.tips_received > 0 && 
-                    <span className="tip-amount">(${comment.tips_received.toFixed(2)})</span>
+                    <span className="tip-amount">({Math.round(comment.tips_received * 100)}¢)</span>
                   }
                 </span>
                 
