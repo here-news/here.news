@@ -25,11 +25,18 @@ const CardTitle = ({ title, className, size = 'medium', lines = 2, onClick }) =>
 };
 
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, extraClasses, children }, ref) => {
-  // Format belief ratio as percentage
-  const beliefRatio = parseFloat(news.belief_ratio || 0.5);
+  // Format belief ratio as percentage with more comprehensive parsing
+  const beliefRatio = typeof news.belief_ratio === 'number' 
+    ? news.belief_ratio 
+    : typeof news.belief_ratio === 'string' 
+      ? parseFloat(news.belief_ratio) 
+      : 0.5;
+  
   const beliefPercentage = Math.round(beliefRatio * 100);
-  const beliefClass = beliefRatio >= 0.7 ? 'high-belief' : 
-                     beliefRatio >= 0.5 ? 'medium-belief' : 'low-belief';
+  
+  // Use the same thresholds as in NewsDetail/TradingPanel (>0.6, <0.4)
+  const beliefClass = beliefRatio >= 0.6 ? 'high-belief' : 
+                     beliefRatio >= 0.4 ? 'medium-belief' : 'low-belief';
   
   const handleCardClick = () => {
     onClick(news.uuid);
@@ -37,7 +44,7 @@ const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, e
 
   // Value indicator arrow based on trending direction
   const trendingArrow = news.trending === 'up' ? '↑' : news.trending === 'down' ? '↓' : '→';
-  const trendingClass = `trending-${news.trending}`;
+  const trendingClass = `trending-${news.trending || 'stable'}`;
   
   // Generate CSS genre class
   const getGenreClass = () => {
