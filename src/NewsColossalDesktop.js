@@ -244,22 +244,48 @@ const NewsColossalDesktop = ({
       uniqueItems.push(item);
     }
     
-    // For trending tab, use real metrics from backend:
-    // - First sort by total_volume (if available from trending endpoint)
-    // - Then by market_cap
-    // - Then by belief_ratio as fallback 
+    // Log available sorting metrics for debugging
+    if (uniqueItems.length > 0) {
+      const sampleItem = uniqueItems[0];
+      console.log('Available sorting metrics:', {
+        has_trending_score: 'trending_score' in sampleItem,
+        has_normalized_volume: 'normalized_volume' in sampleItem,
+        has_total_volume: 'total_volume' in sampleItem,
+        has_market_cap: 'market_cap' in sampleItem,
+        trending_score: sampleItem.trending_score,
+        sample_uuid: sampleItem.uuid?.substring(0, 8)
+      });
+    }
+    
+    // Priority for sorting:
+    // 1. trending_score (from our enhanced trending algorithm)
+    // 2. normalized_volume (also from trending algorithm)
+    // 3. total_volume (raw trading volume)
+    // 4. belief_ratio (only as last resort)
     return uniqueItems.sort((a, b) => {
-      // Primary sort by total_volume (trending metric)
+      // PRIMARY SORT: By trending_score (from the enhanced algorithm)
+      const aTrendingScore = typeof a.trending_score === 'number' ? a.trending_score : null;
+      const bTrendingScore = typeof b.trending_score === 'number' ? b.trending_score : null;
+      
+      // If both items have a trending_score, use that for comparison
+      if (aTrendingScore !== null && bTrendingScore !== null) {
+        return bTrendingScore - aTrendingScore; // Higher score first
+      }
+      
+      // SECONDARY SORT: By normalized_volume (also from trending algorithm)
+      const aNormVolume = typeof a.normalized_volume === 'number' ? a.normalized_volume : null;
+      const bNormVolume = typeof b.normalized_volume === 'number' ? b.normalized_volume : null;
+      
+      if (aNormVolume !== null && bNormVolume !== null) {
+        return bNormVolume - aNormVolume; // Higher volume first
+      }
+      
+      // TERTIARY SORT: By total_volume (raw trading data)
       const aVolume = parseFloat(a.total_volume) || 0;
       const bVolume = parseFloat(b.total_volume) || 0;
       if (aVolume !== bVolume) return bVolume - aVolume;
       
-      // Secondary sort by market_cap
-      const aMarketCap = parseFloat(a.market_cap) || 0;
-      const bMarketCap = parseFloat(b.market_cap) || 0;
-      if (aMarketCap !== bMarketCap) return bMarketCap - aMarketCap;
-      
-      // Fallback to belief ratio
+      // FALLBACK: By belief_ratio (only as last resort)
       const aBelief = parseFloat(a.belief_ratio) || parseFloat(a.yes_price) || 0.5;
       const bBelief = parseFloat(b.belief_ratio) || parseFloat(b.yes_price) || 0.5;
       return bBelief - aBelief;

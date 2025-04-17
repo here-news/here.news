@@ -28,7 +28,7 @@ export const useNewsData = () => {
   const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20); // Changed from 10 to 20 to match backend default
   // Add active tab state for the tabbed interface
   const [activeTab, setActiveTab] = useState('trending');
   // Add refresh timer state
@@ -119,9 +119,10 @@ export const useNewsData = () => {
     try {
       const cacheBuster = new Date().getTime();
       const url = new URL(`${serviceUrl}/homepage/trending`);
-      url.searchParams.append('limit', pageSize);
+      // Use page_size instead of limit
+      url.searchParams.append('page_size', pageSize);
       url.searchParams.append('page', page);
-      url.searchParams.append('hours', 4);
+      url.searchParams.append('hours', 4); // Keep hours parameter as it's used by the backend
       
       // Force cache refresh if needed
       if (forceRefresh) {
@@ -130,142 +131,122 @@ export const useNewsData = () => {
       
       url.searchParams.append('_', cacheBuster); // Cache buster
       
+      debugLog(`Fetching trending news from: ${url.toString()}`); // Log URL
       const data = await fetchWithFallback(url.toString());
+      // Use JSON.stringify for potentially large objects
+      debugLog('Raw data received from /homepage/trending:', JSON.stringify(data).substring(0, 500) + (JSON.stringify(data).length > 500 ? '...' : '')); // Log truncated raw data
       
       // Process response data
       let fetchedNews = [];
       let moreAvailable = false;
       let totalItems = 0;
       
+      // Check if data is directly an array (likely from cache or older endpoint)
       if (Array.isArray(data)) {
-        // Legacy format
         fetchedNews = data;
+        // Estimate pagination based on array length
         moreAvailable = data.length === pageSize;
-        totalItems = pageSize * 3; // Estimate total count if not provided
+        totalItems = currentOffset + data.length + (moreAvailable ? pageSize : 0); // Estimate total
       } else if (data && typeof data === 'object') {
-        // New format
+        // Handle potential object structures (e.g., { items: [], has_more: bool, total_count: int })
         if (Array.isArray(data.items)) {
           fetchedNews = data.items;
-          moreAvailable = data.has_more || false;
-          totalItems = data.total_count || fetchedNews.length;
-        } else if (Array.isArray(data.results)) {
-          fetchedNews = data.results;
-          moreAvailable = fetchedNews.length === pageSize;
-          totalItems = pageSize * 3; // Estimate
-        } else if (Array.isArray(data.data)) {
-          fetchedNews = data.data;
-          moreAvailable = fetchedNews.length === pageSize;
-          totalItems = pageSize * 3; // Estimate
-        } else if (Array.isArray(data.news)) {
-          fetchedNews = data.news;
-          moreAvailable = fetchedNews.length === pageSize;
-          totalItems = pageSize * 3; // Estimate
+          moreAvailable = data.has_more !== undefined ? data.has_more : (data.items.length === pageSize);
+          totalItems = data.total_count || (currentOffset + data.items.length + (moreAvailable ? pageSize : 0));
         } else {
-          const keys = Object.keys(data).filter(key => key !== 'status' && key !== 'message');
-          if (keys.length > 0 && data[keys[0]] && typeof data[keys[0]] === 'object') {
-            fetchedNews = Object.values(data);
-          } else {
-            fetchedNews = [data];
-          }
+          // Fallback if structure is unexpected, treat data as a single item array if not empty
+          fetchedNews = Object.keys(data).length > 0 ? [data] : [];
           moreAvailable = false;
-          totalItems = fetchedNews.length;
+          totalItems = currentOffset + fetchedNews.length;
         }
+      } else {
+        // If data is neither array nor object, treat as empty
+        fetchedNews = [];
+        moreAvailable = false;
+        totalItems = currentOffset;
       }
       
-      if (!Array.isArray(fetchedNews) || fetchedNews.length === 0) {
+      if (!Array.isArray(fetchedNews)) {
+        debugLog('Error: Could not extract news array from API response. Data:', data); // Log error if extraction fails
         throw new Error('Could not extract news array from API response');
       }
 
-      // Format belief ratios for consistent display
+      // Log the raw fetched news before processing (limited fields for brevity)
+      debugLog('Raw fetchedNews array before processing (sample):', JSON.stringify(fetchedNews.slice(0, 3).map(item => ({ title: item.title, trending_score: item.trending_score, trending: item.trending, belief_ratio: item.belief_ratio }))));
+      
+      // IMPORTANT: Assume the backend /homepage/trending endpoint already returns items
+      // sorted by EWMA score. We should NOT re-sort here for the 'trending' tab.
+      // We still process belief ratio for display consistency, but don't sort by it.
       const processedNews = await Promise.all(fetchedNews.map(async (item) => {
         const news = { ...item };
         
-        // First try to fetch accurate belief-market data for this news item
-        if (news.uuid && !forceRefresh) { // Skip on force refresh to prevent too many requests
+        // Fetch accurate belief-market data for display consistency
+        if (news.uuid && !forceRefresh) {
           try {
-            // Use the same API as NewsDetail for 100% consistency
             const marketResponse = await fetch(`${serviceUrl}/belief-market/${news.uuid}/state?t=${Date.now()}`, {
-              headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-              }
+              // ... headers ...
             });
-            
             if (marketResponse.ok) {
               const marketData = await marketResponse.json();
-              
-              // Sync with the same calculation used in NewsDetail
-              if (marketData) {
-                // Use yes_price and max_price to calculate belief ratio, consistent with NewsDetail
-                if (typeof marketData.yes_price === 'number' && typeof marketData.max_price === 'number') {
-                  news.belief_ratio = marketData.yes_price / marketData.max_price;
-                  console.log(`Fetched accurate belief data for "${news.title}": ${news.belief_ratio}`);
-                }
+              if (marketData && typeof marketData.yes_price === 'number' && typeof marketData.max_price === 'number' && marketData.max_price > 0) {
+                news.belief_ratio = marketData.yes_price / marketData.max_price;
+                // debugLog(`Fetched accurate belief data for "${news.title}": ${news.belief_ratio}`); // Keep this log if needed
+              } else if (typeof news.belief_ratio !== 'number') {
+                 news.belief_ratio = 0.5; 
               }
             }
           } catch (error) {
-            console.log(`Failed to fetch accurate belief data for news ${news.uuid}:`, error.message);
+            // debugLog(`Failed to fetch accurate belief data for news ${news.uuid}:`, error.message); // Keep this log if needed
+             if (typeof news.belief_ratio !== 'number') {
+                 news.belief_ratio = 0.5; // Fallback on error
+             }
           }
+        } else if (typeof news.belief_ratio !== 'number'){
+            // Fallback if no uuid or forceRefresh
+            news.belief_ratio = 0.5;
         }
-        
-        // Log raw belief ratio data to debug
-        console.log(`Raw belief data for "${news.title}":`, {
-          belief_ratio: news.belief_ratio,
-          yes_price: news.yes_price,
-          current_value: news.current_value,
-          max_price: news.max_price
-        });
-        
-        // If we still don't have accurate data, calculate with existing methods
-        if (typeof news.belief_ratio !== 'number' || isNaN(news.belief_ratio)) {
-          if (typeof news.yes_price === 'number' && typeof news.max_price === 'number') {
-            // Calculate belief ratio from yes_price and max_price (like in TradingPanel)
-            news.belief_ratio = news.yes_price / news.max_price;
-          } else if (typeof news.current_value === 'number' && typeof news.max_price === 'number') {
-            // Alternatively use current_value and max_price
-            news.belief_ratio = news.current_value / news.max_price;
-          } else {
-            // Last resort: generate a semi-realistic random value
-            const randomVariation = (Math.random() * 0.6) - 0.3; // Random value between -0.3 and 0.3
-            news.belief_ratio = 0.5 + randomVariation;
-            news.belief_ratio = Math.min(Math.max(news.belief_ratio, 0.1), 0.9);
-          }
-        }
-        
-        // Ensure belief ratio is within bounds
+
+        // Ensure belief ratio is within bounds [0, 1]
         news.belief_ratio = Math.min(Math.max(news.belief_ratio, 0), 1);
         
-        // Set trending direction based on belief ratio if not already set
+        // Set trending direction based on belief ratio for display purposes if not provided
+        const originalTrending = news.trending; // Store original value
         if (!news.trending) {
-          if (news.belief_ratio > 0.60) {
-            news.trending = 'up';
-          } else if (news.belief_ratio < 0.40) {
-            news.trending = 'down';
-          } else {
-            news.trending = 'stable';
-          }
+          if (news.belief_ratio > 0.60) news.trending = 'up';
+          else if (news.belief_ratio < 0.40) news.trending = 'down';
+          else news.trending = 'stable';
+          // Log if we are overriding the trending status
+          // debugLog(`Trending status for "${news.title}" was missing, set to '${news.trending}' based on belief ratio ${news.belief_ratio}`);
+        } else {
+          // Log the original trending status from backend
+          // debugLog(`Trending status for "${news.title}" provided by backend: '${originalTrending}'`);
         }
         
         // Format percentage for display
         news.belief_percent = `${Math.round(news.belief_ratio * 100)}%`;
         
+        // Add trending_score if it exists in the response, otherwise null
+        news.trending_score = item.trending_score !== undefined ? item.trending_score : null;
+
         return news;
       }));
       
-      // If it's first page (refresh), replace the news array
+      // Log the processed news array before setting state (limited fields for brevity)
+      debugLog('Processed news array before setting state (sample):', JSON.stringify(processedNews.slice(0, 3).map(item => ({ title: item.title, trending_score: item.trending_score, trending: item.trending, belief_ratio: item.belief_ratio, belief_percent: item.belief_percent }))));
+      
+      // If it's the first page (refresh), replace the news array
       // Otherwise append to the existing news
       if (page === 0) {
         setNews(processedNews);
         setCurrentOffset(processedNews.length);
       } else {
         setNews(prevNews => {
-          // Filter to avoid duplicates
-          const existingIds = prevNews.map(item => item.uuid);
-          const uniqueNews = processedNews.filter(item => !existingIds.includes(item.uuid));
+          // Filter to avoid duplicates based on uuid
+          const existingIds = new Set(prevNews.map(item => item.uuid));
+          const uniqueNews = processedNews.filter(item => item.uuid && !existingIds.has(item.uuid));
           return [...prevNews, ...uniqueNews];
         });
-        setCurrentOffset(prev => prev + processedNews.length);
+        setCurrentOffset(prev => prev + processedNews.filter(item => item.uuid).length); // Only count items with UUIDs
       }
       
       setTotalCount(totalItems);
@@ -322,8 +303,9 @@ export const useNewsData = () => {
       return false;
     } finally {
       if (page === 0) setIsLoading(false);
+      setIsLoadingMore(false); // Ensure loading more is always reset
     }
-  }, [pageSize, serviceUrl, retryCount]);
+  }, [pageSize, serviceUrl, retryCount, currentOffset, fetchWithFallback]); // Added dependencies
   
   // Alias for backward compatibility
   const fetchTopNews = useCallback(() => fetchTrendingNews(0, true), [fetchTrendingNews]);
@@ -348,8 +330,16 @@ export const useNewsData = () => {
     if ('caches' in window) {
       try {
         const cache = await caches.open('news-data');
-        const cachedResponse = await cache.match(`${serviceUrl}/homepage/trending?limit=${pageSize}&page=0`);
-        
+        // Construct cache key matching the fetch URL structure
+        const cacheUrl = new URL(`${serviceUrl}/homepage/trending`);
+        cacheUrl.searchParams.append('page_size', pageSize);
+        cacheUrl.searchParams.append('page', 0); // Assuming fallback is for the first page
+        cacheUrl.searchParams.append('hours', 4);
+        // Note: Cache buster and refresh=true are usually not part of the cache key lookup
+
+        debugLog(`Attempting cache fallback lookup for: ${cacheUrl.toString()}`);
+        const cachedResponse = await cache.match(cacheUrl.toString()); // Use constructed URL
+
         if (cachedResponse) {
           const cachedData = await cachedResponse.json();
           if (cachedData.items) {
@@ -357,15 +347,17 @@ export const useNewsData = () => {
             setCurrentOffset(cachedData.items.length);
             setHasMore(cachedData.has_more || false);
             setNetworkError("Showing previously cached content. Some data may be outdated.");
+            debugLog('Loaded data from cache fallback.'); // Log cache fallback usage
             return;
           }
         }
       } catch (cacheError) {
-        debugLog('Cache error:', cacheError);
+        debugLog('Cache error during fallback:', cacheError);
       }
     }
-    
+
     // Use minimal fallback data
+    debugLog('Using hardcoded fallback data.'); // Log hardcoded fallback usage
     setNews([{
       uuid: 'fallback-1',
       title: 'Unable to load news at this time',
@@ -394,6 +386,7 @@ export const useNewsData = () => {
     setIsLoadingMore(true);
     
     const nextPage = Math.floor(currentOffset / pageSize);
+    debugLog(`Loading more news, page: ${nextPage}`); // Log load more action
     await fetchTrendingNews(nextPage);
     
     setIsLoadingMore(false);
@@ -402,21 +395,22 @@ export const useNewsData = () => {
   // Fetch data once on mount
   useEffect(() => {
     if (!hasLoadedData && news.length === 0) {
+      debugLog('Initial data fetch triggered.'); // Log initial fetch
       fetchTrendingNews(0)
         .then(() => setHasLoadedData(true))
-        .catch(() => setHasLoadedData(true));
+        .catch(() => setHasLoadedData(true)); // Ensure hasLoadedData is set even on error
     }
     
-    // Set up auto-refresh interval (every 60 seconds)
+    // Set up auto-refresh interval (every 53 seconds - prime number)
     refreshIntervalRef.current = setInterval(() => {
       // Only auto-refresh if we're not loading and the tab is active
       if (!isLoading && !isLoadingMore && document.visibilityState === 'visible') {
-        debugLog('Auto-refreshing trending news data');
+        debugLog('Auto-refreshing trending news data (interval)');
         fetchTrendingNews(0, true).catch(err => {
           debugLog('Auto-refresh error:', err);
         });
       }
-    }, 60000); // 60 seconds refresh interval
+    }, 53000); // 53 seconds refresh interval (prime number)
     
     return () => {
       if (refreshIntervalRef.current) {
@@ -434,7 +428,7 @@ export const useNewsData = () => {
         const now = Date.now();
         const timeSinceLastRefresh = now - lastRefreshTime;
         if (timeSinceLastRefresh > 5 * 60 * 1000) { // 5 minutes
-          debugLog('Refreshing data after tab became visible');
+          debugLog('Refreshing data after tab became visible (visibilitychange)');
           fetchTrendingNews(0, true).catch(err => {
             debugLog('Visibility refresh error:', err);
           });
@@ -452,18 +446,28 @@ export const useNewsData = () => {
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
+      debugLog('Network status changed to online.'); // Log online status
       setNetworkError(null);
+      // Refresh if news is empty or tab is visible
       if (news.length === 0 || document.visibilityState === 'visible') {
-        fetchTrendingNews(0, true);
+         debugLog('Refreshing data after coming back online.');
+         fetchTrendingNews(0, true);
       }
     };
     
     const handleOffline = () => {
+      debugLog('Network status changed to offline.'); // Log offline status
       setNetworkError("You're currently offline. Some features may be limited.");
     };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // Initial check
+    if (!navigator.onLine) {
+        handleOffline();
+    }
+
     
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -489,6 +493,8 @@ export const useNewsData = () => {
     totalCount,
     activeTab,
     setActiveTab,
-    lastRefreshTime
+    lastRefreshTime,
+    pageSize, // Export pageSize if needed elsewhere
+    setPageSize // Export setter if needed
   };
 };
