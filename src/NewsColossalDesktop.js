@@ -314,6 +314,8 @@ const NewsColossalDesktop = ({
     let throttleTimer = null;
     let isMounted = true; // Flag to track if component is still mounted
     
+    console.log("Scroll effect initialized, ready to track scrolling"); // DEBUG
+    
     const handleScroll = () => {
       if (!isMounted || !container) return;
       
@@ -332,20 +334,19 @@ const NewsColossalDesktop = ({
         // Check for infinite scroll trigger
         const { scrollHeight, scrollTop, clientHeight } = container;
         const scrollThreshold = 500; // Load more when user is within 500px of bottom
+        const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+
+        // Log scroll details - DEBUG
+        console.log(`Scroll - Height: ${scrollHeight}, Top: ${scrollTop}, Client: ${clientHeight}, Bottom: ${distanceToBottom}`);
+        console.log(`Scroll conditions: isLoadingMore=${isLoadingMore}, hasMore=${hasMore}`);
         
-        if (scrollHeight - scrollTop - clientHeight < scrollThreshold && 
-            !isLoadingMore && hasMore && isMounted) {
-          // Use a debounce to prevent multiple rapid calls when scrolling
-          if (scrollTimer) {
-            clearTimeout(scrollTimer);
-            scrollTimer = null;
-          }
+        if (distanceToBottom < scrollThreshold && !isLoadingMore && hasMore && isMounted) {
+          console.log("*** SCROLL THRESHOLD REACHED - should load more"); // DEBUG
           
-          scrollTimer = setTimeout(() => {
-            if (isMounted) {
-              loadMoreNews();
-            }
-          }, 300); // 300ms debounce
+          // IMPORTANT CHANGE: Call loadMoreNews immediately and then set a flag
+          // to prevent multiple calls while this one is processing
+          console.log("Calling loadMoreNews() from scroll handler immediately"); // DEBUG
+          loadMoreNews();
         }
         
         if (isMounted) {
@@ -468,6 +469,7 @@ const NewsColossalDesktop = ({
         className="publication-grid"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
+        style={{ position: 'relative' }} // Ensure container position is set
       >
         {sortedNews.map((item, index) => {
           // Skip rendering cards with invalid data
@@ -526,17 +528,27 @@ const NewsColossalDesktop = ({
         </div>
       </div>
       
+      {/* Debug info */}
+      <div style={{ padding: '10px', background: '#f8f9fa', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+        hasMore: {hasMore ? 'true' : 'false'} | isLoadingMore: {isLoadingMore ? 'true' : 'false'} | Items: {sortedNews.length}/{totalCount}
+      </div>
+      
+      {/* Loading indicator - position fixed to ensure visibility */}
       {isLoadingMore && (
-        <div className="loading-more-indicator">
+        <div className="loading-more-indicator" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.9)', padding: '10px 20px', borderRadius: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
           <div className="loading-more-spinner"></div>
+          <div style={{ marginLeft: '10px' }}>Loading more...</div>
         </div>
       )}
       
-      {hasMore && news.length > 0 && !isLoadingMore && (
-        <div className="show-more-container">
+      {hasMore && sortedNews.length > 0 && !isLoadingMore && (
+        <div className="show-more-container" style={{ marginBottom: '30px', position: 'relative', zIndex: 100 }}>
           <button 
             className="show-more-button" 
-            onClick={loadMoreNews}
+            onClick={() => {
+              console.log("Manual load more clicked");
+              loadMoreNews();
+            }}
             aria-label={`Load more news items (${sortedNews.length} of ${totalCount} loaded)`}
           >
             Show More News ({sortedNews.length} of {totalCount} loaded)
@@ -545,7 +557,7 @@ const NewsColossalDesktop = ({
       )}
       
       {totalCount > 0 && (
-        <div className="results-count">
+        <div className="results-count" style={{ marginBottom: '40px' }}>
           Showing {sortedNews.length} of {totalCount} news items
           {hasMore && !isLoadingMore && 
             <span className="scroll-hint"> - Scroll down to load more</span>

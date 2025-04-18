@@ -585,7 +585,7 @@ const NewsDetail = () => {
             
             {/* Related News Section */}
             <div className="related-news-sidebar">
-              <h3>Similar News</h3>
+              <h3>Competing Stories </h3>
               {relatedNews && relatedNews.length > 0 ? (
                 <ul className="related-news-list">
                   {relatedNews.map(related => (

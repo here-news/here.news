@@ -25,16 +25,13 @@ const CardTitle = ({ title, className, size = 'medium', lines = 2, onClick }) =>
 };
 
 const NewsCard = React.forwardRef(({ news, isActive, onClick, style, isMobile, extraClasses, children }, ref) => {
-  // Format belief ratio as percentage with more comprehensive parsing
-  const beliefRatio = typeof news.belief_ratio === 'number' 
-    ? news.belief_ratio 
-    : typeof news.belief_ratio === 'string' 
-      ? parseFloat(news.belief_ratio) 
-      : 0.5;
+  // Simplified belief ratio calculation - trust the API value
+  const beliefRatio = typeof news.belief_ratio === 'number' ? news.belief_ratio : 0.5;
   
+  // Display the percentage
   const beliefPercentage = Math.round(beliefRatio * 100);
   
-  // Use the same thresholds as in NewsDetail/TradingPanel (>0.6, <0.4)
+  // Determine styling class based on belief ratio
   const beliefClass = beliefRatio >= 0.6 ? 'high-belief' : 
                      beliefRatio >= 0.4 ? 'medium-belief' : 'low-belief';
   
