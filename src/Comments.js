@@ -116,13 +116,18 @@ const Comments = ({
   useEffect(() => {
     // Skip if we already have position info from props
     if (hasPosition && userSharesCount > 0) return;
+    // Skip if user is not logged in
     if (!publicKey) return;
+    // Skip fetching position if we explicitly know there's no position
+    if (hasPosition === false) return;
 
+    // We have positions from props already, so we don't need to fetch them
+    // This useEffect is no longer necessary and can be removed
+    
+    /* Original code removed to eliminate the API request that's causing 404 errors
     // Clear any previous position errors
     setPositionError(null);
     
-    // Try to fetch the position, but don't show errors to the user for 404s
-    // (404 just means they don't have a position yet)
     fetch(`${serviceUrl}/market/positions/${entityId}/${publicKey}`)
       .then(response => {
         if (!response.ok) {
@@ -151,6 +156,7 @@ const Comments = ({
           setPositionError(`Failed to fetch position: ${error.message}`);
         }
       });
+    */
   }, [entityId, publicKey, hasPosition, userSharesCount]);
 
   // Force mixed position handling for the specific case of having 3 YES and 1 NO share
