@@ -131,10 +131,10 @@ export const useNewsData = () => {
       
       url.searchParams.append('_', cacheBuster); // Cache buster
       
-      debugLog(`Fetching trending news from: ${url.toString()}`); // Log URL
+      debugLog(`Fetching trending news from: ${url.toString()}`); 
       const data = await fetchWithFallback(url.toString());
-      // Use JSON.stringify for potentially large objects
-      debugLog('Raw data received from /homepage/trending:', JSON.stringify(data).substring(0, 500) + (JSON.stringify(data).length > 500 ? '...' : '')); // Log truncated raw data
+      const rawDataSummary = JSON.stringify(data).substring(0, 500) + (JSON.stringify(data).length > 500 ? '...' : '');
+      debugLog(`Raw data received from ${url.pathname}:`, rawDataSummary); 
       
       // Process response data
       let fetchedNews = [];
@@ -172,7 +172,8 @@ export const useNewsData = () => {
       }
 
       // Log the raw fetched news before processing (limited fields for brevity)
-      debugLog('Raw fetchedNews array before processing (sample):', JSON.stringify(fetchedNews.slice(0, 3).map(item => ({ title: item.title, trending_score: item.trending_score, trending: item.trending, belief_ratio: item.belief_ratio }))));
+      const rawFetchedSample = fetchedNews.slice(0, 3).map(item => ({ uuid: item.uuid, title: item.title, trending_score: item.trending_score }));
+      debugLog('Raw fetchedNews array before processing (sample):', JSON.stringify(rawFetchedSample));
       
       // IMPORTANT: Assume the backend /homepage/trending endpoint already returns items
       // sorted by EWMA score. We should NOT re-sort here for the 'trending' tab.
@@ -232,12 +233,21 @@ export const useNewsData = () => {
       }));
       
       // Log the processed news array before setting state (limited fields for brevity)
-      debugLog('Processed news array before setting state (sample):', JSON.stringify(processedNews.slice(0, 3).map(item => ({ title: item.title, trending_score: item.trending_score, trending: item.trending, belief_ratio: item.belief_ratio, belief_percent: item.belief_percent }))));
+      const processedSample = processedNews.slice(0, 3).map(item => ({ uuid: item.uuid, title: item.title, trending_score: item.trending_score, belief_ratio: item.belief_ratio }));
+      debugLog('Processed news array before setting state (sample):', JSON.stringify(processedSample));
       
       // If it's the first page (refresh), replace the news array
       // Otherwise append to the existing news
       if (page === 0) {
-        setNews(processedNews);
+        const oldNewsHash = createNewsHash(news); // Hash before update
+        const newNewsHash = createNewsHash(processedNews); // Hash of new data
+        debugLog(`[fetchTrendingNews] Page 0 fetch. Old hash: ${oldNewsHash}, New hash: ${newNewsHash}`);
+        if (oldNewsHash !== newNewsHash) {
+            debugLog('[fetchTrendingNews] New data detected for page 0, updating state.');
+            setNews(processedNews);
+        } else {
+            debugLog('[fetchTrendingNews] No change detected in data for page 0, state not updated.');
+        }
         setCurrentOffset(processedNews.length);
       } else {
         setNews(prevNews => {
@@ -278,7 +288,7 @@ export const useNewsData = () => {
       
       return true;
     } catch (error) {
-      debugLog('Error fetching trending news:', error);
+      console.error('Error fetching trending news:', error);
       
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
@@ -305,7 +315,8 @@ export const useNewsData = () => {
       if (page === 0) setIsLoading(false);
       setIsLoadingMore(false); // Ensure loading more is always reset
     }
-  }, [pageSize, serviceUrl, retryCount, currentOffset, fetchWithFallback]); // Added dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize, serviceUrl, retryCount, currentOffset, fetchWithFallback, news]); // Added dependencies
   
   // Alias for backward compatibility
   const fetchTopNews = useCallback(() => fetchTrendingNews(0, true), [fetchTrendingNews]);
@@ -405,10 +416,21 @@ export const useNewsData = () => {
     refreshIntervalRef.current = setInterval(() => {
       // Only auto-refresh if we're not loading and the tab is active
       if (!isLoading && !isLoadingMore && document.visibilityState === 'visible') {
-        debugLog('Auto-refreshing trending news data (interval)');
-        fetchTrendingNews(0, true).catch(err => {
-          debugLog('Auto-refresh error:', err);
-        });
+        const currentNewsHash = createNewsHash(news);
+        // Use debugLog for potentially noisy logs
+        debugLog(`[AutoRefresh] Conditions met. Current news hash (first ${pageSize}): ${currentNewsHash}. Fetching page 0.`);
+        
+        fetchTrendingNews(0, true)
+          .then((success) => {
+            if (success) {
+              debugLog('[AutoRefresh] Fetch successful.'); // Use debugLog
+            } else {
+              debugLog('[AutoRefresh] Fetch returned false (likely an error or retry).'); // Use debugLog
+            }
+          })
+          .catch(err => {
+            console.error('[AutoRefresh] Fetch threw an error:', err); // Keep error log
+          });
       }
     }, 53000); // 53 seconds refresh interval (prime number)
     
@@ -418,7 +440,7 @@ export const useNewsData = () => {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [news]); // Add news to dependency array to get the latest hash
 
   // Auto-refresh when tab becomes visible
   useEffect(() => {
@@ -474,6 +496,16 @@ export const useNewsData = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, [fetchTrendingNews, news.length]);
+
+  // Helper function to create a simple hash of the news data for comparison
+  const createNewsHash = (newsArray) => {
+    if (!newsArray || newsArray.length === 0) return 'empty';
+    // Use UUIDs, trending scores, and pub_time for a more sensitive hash, check up to pageSize items
+    return newsArray
+      .slice(0, pageSize) // Check up to the number of items fetched per page
+      .map(n => `${n.uuid}:${(n.trending_score || 'N/A').toFixed(5)}:${n.pub_time || 'N/A'}`)
+      .join('|'); // Use a different separator for clarity
+  };
 
   return {
     news,
