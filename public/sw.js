@@ -21,6 +21,7 @@ self.addEventListener('install', (event) => {
         console.error('Cache installation failed:', error);
       })
   );
+  self.skipWaiting(); // Force activate immediately
 });
 
 // Activate event - clean up old caches
@@ -34,70 +35,87 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Take control of all clients
   );
 });
 
-// Fetch event - network first with cache fallback strategy
+// Fetch event handler
 self.addEventListener('fetch', (event) => {
+  // Only consider HTTP/HTTPS requests
+  if (!event.request.url.match(/^(http|https):\/\//)) {
+    return;
+  }
+  
+  const url = new URL(event.request.url);
+  
+  // Check if this is an API call (client-side request)
+  const isApiRequest = url.hostname === 'localhost' && url.port === '8282';
+  
+  // Also identify navigation to app routes with path prefixes that look like API routes
+  const isAppNavigation = event.request.mode === 'navigate' && 
+    url.hostname === 'localhost' && url.port === '3000' &&
+    ['/news/', '/market/', '/me/', '/search/', '/auth/'].some(
+      prefix => url.pathname.startsWith(prefix)
+    );
+  
+  // Bypass API requests - let browser handle them directly
+  if (isApiRequest) {
+    return;
+  }
+  
+  // For SPA navigation to app routes, serve the index.html
+  if (isAppNavigation) {
+    event.respondWith(
+      caches.match('/index.html')
+        .then(response => {
+          return response || fetch('/index.html');
+        })
+        .catch(() => {
+          return fetch('/index.html');
+        })
+    );
+    return;
+  }
+  
+  // For all other requests (static assets, etc.) use a network-first strategy
   event.respondWith(
-    (async () => {
-      try {
-        // Safely handle potential issues with the fetch request itself
-        if (!event.request || !event.request.url) {
-          throw new Error('Invalid request');
+    fetch(event.request)
+      .then(response => {
+        // Cache successful responses
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              // Only cache HTTP/HTTPS resources
+              if (event.request.url.match(/^(http|https):\/\//)) {
+                cache.put(event.request, responseToCache);
+              }
+            })
+            .catch(err => console.error('Cache put error:', err));
         }
-
-        // Try network first
-        const networkResponse = await fetch(event.request.clone());
+        return response;
+      })
+      .catch(error => {
+        console.log('Network request failed, falling back to cache:', error);
         
-        // If successful, clone and cache the response
-        if (networkResponse && networkResponse.status === 200) {
-          try {
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put(event.request, networkResponse.clone());
-          } catch (cacheError) {
-            console.error('Failed to cache response:', cacheError);
-            // Continue even if caching fails
-          }
-        }
-        
-        return networkResponse;
-      } catch (error) {
-        console.error('Fetch error:', error);
-        
-        try {
-          // Network error, try to get from cache
-          const cachedResponse = await caches.match(event.request);
-          
-          // If we have a cached response, return it
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-        } catch (cacheError) {
-          console.error('Cache match error:', cacheError);
-          // Continue to fallback response if cache matching fails
-        }
-        
-        // If no cached response, return a proper error response
-        console.error('Fetch failed and no cache available:', error);
-        return new Response('Network error occurred', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain' }
-        });
-      }
-    })().catch(criticalError => {
-      // Final fallback for any unhandled promise rejections in the async function
-      console.error('Critical fetch handler error:', criticalError);
-      return new Response('Service worker error', { 
-        status: 500, 
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    })
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            // If it's a navigation request and we don't have it cached, 
+            // try to serve index.html instead
+            if (!cachedResponse && event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+            
+            return cachedResponse || new Response('Network error and no cache available', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+      })
   );
 });
 
-// Handle message events
+// Handle message events (e.g., for manual updates)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
