@@ -9,11 +9,13 @@
 
 
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { UserProvider } from './UserContext';
 import NewsDetail from './NewsDetail'; // New separate component for news details
 import Profile from './Profile';
 import Home from './Home';
+import TemporaryHome from './TemporaryHome'; // Import the temporary homepage
+import { featureFlags } from './config'; // Import feature flags as a named import
 
 // Custom component to handle body class based on route
 const RouteBasedBodyClass = () => {
@@ -48,6 +50,13 @@ const RouteBasedBodyClass = () => {
   return null;
 };
 
+// Homepage component that shows the temporary homepage or the regular homepage based on the feature flag
+const HomepageSelector = () => {
+  return featureFlags.useTemporaryHomepage 
+    ? <TemporaryHome /> 
+    : <Home />;
+};
+
 // Main App component
 const App = () => {
   return (
@@ -55,7 +64,8 @@ const App = () => {
       <UserProvider>
         <RouteBasedBodyClass />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomepageSelector />} />
+          <Route path="/trend" element={<Home />} /> {/* Always show the regular homepage at /trend regardless of the feature flag */}
           <Route path="/news/:uuid" element={<NewsDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:tab" element={<Profile />} />

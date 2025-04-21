@@ -1,0 +1,51 @@
+/**
+ * Simplified styles for the Temporary "Coming Soon" Homepage
+ */
+
+.temporary-home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.temporary-home .container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.coming-soon-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.temporary-home img {
+  max-width: 200px;
+  margin-bottom: 2rem;
+}
+
+.temporary-home h1 {
+  color: #333;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.temporary-home .lead {
+  font-size: 1.5rem;
+  color: #555;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .temporary-home h1 {
+    font-size: 2.5rem;
+  }
+  
+  .temporary-home .lead {
+    font-size: 1.2rem;
+  }
+}

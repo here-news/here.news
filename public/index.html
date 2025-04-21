@@ -19,6 +19,27 @@
   <script src="https://cdn.jsdelivr.net/npm/@msgpack/msgpack@2.8.0/dist.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
   
+  <!-- Dynamic Configuration - loaded from backend with dynamic hostname -->
+  <script>
+    // Determine the API server URL dynamically based on current hostname
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const isDevelopment = window.location.port === '3000';
+    
+    // Use the same logic as in config.js for API URL
+    let apiBaseUrl;
+    if (isDevelopment && (hostname === 'localhost' || /^192\.168\./.test(hostname))) {
+      apiBaseUrl = `http://${hostname}:8282`;
+    } else {
+      apiBaseUrl = `${protocol}//${hostname}:8282`;
+    }
+    
+    // Create and insert the script element
+    const configScript = document.createElement('script');
+    configScript.src = `${apiBaseUrl}/config.js`;
+    configScript.async = false; // We want this to load synchronously before the app
+    document.head.appendChild(configScript);
+  </script>
 </head>
 <body class="fixed-layout">
   <div id="root"></div>
