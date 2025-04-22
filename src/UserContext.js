@@ -351,35 +351,65 @@ export const UserProvider = ({ children }) => {
   const updateUserBalance = useCallback((newBalance) => {
     debugLog('Updating user balance to:', newBalance);
     
-    // Ensure the balance is a valid number
-    const balanceNumber = Number(newBalance);
-    const validBalance = !isNaN(balanceNumber) ? balanceNumber : 0;
+    // Ensure the balance is a valid number - handle various input types
+    let validBalance = 0;
     
+    if (newBalance !== null && newBalance !== undefined) {
+      // Handle object with quote_balance property
+      if (typeof newBalance === 'object' && newBalance.quote_balance !== undefined) {
+        validBalance = Number(newBalance.quote_balance);
+      } 
+      // Handle direct number or string
+      else {
+        validBalance = Number(newBalance);
+      }
+      
+      // Final NaN check
+      if (isNaN(validBalance)) {
+        console.error('Invalid balance value:', newBalance);
+        validBalance = 0;
+      }
+    }
+    
+    debugLog('Normalized balance value:', validBalance);
+    
+    // Update the balance state
     setBalance(validBalance);
     
+    // Update userInfo with the new balance
     setUserInfo(prevUserInfo => {
       if (!prevUserInfo) {
-        // If userInfo doesn't exist yet, create it with basic data
         return {
           public_key: publicKey,
           name: displayName || username || "User",
-          balance: validBalance
+          balance: validBalance,
+          quote_balance: validBalance // Add this for consistency
         };
       }
       return {
         ...prevUserInfo,
-        balance: validBalance
+        balance: validBalance,
+        quote_balance: validBalance // Add this for consistency
       };
     });
     
     // Also update the balance in localStorage for persistence
     try {
       const storedUser = localStorage.getItem('user');
-      if (storedUser && publicKey) {
+      if (storedUser) {
         const userData = JSON.parse(storedUser);
         userData.balance = validBalance;
+        userData.quote_balance = validBalance; // Add this for consistency
         localStorage.setItem('user', JSON.stringify(userData));
-        debugLog('Updated balance in localStorage via updateUserBalance');
+        debugLog('Updated balance in localStorage via updateUserBalance:', validBalance);
+      } else if (publicKey) {
+        // Create a basic user object if none exists
+        localStorage.setItem('user', JSON.stringify({
+          publicKey: publicKey,
+          balance: validBalance,
+          quote_balance: validBalance
+        }));
+        debugLog('Created new user in localStorage with balance:', validBalance);
       }
     } catch (e) {
       console.error('Failed to update balance in localStorage', e);

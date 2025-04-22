@@ -7,11 +7,21 @@ import { apiRequest } from './services/api';
 import './Profile.css';
 
 // Set to true for development debugging, false for production
-const DEBUG_MODE = false;
+const DEBUG_MODE = false; // Setting to false for production
 
 // Helper function to conditionally log messages
 const debugLog = (...args) => {
     if (DEBUG_MODE) console.log(...args);
+};
+
+// Create a balance tracker for debugging
+let balanceHistory = [];
+const trackBalance = (source, value) => {
+    if (DEBUG_MODE) {
+        balanceHistory.push({ source, value, time: new Date().toISOString() });
+        console.log(`Balance: ${source} = ${value} (${typeof value})`);
+        if (balanceHistory.length > 10) balanceHistory.shift(); // Keep last 10 entries
+    }
 };
 
 const Profile = () => {
@@ -67,63 +77,41 @@ const Profile = () => {
 
         try {
             setIsDepositing(true);
-            debugLog("Depositing for user with key:", userPublicKey);
             
-            // Use apiRequest with JWT authentication for deposit
+            // Track current balance before deposit
+            trackBalance("before-deposit", formattedBalance);
+            
+            // Use apiRequest for deposit with explicit amount
+            const depositAmount = 10;
+            debugLog(`Making deposit request for $${depositAmount}`);
+            
             const response = await apiRequest(`${serviceUrl}/me/deposit`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    amount: 10
+                    amount: depositAmount
                 })
             }, true); // Mark as protected for JWT
-
-            if (response.ok) {
-                const data = await response.json();
-                debugLog("Deposit successful - full response data:", data);
+            
+            // Parse the response JSON
+            const result = await response.json();
+            debugLog("Deposit API response:", result);
+            
+            // Simple approach - always refresh balance after deposit
+            // instead of trying to parse the response directly
+            await refreshUserProfile();
+            showNotification(`Successfully deposited $${depositAmount}`, "success");
+            
+            // For debugging - track the balance after update
+            setTimeout(() => {
+                trackBalance("after-deposit", formattedBalance);
                 
-                // The API returns balance inside a nested object
-                if (data && data.balance) {
-                    const newBalance = typeof data.balance === 'number' 
-                        ? data.balance 
-                        : parseFloat(data.balance);
-                        
-                    setLocalBalance(newBalance);
-                    setHasLocalBalance(true);
-                    
-                    // Update global user balance
-                    if (updateUserBalance) {
-                        updateUserBalance(newBalance);
-                    }
-                    
-                    showNotification(`Successfully deposited $10. New balance: $${newBalance.toFixed(2)}.`, "success");
-                } 
-                // Alternatively check for standalone quote_balance field
-                else if (data && data.quote_balance) {
-                    const newBalance = typeof data.quote_balance === 'number' 
-                        ? data.quote_balance 
-                        : parseFloat(data.quote_balance);
-                        
-                    setLocalBalance(newBalance);
-                    setHasLocalBalance(true);
-                    
-                    // Update global user balance
-                    if (updateUserBalance) {
-                        updateUserBalance(newBalance);
-                    }
-                    
-                    showNotification(`Successfully deposited $10. New balance: $${newBalance.toFixed(2)}.`, "success");
-                } else {
-                    console.error("Could not detect balance in response:", data);
-                    showNotification("Deposit successful, but couldn't retrieve your new balance.", "warning");
-                }
-            } else {
-                const errorText = await response.text();
-                console.error("Deposit failed:", errorText);
-                showNotification("Failed to deposit funds. Please try again later.", "error");
-            }
+                // Console log entire balance history for debugging
+                console.table(balanceHistory);
+            }, 500);
+            
         } catch (error) {
             console.error("Error during deposit:", error);
             showNotification("An error occurred while processing your deposit.", "error");
@@ -135,13 +123,14 @@ const Profile = () => {
     // Format balance as a proper number - prioritize local balance, then quote_balance
     const formattedBalance = useMemo(() => {
         // First check if we have a local balance (which is most up-to-date)
-        if (hasLocalBalance) {
+        if (hasLocalBalance && localBalance !== null) {
             debugLog("Using local balance:", localBalance);
-            if (isNaN(localBalance)) {
-                console.error("Local balance is NaN, using 0");
-                return 0;
+            const parsedBalance = Number(localBalance);
+            if (!isNaN(parsedBalance)) {
+                return parsedBalance;
             }
-            return localBalance;
+            console.error("Local balance is NaN, using 0");
+            return 0;
         }
         
         if (!userInfo) return 0;
@@ -150,14 +139,18 @@ const Profile = () => {
         if (userInfo.quote_balance !== undefined) {
             const balanceNum = Number(userInfo.quote_balance);
             debugLog("Using quote_balance from userInfo:", userInfo.quote_balance);
-            return !isNaN(balanceNum) ? balanceNum : 0;
+            if (!isNaN(balanceNum)) {
+                return balanceNum;
+            }
         }
         
         // Fall back to balance if no quote_balance
         if (userInfo.balance !== undefined) {
             const balanceNum = Number(userInfo.balance);
             debugLog("Using balance from userInfo:", userInfo.balance);
-            return !isNaN(balanceNum) ? balanceNum : 0;
+            if (!isNaN(balanceNum)) {
+                return balanceNum;
+            }
         }
         
         return 0;
@@ -175,14 +168,16 @@ const Profile = () => {
                 }
             }, true); // Mark as protected for JWT
             
-            if (response.ok) {
-                const data = await response.json();
-                debugLog("Balance refresh data:", data);
+            // Parse the response JSON
+            const data = await response.json();
+            debugLog("Balance refresh data:", data);
+            
+            // Handle the balance response - extract quote_balance from the response
+            if (data && data.quote_balance !== undefined) {
+                const numBalance = Number(data.quote_balance);
+                debugLog("Setting local balance from balance refresh:", numBalance);
                 
-                // Handle the balance response
-                if (data && data.quote_balance !== undefined) {
-                    const numBalance = Number(data.quote_balance);
-                    debugLog("Setting local balance from balance refresh:", numBalance);
+                if (!isNaN(numBalance)) {
                     setLocalBalance(numBalance);
                     setHasLocalBalance(true);
                     
@@ -191,12 +186,12 @@ const Profile = () => {
                     }
                     showNotification("Balance updated successfully.", "success");
                 } else {
-                    console.error("No valid balance found in balance response:", data);
-                    showNotification("Couldn't retrieve your current balance.", "warning");
+                    console.error("Balance is not a number:", data.quote_balance);
+                    showNotification("Couldn't parse your current balance.", "warning");
                 }
             } else {
-                console.error("Failed to refresh balance:", await response.text());
-                showNotification("Failed to update balance information.", "error");
+                console.error("No valid balance found in balance response:", data);
+                showNotification("Couldn't retrieve your current balance.", "warning");
             }
         } catch (error) {
             console.error("Failed to refresh profile:", error);
