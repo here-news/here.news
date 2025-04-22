@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUser } from './UserContext';
 import serviceUrl from './config';
 import Header from './Header';
@@ -7,33 +7,88 @@ import { apiRequest } from './services/api';
 import './Profile.css';
 
 // Set to true for development debugging, false for production
-const DEBUG_MODE = false; // Setting to false for production
+const DEBUG_MODE = false;
 
 // Helper function to conditionally log messages
 const debugLog = (...args) => {
     if (DEBUG_MODE) console.log(...args);
 };
 
-// Create a balance tracker for debugging
-let balanceHistory = [];
-const trackBalance = (source, value) => {
-    if (DEBUG_MODE) {
-        balanceHistory.push({ source, value, time: new Date().toISOString() });
-        console.log(`Balance: ${source} = ${value} (${typeof value})`);
-        if (balanceHistory.length > 10) balanceHistory.shift(); // Keep last 10 entries
-    }
+// Helper function to format currency values
+const formatCurrency = (value) => {
+    const numValue = Number(value);
+    if (isNaN(numValue)) return '$0.00';
+    
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(numValue);
+};
+
+// Enhanced loading spinner component
+const LoadingSpinner = ({ message = "Loading..." }) => {
+    return (
+        <div className="loading-container">
+            <div className="loading-animation">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <div className="loading-text">{message}</div>
+        </div>
+    );
+};
+
+// Skeleton loading component for position items
+const SkeletonPositions = ({ count = 3 }) => {
+    return (
+        <div>
+            <div className="position-list-header">
+                <div className="position-title">Market</div>
+                <div className="position-shares">Shares</div>
+                <div className="position-value">Value</div>
+            </div>
+            
+            {Array(count).fill().map((_, index) => (
+                <div className="skeleton-position" key={index}>
+                    <div className="skeleton-title skeleton-item"></div>
+                    <div className="skeleton-shares skeleton-item"></div>
+                    <div className="skeleton-value skeleton-item"></div>
+                </div>
+            ))}
+        </div>
+    );
 };
 
 const Profile = () => {
-    // Update to use the correct parameter name matching the route in App.js
-    const { tab = 'profile' } = useParams(); // Get the tab parameter from URL with a default of 'profile'
-    const section = tab; // Keep 'section' for compatibility with existing code
+    const { tab = 'profile' } = useParams();
+    const section = tab;
     const navigate = useNavigate();
     const { userInfo, loading, error, updateUserBalance } = useUser();
     const [isDepositing, setIsDepositing] = useState(false);
     const [localBalance, setLocalBalance] = useState(0);
     const [hasLocalBalance, setHasLocalBalance] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+    
+    // Portfolio data state
+    const [portfolioData, setPortfolioData] = useState(null);
+    const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
+    const [portfolioError, setPortfolioError] = useState(null);
+    
+    // Activities state
+    const [activities, setActivities] = useState([]);
+    const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMoreActivities, setHasMoreActivities] = useState(true);
+    
+    // Cache timeouts and references for optimization
+    const portfolioCacheTimeRef = useRef(0);
+    const CACHE_TTL = 30000; // 30 seconds cache TTL
+    const activitiesTimeoutRef = useRef(null);
+    const portfolioTimeoutRef = useRef(null);
 
     // Function to show a notification
     const showNotification = (message, type = 'success') => {
@@ -78,9 +133,6 @@ const Profile = () => {
         try {
             setIsDepositing(true);
             
-            // Track current balance before deposit
-            trackBalance("before-deposit", formattedBalance);
-            
             // Use apiRequest for deposit with explicit amount
             const depositAmount = 10;
             debugLog(`Making deposit request for $${depositAmount}`);
@@ -95,22 +147,19 @@ const Profile = () => {
                 })
             }, true); // Mark as protected for JWT
             
-            // Parse the response JSON
-            const result = await response.json();
-            debugLog("Deposit API response:", result);
+            await response.json();
             
             // Simple approach - always refresh balance after deposit
-            // instead of trying to parse the response directly
             await refreshUserProfile();
             showNotification(`Successfully deposited $${depositAmount}`, "success");
             
-            // For debugging - track the balance after update
-            setTimeout(() => {
-                trackBalance("after-deposit", formattedBalance);
-                
-                // Console log entire balance history for debugging
-                console.table(balanceHistory);
-            }, 500);
+            // Invalidate portfolio cache to force refresh
+            portfolioCacheTimeRef.current = 0;
+            
+            // Refresh portfolio data if in wallet section
+            if (section === 'wallet') {
+                fetchPortfolioData();
+            }
             
         } catch (error) {
             console.error("Error during deposit:", error);
@@ -122,32 +171,26 @@ const Profile = () => {
 
     // Format balance as a proper number - prioritize local balance, then quote_balance
     const formattedBalance = useMemo(() => {
-        // First check if we have a local balance (which is most up-to-date)
         if (hasLocalBalance && localBalance !== null) {
             debugLog("Using local balance:", localBalance);
             const parsedBalance = Number(localBalance);
             if (!isNaN(parsedBalance)) {
                 return parsedBalance;
             }
-            console.error("Local balance is NaN, using 0");
             return 0;
         }
         
         if (!userInfo) return 0;
         
-        // Then check for quote_balance in userInfo
         if (userInfo.quote_balance !== undefined) {
             const balanceNum = Number(userInfo.quote_balance);
-            debugLog("Using quote_balance from userInfo:", userInfo.quote_balance);
             if (!isNaN(balanceNum)) {
                 return balanceNum;
             }
         }
         
-        // Fall back to balance if no quote_balance
         if (userInfo.balance !== undefined) {
             const balanceNum = Number(userInfo.balance);
-            debugLog("Using balance from userInfo:", userInfo.balance);
             if (!isNaN(balanceNum)) {
                 return balanceNum;
             }
@@ -156,8 +199,8 @@ const Profile = () => {
         return 0;
     }, [userInfo, localBalance, hasLocalBalance]);
 
-    // Add a refresh function to manually update profile data
-    const refreshUserProfile = async () => {
+    // Memoized function to refresh user profile data
+    const refreshUserProfile = useCallback(async () => {
         if (!userInfo || !userInfo.public_key) return;
         
         try {
@@ -166,16 +209,12 @@ const Profile = () => {
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate'
                 }
-            }, true); // Mark as protected for JWT
+            }, true);
             
-            // Parse the response JSON
             const data = await response.json();
-            debugLog("Balance refresh data:", data);
             
-            // Handle the balance response - extract quote_balance from the response
             if (data && data.quote_balance !== undefined) {
                 const numBalance = Number(data.quote_balance);
-                debugLog("Setting local balance from balance refresh:", numBalance);
                 
                 if (!isNaN(numBalance)) {
                     setLocalBalance(numBalance);
@@ -197,19 +236,156 @@ const Profile = () => {
             console.error("Failed to refresh profile:", error);
             showNotification("Failed to update balance information.", "error");
         }
+    }, [userInfo, updateUserBalance]);
+    
+    // Fetch portfolio data with caching
+    const fetchPortfolioData = useCallback(async (forceRefresh = false) => {
+        if (!userInfo || !userInfo.public_key) return;
+        
+        const now = Date.now();
+        
+        // Check if we have cached data that's still valid
+        if (!forceRefresh && portfolioData && (now - portfolioCacheTimeRef.current) < CACHE_TTL) {
+            debugLog("Using cached portfolio data");
+            return;
+        }
+        
+        setIsLoadingPortfolio(true);
+        setPortfolioError(null);
+        
+        try {
+            const response = await apiRequest(`${serviceUrl}/me/portfolio`, {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                }
+            }, true);
+            
+            if (response.ok) {
+                const data = await response.json();
+                setPortfolioData(data);
+                portfolioCacheTimeRef.current = now;
+                
+                // Update user balance with the value from portfolio data
+                if (data.cash_balance !== undefined && updateUserBalance) {
+                    updateUserBalance(data.cash_balance);
+                    setLocalBalance(data.cash_balance);
+                    setHasLocalBalance(true);
+                }
+            } else {
+                setPortfolioError("Failed to fetch portfolio data");
+                console.error("Failed to fetch portfolio data:", response.status);
+            }
+        } catch (error) {
+            setPortfolioError("Error: " + error.message);
+            console.error("Error fetching portfolio data:", error);
+        } finally {
+            setIsLoadingPortfolio(false);
+        }
+    }, [userInfo, portfolioData, updateUserBalance]);
+    
+    // Fetch user activities with caching and debouncing
+    const fetchUserActivities = useCallback(async (page = 1, forceRefresh = false) => {
+        if (!userInfo || !userInfo.public_key) return;
+        
+        // Clear any pending activity fetch timeout
+        if (activitiesTimeoutRef.current) {
+            clearTimeout(activitiesTimeoutRef.current);
+        }
+        
+        // If this isn't a force refresh, set a small timeout to debounce multiple calls
+        if (!forceRefresh && page === 1) {
+            activitiesTimeoutRef.current = setTimeout(() => {
+                fetchUserActivities(page, true);
+            }, 300);
+            return;
+        }
+        
+        setIsLoadingActivities(true);
+        
+        try {
+            const response = await apiRequest(`${serviceUrl}/me/trades?limit=10&page=${page}`, {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                }
+            }, true);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // If we got less than 10 items, we're at the end
+                if (data.length < 10) {
+                    setHasMoreActivities(false);
+                }
+                
+                // On page 1, replace activities, otherwise append
+                if (page === 1) {
+                    setActivities(data);
+                } else {
+                    setActivities(prev => [...prev, ...data]);
+                }
+            } else {
+                console.error("Failed to fetch user activities:", response.status);
+            }
+        } catch (error) {
+            console.error("Error fetching user activities:", error);
+        } finally {
+            setIsLoadingActivities(false);
+        }
+    }, [userInfo]);
+    
+    // Load more activities
+    const loadMoreActivities = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchUserActivities(nextPage, true);
     };
     
-    // Refresh balance when the wallet section is loaded
+    // Refresh data when tabs change, with optimizations
     useEffect(() => {
-        if (section === 'wallet') {
-            debugLog("Wallet section loaded, refreshing profile data");
-            refreshUserProfile();
+        // Clear any pending timeouts when changing sections
+        if (portfolioTimeoutRef.current) {
+            clearTimeout(portfolioTimeoutRef.current);
         }
-    }, [section]);
+        
+        if (activitiesTimeoutRef.current) {
+            clearTimeout(activitiesTimeoutRef.current);
+        }
+        
+        if (section === 'wallet') {
+            debugLog("Wallet section loaded, checking portfolio data");
+            
+            // If we already have cached data, delay the refresh
+            if (portfolioData && (Date.now() - portfolioCacheTimeRef.current) < CACHE_TTL) {
+                // Schedule a refresh in the background after a delay
+                portfolioTimeoutRef.current = setTimeout(() => {
+                    fetchPortfolioData(true);
+                }, 2000);
+            } else {
+                // No cached data or cache expired, fetch immediately
+                fetchPortfolioData(true);
+            }
+        } else if (section === 'activities') {
+            debugLog("Activities section loaded, fetching user activities");
+            setPage(1); // Reset to page 1
+            setHasMoreActivities(true); // Reset pagination
+            fetchUserActivities(1); // Fetch page 1
+        }
+        
+        // Cleanup function to clear timeouts
+        return () => {
+            if (portfolioTimeoutRef.current) {
+                clearTimeout(portfolioTimeoutRef.current);
+            }
+            
+            if (activitiesTimeoutRef.current) {
+                clearTimeout(activitiesTimeoutRef.current);
+            }
+        };
+    }, [section, fetchPortfolioData, fetchUserActivities, portfolioData]);
 
-    // Loading, error and empty states
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    // Return early for loading and error states
+    if (loading) return <div className="container mt-4"><LoadingSpinner message="Loading user data..." /></div>;
+    if (error) return <div className="container mt-4">Error: {error}</div>;
     if (!userInfo) return null;
 
     return (
@@ -247,27 +423,89 @@ const Profile = () => {
                             </div>
                             <div className="main-content">
                                 {section === 'profile' && (
-                                    <div>
+                                    <div className="fade-in">
                                         <h2>Profile</h2>
-                                        <div>
-                                            <img className="avatar-login" src={userInfo.avatar || `${serviceUrl}/avatar/${userInfo.public_key}?format=png&sz=32`} alt="Profile" />
-                                            <p>ID: {userInfo.public_key}</p>
-                                            <p>Name: {userInfo.name}</p>
-                                            <p>Email: {userInfo.email}</p>
-                                            {/* Add a form to update profile details */}
+                                        <div className="user-profile-info">
+                                            <img className="avatar-profile" src={userInfo.avatar || `${serviceUrl}/avatar/${userInfo.public_key}?format=png&sz=64`} alt="Profile" />
+                                            <div className="profile-details">
+                                                <div className="profile-field">
+                                                    <span className="field-label">User ID:</span>
+                                                    <span className="field-value">{userInfo.public_key}</span>
+                                                </div>
+                                                <div className="profile-field">
+                                                    <span className="field-label">Username:</span>
+                                                    <span className="field-value">{userInfo.name || 'Not set'}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                                 {section === 'wallet' && (
-                                    <div>
+                                    <div className="fade-in">
                                         <h2>Wallet & Portfolio</h2>
-                                        <hr />
-                                        <div className="wallet-balance-section">
-                                            <h3>Balance: <b>{isNaN(formattedBalance) ? '0.00' : formattedBalance.toFixed(2)} </b>USD</h3>
-                                            {hasLocalBalance && (
-                                                <p><small>(Updated: {new Date().toLocaleTimeString()})</small></p>
+                                        
+                                        {/* Account Summary Section */}
+                                        <div className="account-summary">
+                                            <div className="summary-header">
+                                                <h3>Account Summary</h3>
+                                                <button 
+                                                    className="btn btn-outline-secondary refresh-btn" 
+                                                    onClick={() => fetchPortfolioData(true)}
+                                                    disabled={isLoadingPortfolio}
+                                                >
+                                                    {isLoadingPortfolio ? 'Refreshing...' : 'Refresh'}
+                                                </button>
+                                            </div>
+                                            
+                                            {portfolioError && (
+                                                <div className="alert alert-danger">
+                                                    {portfolioError}
+                                                </div>
                                             )}
-                                            <p><small>(* currency used for activities in the community)</small></p>
+                                            
+                                            {isLoadingPortfolio && !portfolioData ? (
+                                                <LoadingSpinner message="Loading account summary..." />
+                                            ) : (
+                                                <>
+                                                    <div className="account-value-breakdown">
+                                                        <div className="value-card available-cash">
+                                                            <div className="value-card-label">Available Cash</div>
+                                                            <div className="value-card-amount">
+                                                                {formatCurrency(portfolioData?.cash_balance || formattedBalance)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="value-card portfolio-value">
+                                                            <div className="value-card-label">Portfolio Value</div>
+                                                            <div className="value-card-amount">
+                                                                {formatCurrency(portfolioData?.portfolio_value || 0)}
+                                                            </div>
+                                                        </div>
+                                                        <div className="value-card total-value">
+                                                            <div className="value-card-label">Total Value</div>
+                                                            <div className="value-card-amount">
+                                                                {formatCurrency(portfolioData?.total_value || formattedBalance)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {portfolioData && portfolioData.total_value > 0 && (
+                                                        <div className="value-distribution">
+                                                            <div 
+                                                                className="cash-portion"
+                                                                style={{ width: `${Math.max(10, (portfolioData.cash_balance / portfolioData.total_value) * 100)}%` }}
+                                                            >
+                                                                Cash
+                                                            </div>
+                                                            <div 
+                                                                className="portfolio-portion"
+                                                                style={{ width: `${Math.max(10, (portfolioData.portfolio_value / portfolioData.total_value) * 100)}%` }}
+                                                            >
+                                                                Portfolio
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
                                             
                                             <div className="wallet-actions mt-3">
                                                 <button 
@@ -277,38 +515,131 @@ const Profile = () => {
                                                 >
                                                     {isDepositing ? 'Processing...' : 'Deposit $10'}
                                                 </button>
-                                                <button 
-                                                    className="btn btn-outline-secondary ms-2" 
-                                                    onClick={refreshUserProfile}
-                                                >
-                                                    Refresh Balance
-                                                </button>
                                             </div>
                                         </div>
                                         
-                                        <hr />
-                                        <h3>Transaction History</h3>
-                                        {userInfo.transactions && userInfo.transactions.length > 0 ? (
-                                            <ul className="transaction-list">
-                                                {userInfo.transactions.map((transaction, index) => (
-                                                    <li key={index}>{transaction.description}: {transaction.amount} USD</li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p>No transactions yet.</p>
-                                        )}
+                                        {/* Portfolio Holdings Section */}
+                                        <div className="portfolio-holdings mt-4">
+                                            <h3>Market Positions</h3>
+                                            
+                                            {isLoadingPortfolio && !portfolioData ? (
+                                                <SkeletonPositions count={3} />
+                                            ) : portfolioData && portfolioData.positions && portfolioData.positions.length > 0 ? (
+                                                <div className="position-list">
+                                                    <div className="position-list-header">
+                                                        <div className="position-title">Market</div>
+                                                        <div className="position-shares">Shares</div>
+                                                        <div className="position-value">Value</div>
+                                                    </div>
+                                                    
+                                                    {portfolioData.positions.map((position, index) => (
+                                                        <div className="position-item" key={index}>
+                                                            <div className="position-title">
+                                                                <Link to={`/news/${position.news_id}`}>
+                                                                    {position.title || position.news_id}
+                                                                </Link>
+                                                            </div>
+                                                            <div className="position-shares">
+                                                                {position.yes_shares > 0 && (
+                                                                    <div className="yes-shares">
+                                                                        <span className="badge bg-success">YES: {position.yes_shares}</span>
+                                                                    </div>
+                                                                )}
+                                                                {position.no_shares > 0 && (
+                                                                    <div className="no-shares">
+                                                                        <span className="badge bg-danger">NO: {position.no_shares}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="position-value">
+                                                                {formatCurrency(position.total_value)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-positions">
+                                                    <p>You don't have any positions yet.</p>
+                                                    <p>Start investing in markets to build your portfolio!</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                                 {section === 'activities' && (
-                                    <div>
+                                    <div className="fade-in">
                                         <h2>Activities</h2>
-                                        {/* Display stories the user has engaged with */}
+                                        
+                                        {isLoadingActivities && page === 1 && activities.length === 0 ? (
+                                            <LoadingSpinner message="Loading your activity history..." />
+                                        ) : activities.length > 0 ? (
+                                            <div className="activity-list">
+                                                {activities.map((activity, index) => (
+                                                    <div className="activity-item" key={index}>
+                                                        <div className="activity-header">
+                                                            <span className="activity-type">
+                                                                {activity.side === 'buy' ? 'Bought' : 'Sold'}
+                                                            </span>
+                                                            <span className="activity-date">
+                                                                {new Date(activity.created_at).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                        <div className="activity-content">
+                                                            <p>
+                                                                {activity.volume} shares at {formatCurrency(activity.price)} per share
+                                                                {activity.news_id && (
+                                                                    <Link to={`/news/${activity.news_id}`} className="activity-link">
+                                                                        View Market
+                                                                    </Link>
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                
+                                                {isLoadingActivities && page > 1 ? (
+                                                    <div className="loading-more">
+                                                        <LoadingSpinner message="Loading more activities..." />
+                                                    </div>
+                                                ) : hasMoreActivities && (
+                                                    <button 
+                                                        className="btn btn-outline-primary load-more" 
+                                                        onClick={loadMoreActivities}
+                                                    >
+                                                        Load More
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="no-activities">
+                                                <p>No activities found.</p>
+                                                <p>Start participating in markets to see your activities here!</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 {section === 'settings' && (
-                                    <div>
+                                    <div className="fade-in">
                                         <h2>Settings</h2>
-                                        {/* Display user settings and privacy options */}
+                                        <p className="settings-message">
+                                            Settings configuration options will be available in a future update.
+                                        </p>
+                                        
+                                        {/* Placeholder settings sections */}
+                                        <div className="settings-section">
+                                            <h3>Notification Preferences</h3>
+                                            <p className="placeholder-text">Notification settings will be available soon.</p>
+                                        </div>
+                                        
+                                        <div className="settings-section">
+                                            <h3>Profile Privacy</h3>
+                                            <p className="placeholder-text">Privacy controls will be available soon.</p>
+                                        </div>
+                                        
+                                        <div className="settings-section">
+                                            <h3>Display Options</h3>
+                                            <p className="placeholder-text">Display customization will be available soon.</p>
+                                        </div>
                                     </div>
                                 )}
                             </div>

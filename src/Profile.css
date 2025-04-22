@@ -188,3 +188,446 @@
     border-left: 5px solid #17a2b8;
     color: #0c5460;
 }
+
+/* Enhanced User Profile Styles for MVP 0.3.5 */
+
+/* Profile Page Styles */
+.user-profile-info {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.avatar-profile {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.profile-details {
+    flex: 1;
+}
+
+.profile-field {
+    margin-bottom: 10px;
+}
+
+.field-label {
+    font-weight: bold;
+    display: inline-block;
+    width: 100px;
+    color: #666;
+}
+
+.field-value {
+    color: #333;
+}
+
+/* Wallet & Portfolio Styles */
+.account-summary {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.summary-header h3 {
+    margin: 0;
+}
+
+.refresh-btn {
+    padding: 5px 10px;
+    font-size: 0.9rem;
+}
+
+.account-value-breakdown {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.value-card {
+    flex: 1;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+    margin: 0 5px;
+}
+
+.value-card:first-child {
+    margin-left: 0;
+}
+
+.value-card:last-child {
+    margin-right: 0;
+}
+
+.value-card-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.value-card-amount {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.available-cash {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+}
+
+.portfolio-value {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.total-value {
+    background-color: #fce4ec;
+    color: #c2185b;
+}
+
+.value-distribution {
+    height: 30px;
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex;
+    margin: 20px 0;
+}
+
+.cash-portion, .portfolio-portion {
+    height: 100%;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    transition: width 0.3s ease;
+}
+
+.cash-portion {
+    background-color: #1976d2;
+}
+
+.portfolio-portion {
+    background-color: #388e3c;
+}
+
+.portfolio-holdings {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.position-list {
+    margin-top: 20px;
+}
+
+.position-list-header {
+    display: flex;
+    font-weight: bold;
+    padding: 10px 0;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 10px;
+}
+
+.position-item {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.position-title {
+    flex: 2;
+}
+
+.position-shares {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.yes-shares, .no-shares {
+    margin: 2px 0;
+}
+
+.position-value {
+    flex: 1;
+    text-align: right;
+    font-weight: bold;
+}
+
+.no-positions {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+/* Activity Styles */
+.activity-list {
+    margin-top: 20px;
+}
+
+.activity-item {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.activity-type {
+    font-weight: bold;
+    color: #0066cc;
+}
+
+.activity-date {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.activity-content {
+    line-height: 1.5;
+}
+
+.activity-link {
+    display: block;
+    margin-top: 10px;
+    color: #0066cc;
+}
+
+.no-activities {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    margin-top: 20px;
+}
+
+.load-more {
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+/* Settings Styles */
+.settings-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.settings-message {
+    margin-bottom: 30px;
+    color: #666;
+    font-style: italic;
+}
+
+.placeholder-text {
+    color: #999;
+    font-style: italic;
+}
+
+/* Loading Indicator */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+    opacity: 0.8;
+}
+
+/* Enhanced loading animations */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+}
+
+.loading-animation {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.loading-animation div {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #0066cc;
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+
+.loading-animation div:nth-child(1) {
+    left: 4px;
+    animation: loading1 0.6s infinite;
+}
+
+.loading-animation div:nth-child(2) {
+    left: 4px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-animation div:nth-child(3) {
+    left: 16px;
+    animation: loading2 0.6s infinite;
+}
+
+.loading-animation div:nth-child(4) {
+    left: 28px;
+    animation: loading3 0.6s infinite;
+}
+
+@keyframes loading1 {
+    0% {
+        transform: scale(0);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes loading2 {
+    0% {
+        transform: translate(0, 0);
+    }
+    100% {
+        transform: translate(12px, 0);
+    }
+}
+
+@keyframes loading3 {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(0);
+    }
+}
+
+.loading-text {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Loading skeleton for portfolio items */
+.skeleton-item {
+    background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading-skeleton 1.5s infinite;
+    border-radius: 4px;
+    height: 20px;
+    margin-bottom: 10px;
+}
+
+.skeleton-position {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.skeleton-title {
+    flex: 2;
+    height: 20px;
+}
+
+.skeleton-shares {
+    flex: 1;
+    height: 20px;
+    margin: 0 10px;
+}
+
+.skeleton-value {
+    flex: 1;
+    height: 20px;
+}
+
+@keyframes loading-skeleton {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Fade-in animation for content */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsiveness for smaller screens */
+@media (max-width: 768px) {
+    .profile-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+    }
+    
+    .sidebar ul {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .sidebar li {
+        padding: 10px;
+        margin-right: 10px;
+    }
+    
+    .account-value-breakdown {
+        flex-direction: column;
+    }
+    
+    .value-card {
+        margin: 5px 0;
+    }
+}
